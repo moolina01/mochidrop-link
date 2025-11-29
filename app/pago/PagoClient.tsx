@@ -21,7 +21,7 @@ type EnvioType = {
   };
 };
 
-export default function PagoPage() {
+export default function PagoClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
 

@@ -26,7 +26,7 @@ type EnvioType = {
   tracking_url?: string;
 };
 
-export default function EnvioPage() {
+export default function EnvioClient() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
 

@@ -2,64 +2,66 @@ import Image from "next/image";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6 py-16">
+      <div className="max-w-md w-full bg-white shadow-xl border border-gray-200 rounded-3xl p-8 text-center">
+
+        {/* Logo */}
+        <div className="flex justify-center mb-6">
+          <Image
+            src="/3.png" 
+            alt="MochiDrop Logo"
+            width={70}
+            height={70}
+            className="rounded-full"
+          />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Título */}
+        <h1 className="text-3xl font-bold text-black mb-3">
+          MochiDrop Link
+        </h1>
+
+        {/* Subtexto */}
+        <p className="text-gray-600 text-sm leading-relaxed mb-8">
+          La forma más simple y profesional para que tus clientes elijan
+          su método de envío, paguen y reciban seguimiento — todo desde un
+          link sin necesidad de tener página web.
+        </p>
+
+        {/* Imagen o mockup */}
+        <div className="flex justify-center mb-8">
+          <Image
+            src="/preview.png"
+            alt="Vista previa MochiDrop"
+            width={300}
+            height={400}
+            className="rounded-2xl shadow-sm border"
+          />
         </div>
-      </main>
+
+        {/* Características */}
+        <div className="text-left space-y-4 text-gray-700 text-sm mb-8">
+          <p>✨ Tus clientes eligen Starken, Chilexpress o BlueExpress desde un link.</p>
+          <p>📄 La guía se genera automáticamente y le llega a tu correo.</p>
+          <p>📍 Seguimiento automático sin complicaciones.</p>
+          <p>⚡ Funciona perfecto para ventas en Instagram o WhatsApp.</p>
+        </div>
+
+        {/* Botón CTA */}
+        <a
+          href="https://wa.me/56994284520?text=Hola,%20quiero%20activar%20MochiDrop%20Link"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full block bg-black text-white py-3 rounded-xl font-semibold hover:bg-gray-800 transition"
+        >
+          Activar MochiDrop Link
+        </a>
+
+        {/* Pie */}
+        <p className="mt-6 text-xs text-gray-400">
+          © {new Date().getFullYear()} MochiDrop — Envíos más simples para PyMEs
+        </p>
+      </div>
     </div>
   );
 }

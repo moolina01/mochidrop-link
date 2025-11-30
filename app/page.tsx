@@ -8,7 +8,7 @@ export default function Home() {
         {/* Logo */}
         <div className="flex justify-center mb-6">
           <Image
-            src="/3.png" 
+            src="https://firebasestorage.googleapis.com/v0/b/scorelive-28a31.appspot.com/o/3.PNG?alt=media&token=2c03b09d-f445-435f-a068-dce10c8dc7b9" 
             alt="MochiDrop Logo"
             width={70}
             height={70}

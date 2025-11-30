@@ -42,7 +42,7 @@ export default function PagoClient() {
 
     try {
       const response = await fetch(
-        "https://mochidrop-n8n.utdxt3.easypanel.host/webhook-test/confirmar-envio",
+        "https://mochidrop-n8n.utdxt3.easypanel.host/webhook/confirmar-envio",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

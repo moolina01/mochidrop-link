@@ -498,7 +498,7 @@ export default function Home() {
         {/* Logo */}
         <div className="text-left">
           <label className="block font-medium text-gray-800 mb-1">
-            Sube tu logo (opcional)
+            Sube tu logo 
           </label>
           <input
   name="logo"

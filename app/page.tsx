@@ -95,10 +95,10 @@ export default function Home() {
 
     {/* LOGO + NAME */}
     <div className="flex items-center gap-3">
-      {/* <div className="h-9 w-9 rounded-xl bg-black text-white flex items-center justify-center font-bold text-sm shadow-md">
+    <div className="h-9 w-9 rounded-xl bg-black text-white flex items-center justify-center font-bold text-sm shadow-md">
         M
-      </div> */}
-<div className="h-9 w-9 rounded-xl bg-black text-white flex items-center justify-center font-bold text-sm shadow-md">
+      </div> 
+{/* <div className="h-9 w-9 rounded-xl bg-black text-white flex items-center justify-center font-bold text-sm shadow-md">
 <Image
     src="/3.png"        // <-- cambia por el nombre real del archivo
     alt="MochiDrop Logo"
@@ -106,7 +106,7 @@ export default function Home() {
     height={32}
     className="rounded-xl object-cover"
   />
-</div>
+</div> */}
 
       <span className="text-xl font-semibold tracking-tight">
         MochiDrop <span className="text-[#0E0F28]">Link</span>

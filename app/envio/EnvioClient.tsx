@@ -136,7 +136,7 @@ return (
         {envio.logo_pyme && (
           <img
             src={envio.logo_pyme}
-            className="w-16 h-16 rounded-full mx-auto border border-gray-300 shadow-sm"
+            className="w-26 h-26 rounded-full mx-auto border border-gray-300 shadow-sm"
           />
         )}
 

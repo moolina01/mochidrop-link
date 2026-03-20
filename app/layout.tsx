@@ -1,20 +1,16 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Instrument_Sans } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-instrument-sans",
 });
 
 export const metadata: Metadata = {
-  title: "MochiDrop — Link de envíos",
-  description: "Profesionaliza tus envíos con un solo link",
+  title: "MochiDrop — Links de envío para PYMEs",
+  description: "Deja de cotizar envíos uno por uno. Manda un link, tu cliente elige courier, paga y recibe su tracking.",
 };
 
 export default function RootLayout({
@@ -23,10 +19,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="es">
+      <body className={`${instrumentSans.variable} antialiased`}>
         {children}
       </body>
     </html>

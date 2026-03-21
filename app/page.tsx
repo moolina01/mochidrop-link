@@ -8,15 +8,126 @@ const WA_LINK =
   "https://wa.me/56994284520?text=Hola,%20quiero%20probar%20MochiDrop%20gratis";
 const ID_ENVIO = 3719603;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const fadeInUpView: any = {
-  initial: { opacity: 0, y: 24 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true },
-  transition: { duration: 0.8 },
-};
+// ─── Logo Components ──────────────────────────────────────────────────────────
+function MochiDropLogo({ dark = false }: { dark?: boolean }) {
+  return (
+    <svg width="140" height="32" viewBox="0 0 140 32" fill="none">
+      <g transform="translate(14, 16) rotate(-42) scale(0.32)">
+        <rect x="-30" y="-16" width="48" height="28" rx="14" stroke="#E8553D" strokeWidth="7" />
+        <rect x="8" y="-4" width="48" height="28" rx="14" stroke="#E8553D" strokeWidth="7" />
+      </g>
+      <circle cx="14" cy="15" r="1.4" fill="#E8553D" opacity="0.65" />
+      <circle cx="16.5" cy="17" r="0.9" fill="#E8553D" opacity="0.35" />
+      <text
+        x="34" y="20"
+        fontFamily="'Instrument Sans', sans-serif"
+        fontSize="15" fontWeight="600" fill={dark ? "#fff" : "#1A1A18"}
+      >
+        mochidrop
+      </text>
+      <text
+        x="125" y="20"
+        fontFamily="'Instrument Sans', sans-serif"
+        fontSize="15" fontWeight="500" fill="#E8553D"
+      >
+        link
+      </text>
+    </svg>
+  );
+}
 
-// ─── Navbar ──────────────────────────────────────────────────────────────────
+function MochiDropIcon({ size = 28 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none">
+      <g transform="translate(32,32) rotate(-42) scale(0.58)">
+        <rect x="-30" y="-16" width="48" height="28" rx="14" stroke="#E8553D" strokeWidth="7" />
+        <rect x="8" y="-4" width="48" height="28" rx="14" stroke="#E8553D" strokeWidth="7" />
+      </g>
+      <circle cx="31" cy="31" r="2.2" fill="#E8553D" opacity="0.65" />
+      <circle cx="34.5" cy="33.5" r="1.4" fill="#E8553D" opacity="0.35" />
+    </svg>
+  );
+}
+
+// Decorative pill motif (logo pills as background decoration)
+function DecoPill({
+  style,
+  strokeWidth = 10,
+}: {
+  style?: React.CSSProperties;
+  strokeWidth?: number;
+}) {
+  return (
+    <svg
+      width="200"
+      height="200"
+      viewBox="-120 -120 240 240"
+      style={{ position: "absolute", pointerEvents: "none", overflow: "visible", ...style }}
+    >
+      <g transform="rotate(-42)">
+        <rect x="-80" y="-22" width="110" height="55" rx="27" fill="none" stroke="#E8553D" strokeWidth={strokeWidth} />
+        <rect x="42" y="-8" width="110" height="55" rx="27" fill="none" stroke="#E8553D" strokeWidth={strokeWidth} />
+      </g>
+    </svg>
+  );
+}
+
+// ─── WhatsApp Float Button ────────────────────────────────────────────────────
+function WhatsAppFloat() {
+  return (
+    <motion.a
+      href={WA_LINK}
+      target="_blank"
+      rel="noopener noreferrer"
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: 1.5, duration: 0.4, type: "spring", stiffness: 200 }}
+      whileHover={{ scale: 1.08 }}
+      whileTap={{ scale: 0.95 }}
+      style={{
+        position: "fixed",
+        bottom: 28,
+        left: 28,
+        zIndex: 200,
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        background: "#25D366",
+        color: "#fff",
+        borderRadius: 100,
+        padding: "12px 20px 12px 14px",
+        textDecoration: "none",
+        boxShadow: "0 4px 20px rgba(37,211,102,0.4), 0 2px 8px rgba(0,0,0,0.12)",
+        fontWeight: 600,
+        fontSize: 14,
+      }}
+    >
+      {/* WhatsApp SVG icon */}
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
+      </svg>
+      ¿Tienes dudas? Escríbenos
+    </motion.a>
+  );
+}
+
+// ─── Grain Overlay ────────────────────────────────────────────────────────────
+function GrainOverlay() {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
+        pointerEvents: "none",
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+        opacity: 0.03,
+      }}
+    />
+  );
+}
+
+// ─── Navbar ───────────────────────────────────────────────────────────────────
 function Navbar() {
   return (
     <header
@@ -26,9 +137,9 @@ function Navbar() {
         left: 0,
         right: 0,
         zIndex: 50,
-        background: "rgba(250,250,247,0.85)",
-        backdropFilter: "blur(20px)",
-        borderBottom: "1px solid #E8E8E3",
+        background: "rgba(250,250,247,0.8)",
+        backdropFilter: "blur(24px)",
+        borderBottom: "1px solid rgba(0,0,0,0.04)",
       }}
     >
       <div
@@ -42,33 +153,11 @@ function Navbar() {
           height: 64,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 8,
-              background: "#E8553D",
-              color: "#fff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 700,
-              fontSize: 16,
-            }}
-          >
-            M
-          </div>
-          <span
-            style={{ fontWeight: 700, fontSize: 17, color: "#1A1A18" }}
-          >
-            MochiDrop
-          </span>
-        </div>
-
+        <MochiDropLogo />
         <motion.a
           href={WA_LINK}
-          whileHover={{ y: -2 }}
+          whileHover={{ y: -1 }}
+          transition={{ duration: 0.18 }}
           style={{
             background: "#1A1A18",
             color: "#fff",
@@ -77,7 +166,6 @@ function Navbar() {
             fontSize: 14,
             fontWeight: 600,
             textDecoration: "none",
-            display: "inline-block",
           }}
         >
           Probar gratis →
@@ -87,235 +175,547 @@ function Navbar() {
   );
 }
 
+// ─── Phone Mockup ─────────────────────────────────────────────────────────────
+function PhoneMockup() {
+  return (
+    <div style={{ position: "relative", display: "flex", justifyContent: "center" }}>
+      {/* Floating decorative pills */}
+      <DecoPill style={{ top: -20, right: -20, width: 120, height: 120, opacity: 0.10 }} strokeWidth={14} />
+      <DecoPill style={{ bottom: 30, left: -30, width: 80, height: 80, opacity: 0.12 }} strokeWidth={16} />
+      <DecoPill style={{ top: "35%", right: -50, width: 60, height: 60, opacity: 0.08 }} strokeWidth={18} />
+
+      {/* Phone frame */}
+      <div
+        style={{
+          width: 280,
+          background: "#fff",
+          borderRadius: 32,
+          boxShadow:
+            "0 32px 80px rgba(0,0,0,0.18), 0 8px 24px rgba(0,0,0,0.1)",
+          border: "1px solid rgba(0,0,0,0.08)",
+          padding: 10,
+          overflow: "hidden",
+        }}
+      >
+        {/* Notch */}
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>
+          <div
+            style={{
+              width: 100,
+              height: 24,
+              background: "#1A1A18",
+              borderRadius: "0 0 16px 16px",
+            }}
+          />
+        </div>
+
+        {/* Screen */}
+        <div
+          style={{
+            background: "#FAFAF7",
+            borderRadius: 20,
+            padding: "16px 14px",
+          }}
+        >
+          {/* Header */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 14,
+            }}
+          >
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                background: "#E8553D",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <MochiDropIcon size={18} />
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: 10, fontWeight: 600, color: "#1A1A18" }}>
+                Tu Tienda
+              </p>
+              <p style={{ margin: 0, fontSize: 8, color: "#9C9C95" }}>link de envío</p>
+            </div>
+          </div>
+
+          {/* Recipient */}
+          <p style={{ margin: "0 0 2px", fontSize: 9, color: "#9C9C95", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            Envío para
+          </p>
+          <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 600, color: "#1A1A18" }}>
+            María López
+          </p>
+
+          {/* Address */}
+          <div
+            style={{
+              background: "#fff",
+              border: "1px solid #E8E8E3",
+              borderRadius: 8,
+              padding: "7px 10px",
+              marginBottom: 12,
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+            }}
+          >
+            <span style={{ fontSize: 10 }}>📍</span>
+            <span style={{ fontSize: 9, color: "#5C5C57" }}>
+              Av. Providencia 1234, Santiago
+            </span>
+          </div>
+
+          {/* Courier label */}
+          <p style={{ margin: "0 0 7px", fontSize: 9, color: "#9C9C95", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            Elige tu courier
+          </p>
+
+          {/* Courier options */}
+          {[
+            { name: "Starken", price: "$3.490", days: "2-3 días", selected: true },
+            { name: "Chilexpress", price: "$4.190", days: "1-2 días", selected: false },
+            { name: "Blue Express", price: "$2.890", days: "3-4 días", selected: false },
+          ].map((c, i) => (
+            <div
+              key={i}
+              style={{
+                border: c.selected ? "1.5px solid #E8553D" : "1px solid #E8E8E3",
+                background: c.selected ? "#FFF0ED" : "#fff",
+                borderRadius: 8,
+                padding: "7px 10px",
+                marginBottom: 5,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <p style={{ margin: 0, fontSize: 9, fontWeight: 600, color: "#1A1A18" }}>
+                  {c.name}
+                </p>
+                <p style={{ margin: 0, fontSize: 8, color: "#9C9C95" }}>{c.days}</p>
+              </div>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: c.selected ? "#E8553D" : "#1A1A18",
+                }}
+              >
+                {c.price}
+              </p>
+            </div>
+          ))}
+
+          {/* CTA button */}
+          <div
+            style={{
+              background: "#E8553D",
+              color: "#fff",
+              textAlign: "center",
+              borderRadius: 10,
+              padding: "10px",
+              marginTop: 10,
+              fontSize: 10,
+              fontWeight: 600,
+            }}
+          >
+            Pagar envío →
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 function Hero() {
   return (
     <section
       style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        position: "relative",
+        overflow: "hidden",
         background: "#FAFAF7",
-        paddingTop: 128,
-        paddingBottom: 96,
-        textAlign: "center",
-        paddingLeft: 24,
-        paddingRight: 24,
+        padding: "100px 24px 80px",
       }}
     >
-      <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        {/* Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            background: "#FFF0ED",
-            borderRadius: 100,
-            padding: "8px 16px",
-            marginBottom: 32,
-          }}
-        >
-          <span
-            className="pulse-dot"
-            style={{
-              display: "inline-block",
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: "#E8553D",
-              flexShrink: 0,
-            }}
-          />
-          <span style={{ fontSize: 13, color: "#E8553D", fontWeight: 500 }}>
-            Para PYMEs que venden por Instagram y WhatsApp
-          </span>
-        </motion.div>
+      {/* Diagonal band */}
+      <div
+        style={{
+          position: "absolute",
+          top: "-20%",
+          right: "-10%",
+          width: "70vw",
+          height: "140vh",
+          background: "#FFF0ED",
+          transform: "rotate(-12deg)",
+          borderRadius: "0 0 0 80px",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
 
-        {/* H1 */}
-        <motion.h1
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.1 }}
-          style={{
-            fontSize: "clamp(38px, 6vw, 64px)",
-            fontWeight: 700,
-            letterSpacing: "-0.03em",
-            lineHeight: 1.08,
-            color: "#1A1A18",
-            marginBottom: 24,
-          }}
-        >
-          Deja de cotizar envíos
-          <br />
-          <span style={{ color: "#E8553D", position: "relative" }}>
-            uno por uno.
-          </span>
-        </motion.h1>
+      {/* Pill decorative (top-right) */}
+      <div style={{ position: "absolute", top: "15%", right: "8%", zIndex: 0, opacity: 0.07 }}>
+        <DecoPill style={{ position: "static", width: 200, height: 200 }} />
+      </div>
 
-        {/* Subtitle */}
-        <motion.p
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          style={{
-            fontSize: "clamp(17px, 2vw, 20px)",
-            color: "#5C5C57",
-            maxWidth: 600,
-            margin: "0 auto 40px",
-            lineHeight: 1.6,
-          }}
-        >
-          Manda un link, tu cliente elige courier, paga el envío y recibe su
-          tracking. Sin explicar tarifas, sin hacer filas, sin perder ventas.
-        </motion.p>
-
-        {/* Buttons */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-          style={{
-            display: "flex",
-            gap: 16,
-            justifyContent: "center",
-            flexWrap: "wrap",
-          }}
-        >
-          <motion.a
-            href={WA_LINK}
-            whileHover={{ y: -2 }}
+      <div
+        className="grid md:grid-cols-[1.1fr_0.9fr] grid-cols-1 gap-16 md:gap-[60px] items-center w-full"
+        style={{ maxWidth: 1100, margin: "0 auto", position: "relative", zIndex: 1 }}
+      >
+        {/* Left column — content */}
+        <div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
             style={{
-              background: "#E8553D",
-              color: "#fff",
-              padding: "14px 28px",
-              borderRadius: 100,
-              fontWeight: 600,
-              fontSize: 16,
-              textDecoration: "none",
-              boxShadow: "0 4px 20px rgba(232,85,61,0.3)",
-              display: "inline-block",
-            }}
-          >
-            Quiero probarlo gratis
-          </motion.a>
-          <motion.a
-            href="#como-funciona"
-            whileHover={{ y: -2 }}
-            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
               background: "#fff",
-              color: "#1A1A18",
-              padding: "14px 28px",
+              border: "1px solid #E8E8E3",
               borderRadius: 100,
-              fontWeight: 600,
-              fontSize: 16,
-              textDecoration: "none",
-              border: "1.5px solid #E8E8E3",
-              display: "inline-block",
+              padding: "8px 16px",
+              marginBottom: 28,
             }}
           >
-            Ver cómo funciona ↓
-          </motion.a>
+            <span
+              className="pulse-dot"
+              style={{
+                display: "inline-block",
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                background: "#E8553D",
+                flexShrink: 0,
+              }}
+            />
+            <span style={{ fontSize: 13, color: "#5C5C57", fontWeight: 500 }}>
+              Para tiendas que venden por Instagram y WhatsApp
+            </span>
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.08 }}
+            style={{
+              fontSize: "clamp(36px, 5vw, 60px)",
+              fontWeight: 700,
+              letterSpacing: "-0.035em",
+              lineHeight: 1.06,
+              color: "#1A1A18",
+              marginBottom: 20,
+            }}
+          >
+            Cada envío que gestionas a mano
+            <br />
+            <span style={{ color: "#E8553D" }}>es una venta que casi pierdes.</span>
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.16 }}
+            style={{
+              fontSize: "clamp(16px, 1.5vw, 19px)",
+              color: "#5C5C57",
+              maxWidth: 480,
+              marginBottom: 36,
+              lineHeight: 1.65,
+            }}
+          >
+            MochiDrop genera un link que le mandas a tu cliente por WhatsApp. Ahí elige courier, paga con tarjeta y recibe su tracking. Tú no tocas nada.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.24 }}
+            style={{ display: "flex", gap: 12, flexWrap: "wrap" }}
+          >
+            <motion.a
+              href={WA_LINK}
+              whileHover={{ y: -2 }}
+              transition={{ type: "spring", stiffness: 300 }}
+              style={{
+                background: "#E8553D",
+                color: "#fff",
+                padding: "14px 28px",
+                borderRadius: 100,
+                fontWeight: 600,
+                fontSize: 15,
+                textDecoration: "none",
+                boxShadow: "0 4px 20px rgba(232,85,61,0.3)",
+                display: "inline-block",
+              }}
+            >
+              Crear mi primer link gratis →
+            </motion.a>
+            <motion.a
+              href="#como-funciona"
+              whileHover={{ y: -2 }}
+              transition={{ type: "spring", stiffness: 300 }}
+              style={{
+                background: "transparent",
+                color: "#1A1A18",
+                padding: "14px 28px",
+                borderRadius: 100,
+                fontWeight: 600,
+                fontSize: 15,
+                textDecoration: "none",
+                border: "1.5px solid #E8E8E3",
+                display: "inline-block",
+              }}
+            >
+              Ver cómo funciona ↓
+            </motion.a>
+          </motion.div>
+        </div>
+
+        {/* Right column — phone mockup */}
+        <motion.div
+          initial={{ opacity: 0, x: 24 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+          className="order-first md:order-last flex justify-center"
+        >
+          <PhoneMockup />
         </motion.div>
       </div>
     </section>
   );
 }
 
-// ─── Pain Section ─────────────────────────────────────────────────────────────
-function PainSection() {
-  const pains = [
+// ─── Pain Chat ────────────────────────────────────────────────────────────────
+function PainChat() {
+  const bubbles: {
+    type: "client" | "seller" | "narrator";
+    text: string;
+    time?: string;
+  }[] = [
     {
-      emoji: "😩",
-      bold: '"¿Cuánto sale el envío a Temuco?"',
-      desc: "y tienes que abrir Starken, Chilexpress, cotizar, sacar captura y mandarlo por WhatsApp. Por cada cliente.",
+      type: "client",
+      text: "Hola! quiero los aritos, como es el envio a Rancagua?",
     },
     {
-      emoji: "🔄",
-      bold: '"¿Y a La Serena? ¿Y a Concepción?"',
-      desc: "las mismas preguntas todo el día. Mientras tanto, pierdes tiempo que podrías usar para vender.",
+      type: "seller",
+      text: "Holaa! sale $3.490 por Starken. Mandame tu direccion completa porfa",
+      time: "11:42",
     },
     {
-      emoji: "💸",
-      bold: '"Ya, déjalo, mejor no compro"',
-      desc: "el cliente se aburre de esperar la cotización o no quiere transferir el envío aparte. Venta perdida.",
+      type: "client",
+      text: "Av Brasil 218, Rancagua",
     },
     {
-      emoji: "🏃",
-      bold: "Ir a dejar el paquete, hacer la guía a mano, mandar el tracking...",
-      desc: "tiempo muerto que se repite con cada pedido.",
+      type: "seller",
+      text: "Me falta la comuna y numero de depto",
+      time: "11:48",
+    },
+    {
+      type: "narrator",
+      text: "Direccion, datos bancarios, \"ya te transfiero\"... 45 min despues todavia no paga.",
+    },
+    {
+      type: "narrator",
+      text: "Y despues: verificar pago, generar guia, imprimir etiqueta, mandar tracking. Todo manual. Todo por 1 envio.",
     },
   ];
 
   return (
-    <section style={{ padding: "96px 24px", background: "#FAFAF7" }}>
-      <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        <motion.div {...fadeInUpView}>
-          {/* Card wrapper with gradient top border */}
-          <div style={{ borderRadius: 16, overflow: "hidden" }}>
-            <div
+    <section
+      style={{
+        background: "#FFF0ED",
+        padding: "110px 24px 100px",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Skew cut at top */}
+      <div
+        style={{
+          position: "absolute",
+          top: -32,
+          left: 0,
+          right: 0,
+          height: 64,
+          background: "#FAFAF7",
+          transform: "skewY(-2deg)",
+          transformOrigin: "left",
+        }}
+      />
+
+      <div
+        style={{
+          maxWidth: 700,
+          margin: "0 auto",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          style={{ marginBottom: 40 }}
+        >
+          <p
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.12em",
+              color: "#E8553D",
+              marginBottom: 12,
+            }}
+          >
+            ¿Te suena familiar?
+          </p>
+          <h2
+            style={{
+              fontSize: "clamp(26px, 3.5vw, 36px)",
+              fontWeight: 700,
+              color: "#1A1A18",
+              margin: 0,
+            }}
+          >
+            Tu WhatsApp, todos los días:
+          </h2>
+        </motion.div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {bubbles.map((b, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 12, scale: 0.96 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.12, ease: "easeOut" }}
               style={{
-                height: 4,
-                background: "linear-gradient(90deg, #E8553D, #F0B429)",
-              }}
-            />
-            <div
-              style={{
-                background: "#fff",
-                border: "1.5px solid #E8E8E3",
-                borderTop: "none",
-                borderRadius: "0 0 16px 16px",
-                padding: "48px",
-                boxShadow:
-                  "0 4px 20px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04)",
+                display: "flex",
+                justifyContent:
+                  b.type === "client"
+                    ? "flex-start"
+                    : b.type === "seller"
+                    ? "flex-end"
+                    : "center",
               }}
             >
-              <p
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  color: "#E8553D",
-                  marginBottom: 16,
-                }}
-              >
-                ¿Te suena familiar?
-              </p>
-              <h2
-                style={{
-                  fontSize: "clamp(24px, 3vw, 32px)",
-                  fontWeight: 700,
-                  color: "#1A1A18",
-                  marginBottom: 32,
-                }}
-              >
-                Cada envío te cuesta 15 minutos de tu vida
-              </h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                {pains.map((p, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: 16,
-                      background: "#FDF6F5",
-                      borderLeft: "3px solid #E8553D",
-                      borderRadius: 10,
-                      padding: 16,
-                    }}
-                  >
-                    <span style={{ fontSize: 22, flexShrink: 0 }}>{p.emoji}</span>
-                    <p style={{ margin: 0, lineHeight: 1.6 }}>
-                      <strong style={{ color: "#1A1A18" }}>{p.bold}</strong>{" "}
-                      <span style={{ color: "#5C5C57" }}>{p.desc}</span>
+              {b.type === "narrator" ? (
+                <div
+                  style={{
+                    background: "rgba(0,0,0,0.06)",
+                    borderRadius: 100,
+                    padding: "8px 18px",
+                    fontSize: 13,
+                    color: "#5C5C57",
+                    maxWidth: 460,
+                    textAlign: "center",
+                  }}
+                >
+                  {b.text}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    maxWidth: "75%",
+                    background: b.type === "client" ? "#fff" : "#E8553D",
+                    color: b.type === "client" ? "#1A1A18" : "#fff",
+                    borderRadius:
+                      b.type === "client"
+                        ? "18px 18px 18px 4px"
+                        : "18px 18px 4px 18px",
+                    padding: "12px 16px",
+                    boxShadow:
+                      b.type === "client"
+                        ? "0 2px 8px rgba(0,0,0,0.07)"
+                        : "none",
+                  }}
+                >
+                  <p style={{ margin: "0 0 6px", fontSize: 14, lineHeight: 1.5 }}>
+                    {b.text}
+                  </p>
+                  {b.time && (
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: 11,
+                        opacity: 0.45,
+                        textAlign: "right",
+                      }}
+                    >
+                      {b.time}
                     </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Bridge block */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, delay: 0.3 }}
+          style={{
+            marginTop: 48,
+            textAlign: "center",
+            padding: "36px 32px",
+            background: "#fff",
+            borderRadius: 20,
+            border: "1.5px solid rgba(232,85,61,0.15)",
+            boxShadow: "0 4px 24px rgba(232,85,61,0.08)",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "clamp(20px, 2.5vw, 26px)",
+              fontWeight: 700,
+              color: "#1A1A18",
+              marginBottom: 20,
+              lineHeight: 1.3,
+            }}
+          >
+            ¿Y si en vez de todo eso...
+            <br />
+            <span style={{ color: "#E8553D" }}>solo mandas un link?</span>
+          </p>
+          <motion.a
+            href="#como-funciona"
+            whileHover={{ y: -2 }}
+            transition={{ type: "spring", stiffness: 300 }}
+            style={{
+              display: "inline-block",
+              background: "#E8553D",
+              color: "#fff",
+              padding: "12px 28px",
+              borderRadius: 100,
+              fontWeight: 600,
+              fontSize: 15,
+              textDecoration: "none",
+              boxShadow: "0 4px 16px rgba(232,85,61,0.3)",
+            }}
+          >
+            Ver cómo funciona →
+          </motion.a>
         </motion.div>
       </div>
     </section>
@@ -328,33 +728,71 @@ function HowItWorks() {
     {
       num: "1",
       color: "#E8553D",
-      title: "Pegas los datos",
-      desc: "Nombre y dirección del cliente. MochiDrop genera un link personalizado con tu marca.",
+      shadow: "rgba(232,85,61,0.28)",
+      title: "Creas el link en segundos",
+      desc: "Nombre del cliente y dirección. MochiDrop arma un link personalizado con tu marca al instante.",
     },
     {
       num: "2",
       color: "#6C5CE7",
-      title: "Tu cliente elige y paga",
-      desc: "Ve las opciones de courier con precios reales. Elige, paga el envío y listo. Todo en el link.",
+      shadow: "rgba(108,92,231,0.28)",
+      title: "Tu cliente hace todo solo",
+      desc: "Abre el link, ve precios reales de distintos couriers, elige el que prefiere y paga con su tarjeta. Sin que tú intervengas.",
     },
     {
       num: "3",
       color: "#2D8A56",
-      title: "Guía + tracking automático",
-      desc: "Recibes la guía lista para imprimir. Tu cliente recibe el seguimiento automáticamente.",
+      shadow: "rgba(45,138,86,0.28)",
+      title: "Listo. No tocas nada más.",
+      desc: "La guía llega a tu correo lista para imprimir. Tu cliente recibe el tracking automático. Tú te dedicas a vender.",
     },
   ];
 
   return (
-    <section id="como-funciona" style={{ padding: "96px 24px", background: "#fff" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <motion.div {...fadeInUpView} style={{ textAlign: "center", marginBottom: 64 }}>
+    <section
+      id="como-funciona"
+      style={{
+        background: "#FAFAF7",
+        padding: "110px 24px 100px",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Skew cut at top */}
+      <div
+        style={{
+          position: "absolute",
+          top: -32,
+          left: 0,
+          right: 0,
+          height: 64,
+          background: "#FFF0ED",
+          transform: "skewY(-2deg)",
+          transformOrigin: "right",
+        }}
+      />
+
+      <div
+        style={{
+          maxWidth: 680,
+          margin: "0 auto",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          style={{ textAlign: "center", marginBottom: 64 }}
+        >
           <p
             style={{
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: 600,
               textTransform: "uppercase",
-              letterSpacing: "0.1em",
+              letterSpacing: "0.12em",
               color: "#E8553D",
               marginBottom: 12,
             }}
@@ -367,91 +805,90 @@ function HowItWorks() {
               fontWeight: 700,
               color: "#1A1A18",
               letterSpacing: "-0.02em",
+              margin: 0,
             }}
           >
-            De 15 minutos a 30 segundos
+            Un link. Todo resuelto.
           </h2>
+          <p style={{ fontSize: 16, color: "#5C5C57", marginTop: 12, margin: "12px 0 0" }}>
+            Lo que antes te tomaba 15 minutos ahora pasa en 30 segundos.
+          </p>
         </motion.div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-            gap: 24,
-            alignItems: "center",
-          }}
-        >
-          {steps.map((step, i) => (
-            <div
-              key={i}
-              style={{ display: "flex", alignItems: "center", gap: 16 }}
-            >
+        {/* Vertical timeline */}
+        <div style={{ position: "relative" }}>
+          {/* Connecting line */}
+          <div
+            style={{
+              position: "absolute",
+              left: 31,
+              top: 32,
+              bottom: 32,
+              width: 2,
+              background: "linear-gradient(to bottom, #E8553D, #6C5CE7, #2D8A56)",
+              borderRadius: 2,
+            }}
+          />
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 48 }}>
+            {steps.map((step, i) => (
               <motion.div
-                initial={{ opacity: 0, y: 24 }}
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.8, delay: i * 0.1 }}
-                whileHover={{ y: -4 }}
-                style={{
-                  flex: 1,
-                  background: "#fff",
-                  border: "1.5px solid #E8E8E3",
-                  borderRadius: 16,
-                  padding: 32,
-                  boxShadow:
-                    "0 4px 20px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04)",
-                  cursor: "default",
-                }}
+                transition={{ duration: 0.7, delay: i * 0.15, ease: "easeOut" }}
+                style={{ display: "flex", gap: 28, alignItems: "flex-start" }}
               >
+                {/* Step dot */}
                 <div
                   style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 12,
+                    width: 64,
+                    height: 64,
+                    borderRadius: 20,
                     background: step.color,
                     color: "#fff",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     fontWeight: 700,
-                    fontSize: 18,
-                    marginBottom: 20,
+                    fontSize: 22,
+                    flexShrink: 0,
+                    zIndex: 1,
+                    boxShadow: `0 8px 24px ${step.shadow}`,
                   }}
                 >
                   {step.num}
                 </div>
-                <h3
-                  style={{
-                    fontWeight: 600,
-                    fontSize: 18,
-                    color: "#1A1A18",
-                    marginBottom: 12,
-                  }}
-                >
-                  {step.title}
-                </h3>
-                <p
-                  style={{
-                    fontSize: 14,
-                    color: "#5C5C57",
-                    lineHeight: 1.65,
-                    margin: 0,
-                  }}
-                >
-                  {step.desc}
-                </p>
-              </motion.div>
 
-              {i < 2 && (
-                <span
-                  className="hidden md:block"
-                  style={{ color: "#9C9C95", fontSize: 24, flexShrink: 0 }}
-                >
-                  →
-                </span>
-              )}
-            </div>
-          ))}
+                {/* Content */}
+                <div style={{ paddingTop: 12 }}>
+                  <h3
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 20,
+                      color: "#1A1A18",
+                      marginBottom: 8,
+                      margin: "0 0 8px",
+                    }}
+                  >
+                    {step.title}
+                  </h3>
+                  <p
+                    style={{
+                      fontSize: 15,
+                      color: "#5C5C57",
+                      maxWidth: 440,
+                      lineHeight: 1.65,
+                      margin: 0,
+                    }}
+                  >
+                    {step.desc}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -461,33 +898,78 @@ function HowItWorks() {
 // ─── Comparison ───────────────────────────────────────────────────────────────
 function Comparison() {
   const without = [
-    "Cotizas envío manualmente en cada courier",
-    "Mandas capturas de precio por WhatsApp",
-    "Esperas que el cliente te transfiera",
+    "Buscas el precio del envío en la web del courier",
+    "Vuelves a WhatsApp a explicar las opciones",
+    "Esperas que el cliente transfiera (si es que vuelve)",
     "Generas la guía a mano en la web del courier",
-    "Copias y pegas el tracking por WhatsApp",
-    "~15 minutos por cada envío",
+    "Copias y pegas el tracking al cliente",
   ];
-  const with_ = [
-    "Pegas los datos del cliente → se genera el link",
-    "Mandas el link por WhatsApp",
-    "El cliente elige courier y paga solo",
+  const withItems = [
+    "Creas el link con los datos del cliente",
+    "Lo mandas por WhatsApp",
+    "Tu cliente elige, paga con tarjeta y listo",
     "La guía se genera automáticamente",
     "El tracking llega solo al cliente",
-    "~30 segundos por cada envío",
   ];
 
   return (
-    <section style={{ padding: "96px 24px", background: "#FAFAF7" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <motion.div {...fadeInUpView} style={{ textAlign: "center", marginBottom: 64 }}>
+    <section
+      style={{
+        background: "#141413",
+        padding: "110px 24px 100px",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Skew cut at top */}
+      <div
+        style={{
+          position: "absolute",
+          top: -32,
+          left: 0,
+          right: 0,
+          height: 64,
+          background: "#FAFAF7",
+          transform: "skewY(2deg)",
+          transformOrigin: "right",
+        }}
+      />
+
+      {/* Pill decorative */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "10%",
+          left: "5%",
+          opacity: 0.06,
+          pointerEvents: "none",
+        }}
+      >
+        <DecoPill style={{ position: "static", width: 180, height: 90 }} />
+      </div>
+
+      <div
+        style={{
+          maxWidth: 1100,
+          margin: "0 auto",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          style={{ textAlign: "center", marginBottom: 56 }}
+        >
           <p
             style={{
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: 600,
               textTransform: "uppercase",
-              letterSpacing: "0.1em",
-              color: "#E8553D",
+              letterSpacing: "0.12em",
+              color: "#FF6B52",
               marginBottom: 12,
             }}
           >
@@ -497,102 +979,164 @@ function Comparison() {
             style={{
               fontSize: "clamp(28px, 4vw, 40px)",
               fontWeight: 700,
-              color: "#1A1A18",
+              color: "#fff",
               letterSpacing: "-0.02em",
+              margin: 0,
             }}
           >
-            Tu día con y sin MochiDrop
+            El mismo envío. Dos realidades.
           </h2>
         </motion.div>
 
-        <div
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, delay: 0.1 }}
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: 24,
+            borderRadius: 20,
+            overflow: "hidden",
+            border: "1px solid rgba(255,255,255,0.08)",
           }}
         >
-          {/* Sin MochiDrop */}
-          <motion.div
-            {...fadeInUpView}
-            style={{
-              background: "#FDF6F5",
-              border: "1.5px solid #F0D0CA",
-              borderRadius: 16,
-              padding: 32,
-            }}
-          >
-            <h3
+          <div className="grid md:grid-cols-2 grid-cols-1">
+            {/* Without */}
+            <div
               style={{
-                fontWeight: 700,
-                fontSize: 20,
-                color: "#E8553D",
-                marginBottom: 24,
+                background: "rgba(232,85,61,0.08)",
+                padding: 36,
               }}
+              className="border-b md:border-b-0 md:border-r border-white/[0.06]"
             >
-              ❌ Sin MochiDrop
-            </h3>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 12 }}>
-              {without.map((item, i) => (
-                <li
-                  key={i}
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 10,
-                    fontSize: 14,
-                    color: "#5C5C57",
-                  }}
-                >
-                  <span style={{ color: "#E8553D", marginTop: 1, flexShrink: 0 }}>✗</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </motion.div>
+              <h3
+                style={{
+                  fontWeight: 700,
+                  fontSize: 18,
+                  color: "#FF8A7A",
+                  marginBottom: 24,
+                }}
+              >
+                ✗ Sin MochiDrop
+              </h3>
+              <ul
+                style={{
+                  listStyle: "none",
+                  padding: 0,
+                  margin: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 14,
+                }}
+              >
+                {without.map((item, i) => (
+                  <li
+                    key={i}
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 10,
+                      fontSize: 14,
+                      color: "rgba(255,255,255,0.6)",
+                    }}
+                  >
+                    <span style={{ color: "#FF8A7A", flexShrink: 0 }}>✗</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
 
-          {/* Con MochiDrop */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: 0.1 }}
+            {/* With */}
+            <div
+              style={{ background: "rgba(45,138,86,0.08)", padding: 36 }}
+            >
+              <h3
+                style={{
+                  fontWeight: 700,
+                  fontSize: 18,
+                  color: "#6EDB9A",
+                  marginBottom: 24,
+                }}
+              >
+                ✓ Con MochiDrop
+              </h3>
+              <ul
+                style={{
+                  listStyle: "none",
+                  padding: 0,
+                  margin: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 14,
+                }}
+              >
+                {withItems.map((item, i) => (
+                  <li
+                    key={i}
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 10,
+                      fontSize: 14,
+                      color: "rgba(255,255,255,0.6)",
+                    }}
+                  >
+                    <span style={{ color: "#6EDB9A", flexShrink: 0 }}>✓</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Bottom bar */}
+          <div
             style={{
-              background: "#E8F5ED",
-              border: "1.5px solid #B8DCCA",
-              borderRadius: 16,
-              padding: 32,
+              borderTop: "1px solid rgba(255,255,255,0.08)",
+              padding: "28px 36px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 48,
+              flexWrap: "wrap",
             }}
           >
-            <h3
+            <div style={{ textAlign: "center" }}>
+              <p style={{ margin: "0 0 4px", fontSize: 28, fontWeight: 700, color: "#FF8A7A" }}>
+                ~15 min
+              </p>
+              <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
+                por envío manual
+              </p>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <p style={{ margin: "0 0 4px", fontSize: 28, fontWeight: 700, color: "#6EDB9A" }}>
+                ~30 seg
+              </p>
+              <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
+                por envío con MochiDrop
+              </p>
+            </div>
+            <motion.a
+              href={WA_LINK}
+              whileHover={{ y: -2 }}
+              transition={{ type: "spring", stiffness: 300 }}
               style={{
-                fontWeight: 700,
-                fontSize: 20,
-                color: "#2D8A56",
-                marginBottom: 24,
+                display: "inline-block",
+                background: "#E8553D",
+                color: "#fff",
+                padding: "12px 24px",
+                borderRadius: 100,
+                fontWeight: 600,
+                fontSize: 14,
+                textDecoration: "none",
+                boxShadow: "0 4px 16px rgba(232,85,61,0.35)",
               }}
             >
-              ✅ Con MochiDrop
-            </h3>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 12 }}>
-              {with_.map((item, i) => (
-                <li
-                  key={i}
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 10,
-                    fontSize: 14,
-                    color: "#5C5C57",
-                  }}
-                >
-                  <span style={{ color: "#2D8A56", marginTop: 1, flexShrink: 0 }}>✓</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-        </div>
+              Recuperar mi tiempo →
+            </motion.a>
+          </div>
+        </motion.div>
       </div>
     </section>
   );
@@ -604,43 +1148,57 @@ function Calculator() {
 
   const manualMin = shipments * 15;
   const mochiMin = Math.round(shipments * 0.5);
-  const savedPerMonth = (((manualMin - mochiMin) * 4) / 60).toFixed(1);
+  const savedHours = ((manualMin - mochiMin) * 4) / 60;
+  const extraSales = Math.round(savedHours * 2);
+  const fmt = (min: number) =>
+    min >= 60 ? `${(min / 60).toFixed(1)}h` : `${min} min`;
 
   return (
-    <section style={{ padding: "96px 24px", background: "#fff" }}>
-      <div style={{ maxWidth: 700, margin: "0 auto" }}>
-        <motion.div
-          {...fadeInUpView}
-          style={{
-            background: "#1A1A18",
-            borderRadius: 16,
-            padding: "48px",
-            position: "relative",
-            overflow: "hidden",
-            color: "#fff",
-          }}
-        >
-          {/* Glow decorativo */}
-          <div
-            style={{
-              position: "absolute",
-              top: -60,
-              right: -60,
-              width: 220,
-              height: 220,
-              background: "radial-gradient(circle, rgba(232,85,61,0.15), transparent)",
-              borderRadius: "50%",
-              pointerEvents: "none",
-            }}
-          />
+    <section
+      id="calculadora"
+      style={{
+        background: "#FAFAF7",
+        padding: "110px 24px 100px",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Skew cut at top */}
+      <div
+        style={{
+          position: "absolute",
+          top: -32,
+          left: 0,
+          right: 0,
+          height: 64,
+          background: "#141413",
+          transform: "skewY(-2deg)",
+          transformOrigin: "left",
+        }}
+      />
 
+      <div
+        style={{
+          maxWidth: 560,
+          margin: "0 auto",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          style={{ textAlign: "center", marginBottom: 48 }}
+        >
           <p
             style={{
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: 600,
               textTransform: "uppercase",
-              letterSpacing: "0.1em",
-              color: "#FF6B52",
+              letterSpacing: "0.12em",
+              color: "#E8553D",
               marginBottom: 12,
             }}
           >
@@ -648,25 +1206,67 @@ function Calculator() {
           </p>
           <h2
             style={{
-              fontSize: "clamp(24px, 3vw, 32px)",
+              fontSize: "clamp(26px, 3.5vw, 38px)",
               fontWeight: 700,
-              marginBottom: 8,
+              color: "#1A1A18",
+              letterSpacing: "-0.02em",
+              margin: 0,
             }}
           >
-            ¿Cuánto tiempo estás perdiendo?
+            El tiempo que pierdes tiene un precio
           </h2>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, delay: 0.1 }}
+          style={{
+            background: "#fff",
+            border: "1.5px solid #E8E8E3",
+            borderRadius: 24,
+            padding: 40,
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          {/* Left gradient bar */}
+          <div
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: 5,
+              background: "linear-gradient(to bottom, #E8553D, #6C5CE7)",
+              borderRadius: "24px 0 0 24px",
+            }}
+          />
+
+          {/* Label */}
           <p
             style={{
-              color: "rgba(255,255,255,0.6)",
-              marginBottom: 32,
-              fontSize: 16,
+              textAlign: "center",
+              fontSize: 14,
+              fontWeight: 500,
+              color: "#5C5C57",
+              marginBottom: 20,
             }}
           >
-            Ingresa cuántos envíos haces a la semana
+            ¿Cuántos envíos haces a la semana?
           </p>
 
-          {/* Input */}
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 32 }}>
+          {/* Input row */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              justifyContent: "center",
+              gap: 12,
+              marginBottom: 32,
+            }}
+          >
             <input
               type="number"
               value={shipments}
@@ -675,72 +1275,86 @@ function Calculator() {
                 setShipments(Math.max(1, parseInt(e.target.value) || 1))
               }
               style={{
-                width: 120,
-                fontSize: 28,
+                width: 100,
+                fontSize: 36,
                 fontWeight: 700,
+                color: "#E8553D",
+                border: "none",
+                borderBottom: "3px solid #E8553D",
                 textAlign: "center",
-                background: "rgba(255,255,255,0.1)",
-                border: "1px solid rgba(255,255,255,0.15)",
-                borderRadius: 12,
-                padding: "12px",
-                color: "#fff",
+                background: "transparent",
                 outline: "none",
                 fontFamily: "inherit",
               }}
             />
+            <span style={{ fontSize: 15, color: "#9C9C95" }}>
+              envíos / semana
+            </span>
           </div>
 
           {/* Results */}
           <div
-            style={{
-              background: "rgba(255,255,255,0.08)",
-              borderRadius: 10,
-              padding: 24,
-              display: "flex",
-              flexDirection: "column",
-              gap: 16,
-            }}
+            style={{ display: "flex", flexDirection: "column", gap: 10 }}
           >
+            {[
+              { label: "Tiempo manual por semana", value: fmt(manualMin) },
+              { label: "Tiempo con MochiDrop", value: fmt(mochiMin) },
+            ].map((row, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "14px 16px",
+                  background: "#FAFAF7",
+                  borderRadius: 12,
+                }}
+              >
+                <span style={{ fontSize: 14, color: "#5C5C57" }}>
+                  {row.label}
+                </span>
+                <span
+                  style={{ fontSize: 15, fontWeight: 600, color: "#1A1A18" }}
+                >
+                  {row.value}
+                </span>
+              </div>
+            ))}
             <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                fontSize: 14,
-                color: "rgba(255,255,255,0.7)",
+                padding: "14px 16px",
+                background: "#FFF0ED",
+                border: "1px solid rgba(232,85,61,0.2)",
+                borderRadius: 12,
               }}
             >
-              <span>Tiempo manual por semana</span>
-              <span style={{ fontWeight: 600, color: "#fff" }}>{manualMin} min</span>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                fontSize: 14,
-                color: "rgba(255,255,255,0.7)",
-              }}
-            >
-              <span>Tiempo con MochiDrop</span>
-              <span style={{ fontWeight: 600, color: "#fff" }}>{mochiMin} min</span>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                paddingTop: 16,
-                borderTop: "1px solid rgba(255,255,255,0.15)",
-              }}
-            >
-              <span style={{ fontWeight: 500, color: "#fff" }}>
+              <span style={{ fontSize: 14, fontWeight: 500, color: "#1A1A18" }}>
                 Tiempo que recuperas al mes
               </span>
-              <span
-                style={{ fontWeight: 700, fontSize: 26, color: "#FF6B52" }}
-              >
-                {savedPerMonth}h
+              <span style={{ fontSize: 20, fontWeight: 700, color: "#E8553D" }}>
+                {savedHours.toFixed(1)}h
+              </span>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "14px 16px",
+                background: "#E8F5ED",
+                border: "1px solid rgba(45,138,86,0.2)",
+                borderRadius: 12,
+              }}
+            >
+              <span style={{ fontSize: 14, fontWeight: 500, color: "#1A1A18" }}>
+                Ventas extras que podrías cerrar
+              </span>
+              <span style={{ fontSize: 20, fontWeight: 700, color: "#2D8A56" }}>
+                ~{extraSales} ventas
               </span>
             </div>
           </div>
@@ -750,84 +1364,148 @@ function Calculator() {
   );
 }
 
-// ─── Stats ────────────────────────────────────────────────────────────────────
-function Stats() {
-  const stats = [
-    { num: "30s", desc: "Tiempo promedio por envío" },
-    { num: "3", desc: "Couriers para elegir" },
-    { num: "$0", desc: "Para empezar a usar" },
+// ─── Integrations ─────────────────────────────────────────────────────────────
+function Integrations() {
+  const couriers = [
+    { name: "Starken", color: "#E8553D", bg: "#FFF0ED", border: "#F5C4BB" },
+    { name: "Chilexpress", color: "#C8372D", bg: "#FDF3F2", border: "#F0CECA" },
+    { name: "Blue Express", color: "#1A6BC4", bg: "#EFF5FF", border: "#C2D9F5" },
   ];
 
   return (
-    <section style={{ padding: "96px 24px", background: "#FAFAF7" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <motion.div {...fadeInUpView} style={{ textAlign: "center", marginBottom: 64 }}>
-          <p
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-              color: "#E8553D",
-              marginBottom: 12,
-            }}
-          >
-            En números
+    <section style={{ background: "#FAFAF7", padding: "96px 24px" }}>
+      <div style={{ maxWidth: 860, margin: "0 auto" }}>
+
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          style={{ textAlign: "center", marginBottom: 52 }}
+        >
+          <p style={{
+            fontSize: 12, fontWeight: 600, textTransform: "uppercase",
+            letterSpacing: "0.12em", color: "#E8553D", marginBottom: 12,
+          }}>
+            Integraciones
           </p>
-          <h2
-            style={{
-              fontSize: "clamp(28px, 4vw, 40px)",
-              fontWeight: 700,
-              color: "#1A1A18",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            Hecho para vendedoras reales
+          <h2 style={{
+            fontSize: "clamp(26px, 3.5vw, 38px)", fontWeight: 700,
+            color: "#1A1A18", letterSpacing: "-0.02em", marginBottom: 14,
+          }}>
+            Un link, cuatro servicios trabajando por ti
           </h2>
+          <p style={{
+            fontSize: 16, color: "#5C5C57", maxWidth: 460,
+            margin: "0 auto", lineHeight: 1.7,
+          }}>
+            MochiDrop conecta couriers y pagos para que tu cliente haga todo solo desde un link.
+          </p>
         </motion.div>
 
-        <div
+        {/* FLOW — hero card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, delay: 0.1 }}
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: 24,
+            background: "#1A1A18",
+            borderRadius: 20,
+            padding: "36px 40px",
+            marginBottom: 16,
+            display: "flex",
+            alignItems: "center",
+            gap: 28,
+            flexWrap: "wrap",
           }}
         >
-          {stats.map((s, i) => (
+          <div style={{
+            width: 56, height: 56, borderRadius: 16,
+            background: "#6C5CE7",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 26, flexShrink: 0,
+          }}>
+            💳
+          </div>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+              <p style={{ fontWeight: 700, fontSize: 20, color: "#fff", margin: 0 }}>
+                Pago con FLOW
+              </p>
+              <span style={{
+                background: "#6C5CE7", color: "#fff",
+                fontSize: 11, fontWeight: 600,
+                padding: "3px 10px", borderRadius: 100,
+              }}>
+                Recomendado
+              </span>
+            </div>
+            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", margin: 0, lineHeight: 1.6 }}>
+              Tu cliente paga con tarjeta de crédito o débito — sin transferencias, sin mensajes de "ya te mandé el comprobante". El cobro es seguro, instantáneo y confirmado.
+            </p>
+          </div>
+          <div style={{
+            display: "flex", flexDirection: "column", gap: 8, flexShrink: 0,
+          }}>
+            {["Webpay Plus", "Tarjeta de crédito", "Tarjeta de débito"].map((m, i) => (
+              <span key={i} style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                background: "rgba(108,92,231,0.2)",
+                border: "1px solid rgba(108,92,231,0.35)",
+                borderRadius: 100, padding: "5px 12px",
+                fontSize: 12, fontWeight: 500, color: "#C4BCFF",
+              }}>
+                ✓ {m}
+              </span>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Couriers — 3 simple pills */}
+        <div className="grid md:grid-cols-3 grid-cols-1 gap-3">
+          {couriers.map((c, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, y: 24 }}
+              initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.8, delay: i * 0.1 }}
-              whileHover={{ y: -4 }}
+              transition={{ duration: 0.5, delay: 0.2 + i * 0.07 }}
               style={{
                 background: "#fff",
                 border: "1.5px solid #E8E8E3",
-                borderRadius: 16,
-                padding: 32,
-                textAlign: "center",
-                boxShadow:
-                  "0 4px 20px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04)",
-                cursor: "default",
+                borderRadius: 14,
+                padding: "16px 20px",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
               }}
             >
-              <p
-                style={{
-                  fontSize: 36,
-                  fontWeight: 700,
-                  color: "#E8553D",
-                  marginBottom: 8,
-                }}
-              >
-                {s.num}
-              </p>
-              <p style={{ fontSize: 14, color: "#5C5C57", margin: 0 }}>
-                {s.desc}
+              <div style={{
+                width: 10, height: 10, borderRadius: "50%",
+                background: c.color, flexShrink: 0,
+              }} />
+              <p style={{ fontWeight: 600, fontSize: 15, color: "#1A1A18", margin: 0 }}>
+                {c.name}
               </p>
             </motion.div>
           ))}
         </div>
+
+        {/* Footer note */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, delay: 0.4 }}
+          style={{
+            textAlign: "center", fontSize: 13,
+            color: "#9C9C95", marginTop: 20,
+          }}
+        >
+          Los couriers se muestran con precios reales al momento de la compra — tu cliente elige el que prefiere.
+        </motion.p>
       </div>
     </section>
   );
@@ -861,7 +1539,6 @@ function GenerateForm({
     fontFamily: "inherit",
     boxSizing: "border-box",
   };
-
   const labelStyle: React.CSSProperties = {
     display: "block",
     fontWeight: 500,
@@ -871,37 +1548,44 @@ function GenerateForm({
   };
 
   return (
-    <section id="generar" style={{ padding: "96px 24px", background: "#fff" }}>
-      <div style={{ maxWidth: 700, margin: "0 auto" }}>
+    <section
+      id="generar"
+      style={{ background: "#fff", padding: "96px 24px" }}
+    >
+      <div style={{ maxWidth: 600, margin: "0 auto" }}>
         <motion.div
-          {...fadeInUpView}
-          style={{ textAlign: "center", marginBottom: 48 }}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          style={{ textAlign: "center", marginBottom: 40 }}
         >
           <h2
             style={{
-              fontSize: "clamp(28px, 4vw, 40px)",
+              fontSize: "clamp(26px, 3.5vw, 36px)",
               fontWeight: 700,
               color: "#1A1A18",
-              letterSpacing: "-0.02em",
               marginBottom: 12,
             }}
           >
-            Genera tu link de envío
+            Pruébalo ahora con tu propia marca
           </h2>
-          <p style={{ color: "#5C5C57", fontSize: 16, margin: 0 }}>
-            Personalízalo con el nombre de tu marca y pruébalo ahora mismo.
+          <p style={{ color: "#5C5C57", fontSize: 15, margin: 0 }}>
+            En 30 segundos vas a ver exactamente lo que verá tu próximo cliente.
           </p>
         </motion.div>
 
         <motion.div
-          {...fadeInUpView}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, delay: 0.1 }}
           style={{
             background: "#fff",
             border: "1.5px solid #E8E8E3",
-            borderRadius: 16,
+            borderRadius: 20,
             padding: 40,
-            boxShadow:
-              "0 12px 40px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04)",
+            boxShadow: "0 12px 40px rgba(0,0,0,0.08)",
           }}
         >
           <form
@@ -917,7 +1601,6 @@ function GenerateForm({
                 style={inputStyle}
               />
             </div>
-
             <div>
               <label style={labelStyle}>Sube tu logo</label>
               <input
@@ -927,7 +1610,6 @@ function GenerateForm({
                 style={{ ...inputStyle, cursor: "pointer" }}
               />
             </div>
-
             <div>
               <label style={labelStyle}>Tu correo</label>
               <input
@@ -937,7 +1619,6 @@ function GenerateForm({
                 style={inputStyle}
               />
             </div>
-
             <motion.button
               type="submit"
               disabled={loading}
@@ -956,7 +1637,6 @@ function GenerateForm({
                   ? "none"
                   : "0 4px 20px rgba(232,85,61,0.3)",
                 fontFamily: "inherit",
-                transition: "background 0.2s",
               }}
             >
               {loading ? "Creando link…" : "Crear mi link de prueba"}
@@ -1004,9 +1684,10 @@ function GenerateForm({
             >
               Tu link de prueba está listo 🎉
             </h2>
-            <p style={{ color: "#5C5C57", fontSize: 14, marginBottom: 24 }}>
-              Este es un link de demostración para que veas cómo lo verán tus
-              clientes.
+            <p
+              style={{ color: "#5C5C57", fontSize: 14, marginBottom: 24 }}
+            >
+              Este es un link de demostración para que veas la experiencia que tendrán tus clientes.
             </p>
             <div
               style={{
@@ -1065,49 +1746,87 @@ function GenerateForm({
 // ─── Final CTA ────────────────────────────────────────────────────────────────
 function FinalCTA() {
   return (
-    <section style={{ padding: "96px 24px", background: "#FAFAF7" }}>
-      <div style={{ maxWidth: 700, margin: "0 auto", textAlign: "center" }}>
-        <motion.div {...fadeInUpView}>
+    <section
+      style={{
+        background: "#FAFAF7",
+        padding: "100px 24px 120px",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* Giant pill decorative (centered) */}
+      <div
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          opacity: 0.04,
+          pointerEvents: "none",
+          width: 500,
+          height: 250,
+        }}
+      >
+        <DecoPill style={{ position: "static", width: 500, height: 250 }} strokeWidth={6} />
+      </div>
+
+      <div
+        style={{
+          maxWidth: 700,
+          margin: "0 auto",
+          textAlign: "center",
+          position: "relative",
+          zIndex: 1,
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+        >
           <h2
             style={{
-              fontSize: "clamp(28px, 4vw, 40px)",
+              fontSize: "clamp(28px, 4vw, 42px)",
               fontWeight: 700,
               color: "#1A1A18",
               letterSpacing: "-0.02em",
               marginBottom: 16,
             }}
           >
-            ¿Lista para dejar de cotizar envíos a mano?
+            Tu próximo envío puede tomar 30 segundos.
           </h2>
           <p
             style={{
+              fontSize: 17,
               color: "#5C5C57",
-              fontSize: 18,
-              marginBottom: 40,
-              lineHeight: 1.6,
+              maxWidth: 500,
+              margin: "0 auto 40px",
+              lineHeight: 1.65,
             }}
           >
-            Crea tu primer link de envío en menos de un minuto. Sin tarjeta,
-            sin compromiso, sin letra chica.
+            Crea tu primer link ahora. Sin tarjeta, sin compromiso, sin letra chica.
           </p>
           <motion.a
             href={WA_LINK}
             whileHover={{ y: -2 }}
+            transition={{ type: "spring", stiffness: 300 }}
             style={{
               display: "inline-block",
               background: "#E8553D",
               color: "#fff",
-              padding: "16px 32px",
+              padding: "18px 40px",
               borderRadius: 100,
               fontWeight: 600,
-              fontSize: 16,
+              fontSize: 18,
               textDecoration: "none",
-              boxShadow: "0 4px 20px rgba(232,85,61,0.3)",
+              boxShadow: "0 4px 24px rgba(232,85,61,0.35)",
+              marginBottom: 20,
             }}
           >
             Empezar gratis por WhatsApp →
           </motion.a>
-          <div style={{ marginTop: 24 }}>
+          <div>
             <span
               style={{
                 display: "inline-flex",
@@ -1121,7 +1840,7 @@ function FinalCTA() {
                 color: "#2D8A56",
               }}
             >
-              ✓ 20 envíos gratis cada mes, para siempre
+              ✓ 20 envíos gratis al mes — para siempre
             </span>
           </div>
         </motion.div>
@@ -1132,83 +1851,191 @@ function FinalCTA() {
 
 // ─── Footer ───────────────────────────────────────────────────────────────────
 function Footer() {
+  const colTitleStyle: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 600,
+    textTransform: "uppercase",
+    letterSpacing: "0.12em",
+    color: "rgba(255,255,255,0.35)",
+    marginBottom: 20,
+  };
+
+  const linkStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    fontSize: 14,
+    color: "rgba(255,255,255,0.55)",
+    textDecoration: "none",
+    transition: "color 0.2s",
+  };
+
+  const navLinks = [
+    { href: "#como-funciona", label: "Cómo funciona" },
+    { href: "#calculadora", label: "Calculadora de tiempo" },
+    { href: "#generar", label: "Genera tu link" },
+  ];
+
   return (
-    <footer
-      style={{
-        borderTop: "1px solid #E8E8E3",
-        background: "#FAFAF7",
-        padding: "40px 24px",
-      }}
-    >
+    <footer style={{ background: "#1A1A18", position: "relative" }}>
+      {/* Gradient top border */}
+      <div
+        style={{
+          height: 3,
+          background: "linear-gradient(90deg, #E8553D, #6C5CE7)",
+        }}
+      />
+
+      {/* Main content */}
       <div
         style={{
           maxWidth: 1100,
           margin: "0 auto",
-          display: "flex",
-          flexDirection: "row",
-          flexWrap: "wrap",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 16,
+          padding: "64px 24px 48px",
         }}
       >
-        <p style={{ fontSize: 14, color: "#9C9C95", margin: 0 }}>
-          © 2025 MochiDrop — Santiago, Chile 🇨🇱
-        </p>
-        <div style={{ display: "flex", gap: 24 }}>
-          <a
-            href="mailto:contacto@mochidrop.cl"
-            style={{
-              fontSize: 14,
-              color: "#9C9C95",
-              textDecoration: "none",
-              transition: "color 0.2s",
-            }}
-            onMouseEnter={(e) =>
-              ((e.currentTarget as HTMLAnchorElement).style.color = "#E8553D")
-            }
-            onMouseLeave={(e) =>
-              ((e.currentTarget as HTMLAnchorElement).style.color = "#9C9C95")
-            }
-          >
-            contacto@mochidrop.cl
-          </a>
-          <a
-            href={WA_LINK}
-            style={{
-              fontSize: 14,
-              color: "#9C9C95",
-              textDecoration: "none",
-              transition: "color 0.2s",
-            }}
-            onMouseEnter={(e) =>
-              ((e.currentTarget as HTMLAnchorElement).style.color = "#E8553D")
-            }
-            onMouseLeave={(e) =>
-              ((e.currentTarget as HTMLAnchorElement).style.color = "#9C9C95")
-            }
-          >
-            WhatsApp
-          </a>
+        <div className="grid md:grid-cols-[1.2fr_1fr_1fr] grid-cols-1 gap-12 md:gap-8">
+
+          {/* Col 1 — Brand */}
+          <div>
+            <div style={{ marginBottom: 20 }}>
+              <MochiDropLogo dark />
+            </div>
+            <p
+              style={{
+                fontSize: 14,
+                color: "rgba(255,255,255,0.45)",
+                lineHeight: 1.7,
+                maxWidth: 260,
+                marginBottom: 24,
+              }}
+            >
+              Links de envío para tiendas chilenas que venden por redes sociales. Tu cliente elige courier, paga con tarjeta y recibe tracking — todo desde un link.
+            </p>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 100,
+                padding: "6px 14px",
+                fontSize: 13,
+                color: "rgba(255,255,255,0.5)",
+              }}
+            >
+              🇨🇱 Hecho en Santiago, Chile
+            </span>
+          </div>
+
+          {/* Col 2 — Producto */}
+          <div>
+            <p style={colTitleStyle}>Producto</p>
+            <nav style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {navLinks.map((link, i) => (
+                <a
+                  key={i}
+                  href={link.href}
+                  style={linkStyle}
+                  onMouseEnter={(e) =>
+                    ((e.currentTarget as HTMLAnchorElement).style.color = "#E8553D")
+                  }
+                  onMouseLeave={(e) =>
+                    ((e.currentTarget as HTMLAnchorElement).style.color =
+                      "rgba(255,255,255,0.55)")
+                  }
+                >
+                  {link.label}
+                </a>
+              ))}
+            </nav>
+          </div>
+
+          {/* Col 3 — Contacto */}
+          <div>
+            <p style={colTitleStyle}>Contacto</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <a
+                href="mailto:mbmoolina@gmail.com"
+                style={linkStyle}
+                onMouseEnter={(e) =>
+                  ((e.currentTarget as HTMLAnchorElement).style.color = "#E8553D")
+                }
+                onMouseLeave={(e) =>
+                  ((e.currentTarget as HTMLAnchorElement).style.color =
+                    "rgba(255,255,255,0.55)")
+                }
+              >
+                <span style={{ fontSize: 16 }}>✉️</span>
+                mbmoolina@gmail.com
+              </a>
+              <a
+                href={WA_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={linkStyle}
+                onMouseEnter={(e) =>
+                  ((e.currentTarget as HTMLAnchorElement).style.color = "#E8553D")
+                }
+                onMouseLeave={(e) =>
+                  ((e.currentTarget as HTMLAnchorElement).style.color =
+                    "rgba(255,255,255,0.55)")
+                }
+              >
+                <span style={{ fontSize: 16 }}>💬</span>
+                WhatsApp
+              </a>
+              <div style={{ marginTop: 4 }}>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    background: "rgba(45,138,86,0.15)",
+                    border: "1px solid rgba(45,138,86,0.25)",
+                    borderRadius: 100,
+                    padding: "5px 12px",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: "#6EDB9A",
+                  }}
+                >
+                  ⚡ Respondemos en menos de 24h
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom bar */}
+      <div
+        style={{
+          borderTop: "1px solid rgba(255,255,255,0.07)",
+          padding: "20px 24px",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1100,
+            margin: "0 auto",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 8,
+          }}
+        >
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", margin: 0 }}>
+            © 2026 MochiDrop. Todos los derechos reservados.
+          </p>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", margin: 0 }}>
+            Hecho con ❤️ en Santiago, Chile 🇨🇱
+          </p>
         </div>
       </div>
     </footer>
-  );
-}
-
-// ─── Grain Overlay ────────────────────────────────────────────────────────────
-function GrainOverlay() {
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9999,
-        pointerEvents: "none",
-        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-        opacity: 0.03,
-      }}
-    />
   );
 }
 
@@ -1241,17 +2068,13 @@ export default function Home() {
       if (logoFile) {
         const ext = logoFile.name.split(".").pop();
         const fileName = `logos/${Date.now()}.${ext}`;
-
         const { error: uploadErr } = await supabase.storage
           .from("mochidrop")
           .upload(fileName, logoFile);
-
         if (uploadErr) throw uploadErr;
-
         const { data: urlData } = supabase.storage
           .from("mochidrop")
           .getPublicUrl(fileName);
-
         logoUrl = urlData.publicUrl;
       }
 
@@ -1268,7 +2091,6 @@ export default function Home() {
           }),
         }
       );
-
       if (!res.ok) throw new Error("Webhook error");
       setModalOpen(true);
     } catch (err) {
@@ -1290,14 +2112,15 @@ export default function Home() {
       }}
     >
       <GrainOverlay />
+      <WhatsAppFloat />
       <Navbar />
       <main>
         <Hero />
-        <PainSection />
+        <PainChat />
         <HowItWorks />
         <Comparison />
         <Calculator />
-        <Stats />
+        <Integrations />
         <GenerateForm
           onSubmit={handleSubmit}
           loading={loading}

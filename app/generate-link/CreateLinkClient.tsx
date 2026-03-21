@@ -1,396 +1,643 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import BrandHeader from "./components/BrandHeader";
-import LinkQuotaPill from "./components/LinkQuotaPill";
-import FooterHint from "./components/FooterHint";
-import PreviewCard from "./components/PreviewCard";
+import { supabase } from "@/utils/supabase";
 
-/** Estado mínimo para crear un link de checkout */
+// ─── Constantes ───────────────────────────────────────────────────────────────
+
+const N8N_CREATE_LINK =
+  "https://mochidrop-n8n.utdxt3.easypanel.host/webhook/crear-link";
+
+// ─── Tipos ────────────────────────────────────────────────────────────────────
+
 type FormState = {
-  businessName: string;
-  logoDataUrl: string;
-  productName: string;
-  productPrice: string; // string para permitir escribir cómodo
-  productPhotoDataUrl: string;
+  // Negocio
+  nombrePyme: string;
+  logoFile: File | null;
+  logoPreview: string;
+
+  // Cliente (destinatario)
+  clienteNombre: string;
+  clienteTelefono: string;
+  clienteComuna: string;
+  clienteDireccion: string;
+  clienteNumero: string; // número/depto
+
+  // Origen (desde dónde despacha la PyME)
+  origenComuna: string;
+  origenDireccion: string;
+
+  // Paquete
+  largo: string;  // cm
+  alto: string;   // cm
+  ancho: string;  // cm
+  peso: string;   // kg
 };
 
-const DEFAULT_STATE: FormState = {
-  businessName: "",
-  logoDataUrl: "",
-  productName: "",
-  productPrice: "",
-  productPhotoDataUrl: "",
+const DEFAULT: FormState = {
+  nombrePyme: "",
+  logoFile: null,
+  logoPreview: "",
+  clienteNombre: "",
+  clienteTelefono: "",
+  clienteComuna: "",
+  clienteDireccion: "",
+  clienteNumero: "",
+  origenComuna: "",
+  origenDireccion: "",
+  largo: "",
+  alto: "",
+  ancho: "",
+  peso: "",
 };
 
-function toCLP(raw: string) {
-  // deja solo dígitos
-  const digits = raw.replace(/[^\d]/g, "");
-  return digits;
-}
-
-function formatCLP(digits: string) {
-  if (!digits) return "";
-  // separador de miles simple
-  const n = Number(digits);
-  if (!Number.isFinite(n) || n <= 0) return "";
-  return n.toLocaleString("es-CL");
-}
-
-function readFileAsDataURL(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error("read_error"));
-    reader.onload = () => resolve(String(reader.result || ""));
-    reader.readAsDataURL(file);
-  });
-}
-
-function hasMinimalRequired(s: FormState) {
+function isComplete(s: FormState) {
   return (
-    s.productName.trim().length > 0 &&
-    toCLP(s.productPrice).length > 0 &&
-    Number(toCLP(s.productPrice)) > 0 &&
-    s.businessName.trim().length > 0
-    // foto y logo pueden ser opcionales (recomendado, pero no bloqueante)
+    s.nombrePyme.trim() !== "" &&
+    s.clienteNombre.trim() !== "" &&
+    s.clienteComuna.trim() !== "" &&
+    s.clienteDireccion.trim() !== "" &&
+    s.origenComuna.trim() !== "" &&
+    s.origenDireccion.trim() !== "" &&
+    Number(s.largo) > 0 &&
+    Number(s.alto) > 0 &&
+    Number(s.ancho) > 0 &&
+    Number(s.peso) > 0
   );
 }
 
+// ─── UI helpers ───────────────────────────────────────────────────────────────
+
+function SectionTitle({ n, label }: { n: number; label: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+      <div style={{
+        width: 26, height: 26, borderRadius: "50%",
+        background: "#E8553D", color: "#fff",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 12, fontWeight: 700, flexShrink: 0,
+      }}>
+        {n}
+      </div>
+      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#1A1A18", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+        {label}
+      </p>
+    </div>
+  );
+}
+
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p style={{ margin: "0 0 5px", fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>{label}</p>
+      {children}
+      {hint && <p style={{ margin: "5px 0 0", fontSize: 11, color: "#9C9C95" }}>{hint}</p>}
+    </div>
+  );
+}
+
+function TextInput({
+  value, onChange, placeholder, type = "text",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+}) {
+  return (
+    <input
+      type={type}
+      value={value}
+      placeholder={placeholder}
+      onChange={(e) => onChange(e.target.value)}
+      style={{
+        width: "100%", boxSizing: "border-box",
+        border: "1px solid #E8E8E3", borderRadius: 10,
+        padding: "11px 14px", fontSize: 14, color: "#1A1A18",
+        background: "#fff", outline: "none", fontFamily: "inherit",
+      }}
+      onFocus={(e) => {
+        e.currentTarget.style.borderColor = "#E8553D";
+        e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.1)";
+      }}
+      onBlur={(e) => {
+        e.currentTarget.style.borderColor = "#E8E8E3";
+        e.currentTarget.style.boxShadow = "none";
+      }}
+    />
+  );
+}
+
+function Divider() {
+  return <div style={{ height: 1, background: "#E8E8E3", margin: "8px 0" }} />;
+}
+
+// ─── Componente principal ─────────────────────────────────────────────────────
+
 export default function CreateLinkClient() {
-  const [linksLeft, setLinksLeft] = useState<number>(7);
-  const [state, setState] = useState<FormState>(DEFAULT_STATE);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [generatedUrl, setGeneratedUrl] = useState<string>("");
-  const [error, setError] = useState<string>("");
+  const [form, setForm] = useState<FormState>(DEFAULT);
+  const [loading, setLoading] = useState(false);
+  const [generatedUrl, setGeneratedUrl] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState("");
 
-  const canGenerate = useMemo(() => {
-    if (linksLeft <= 0) return false;
-    return hasMinimalRequired(state);
-  }, [linksLeft, state]);
+  const canSubmit = useMemo(() => isComplete(form), [form]);
 
-  function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setState((s) => ({ ...s, [key]: value }));
+  function set<K extends keyof FormState>(key: K, value: FormState[K]) {
+    setForm((s) => ({ ...s, [key]: value }));
   }
 
   async function onPickLogo(file?: File | null) {
     if (!file) return;
-    try {
-      const dataUrl = await readFileAsDataURL(file);
-      setField("logoDataUrl", dataUrl);
-    } catch {
-      setError("No pudimos cargar el logo. Intenta con otra imagen.");
-    }
+    const reader = new FileReader();
+    reader.onload = () =>
+      setForm((s) => ({ ...s, logoFile: file, logoPreview: String(reader.result) }));
+    reader.readAsDataURL(file);
   }
 
-  async function onPickProductPhoto(file?: File | null) {
-    if (!file) return;
-    try {
-      const dataUrl = await readFileAsDataURL(file);
-      setField("productPhotoDataUrl", dataUrl);
-    } catch {
-      setError("No pudimos cargar la foto del producto. Intenta con otra imagen.");
-    }
-  }
-
-  async function onGenerate() {
+  async function handleSubmit() {
+    if (!canSubmit) return;
     setError("");
-    setGeneratedUrl("");
-
-    if (linksLeft <= 0) {
-      setError("Ya usaste tus 7 links gratis. Escríbenos a soporte para continuar.");
-      return;
-    }
-
-    if (!hasMinimalRequired(state)) {
-      setError("Completa al menos: nombre del producto, precio y nombre de tu negocio.");
-      return;
-    }
-
-    setIsSubmitting(true);
+    setLoading(true);
 
     try {
-      // ⚠️ Aquí conectas a tu API (Supabase) para crear el checkout real.
-      // MVP UX: link mock
-      const id = crypto.randomUUID().slice(0, 8);
-      const url = `https://mochidrop.link/p/${id}`;
+      // 1. Subir logo a Supabase Storage (si hay)
+      let logoUrl = "";
+      if (form.logoFile) {
+        const ext = form.logoFile.name.split(".").pop();
+        const path = `logos/${Date.now()}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from("mochidrop")
+          .upload(path, form.logoFile, { upsert: true });
+        if (!uploadErr) {
+          const { data: publicData } = supabase.storage
+            .from("mochidrop")
+            .getPublicUrl(path);
+          logoUrl = publicData.publicUrl;
+        }
+      }
 
-      setGeneratedUrl(url);
-      setLinksLeft((n) => Math.max(0, n - 1));
+      // 2. Llamar al webhook de N8N que crea el envío y cotiza couriers
+      const payload = {
+        nombre_pyme: form.nombrePyme.trim(),
+        logo_pyme: logoUrl,
+        datos_destino: {
+          nombre: form.clienteNombre.trim(),
+          telefono: form.clienteTelefono.trim(),
+          comuna: form.clienteComuna.trim(),
+          direccion: form.clienteDireccion.trim(),
+          number: form.clienteNumero.trim(),
+        },
+        origen: {
+          comuna: form.origenComuna.trim(),
+          direccion: form.origenDireccion.trim(),
+        },
+        paquete: {
+          largo: Number(form.largo),
+          alto: Number(form.alto),
+          ancho: Number(form.ancho),
+          peso: Number(form.peso),
+        },
+      };
+
+      const res = await fetch(N8N_CREATE_LINK, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) throw new Error("webhook_error");
+
+      const data = await res.json();
+
+      // N8N debe devolver el id del envío creado en Supabase
+      const id = data?.id ?? data?.id_envio ?? data?.[0]?.id;
+      if (!id) throw new Error("no_id");
+
+      const baseUrl = window.location.origin;
+      setGeneratedUrl(`${baseUrl}/envio?id=${id}`);
     } catch {
-      setError("No pudimos generar el link. Intenta nuevamente.");
+      setError(
+        "No pudimos generar el link. Verifica los datos y vuelve a intentar."
+      );
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   }
 
-  async function copyToClipboard() {
+  async function copyUrl() {
     if (!generatedUrl) return;
-    try {
-      await navigator.clipboard.writeText(generatedUrl);
-    } catch {
-      // silencioso
-    }
+    await navigator.clipboard.writeText(generatedUrl).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
-  // ✅ Adaptación para reutilizar tu PreviewCard actual:
-  // Creamos objetos compatibles con props existentes.
-  const previewBusiness = {
-    businessName: state.businessName,
-    logoDataUrl: state.logoDataUrl,
-  };
-
-  // En tu PreviewCard actual muestras datos de envío; aquí lo usamos solo como “preview”.
-  // Si tu PreviewCard depende estrictamente de origin/recipient/pack, te recomiendo
-  // crear un PreviewCardCheckout nuevo, pero por ahora le pasamos valores vacíos.
-  const previewOrigin = { originCommune: "", originAddress: "" };
-  const previewRecipient = {
-    recipientName: "",
-    recipientPhone: "",
-    destCommune: "",
-    destAddress: "",
-  };
-  const previewPack = { measuresAndWeight: "" };
+  // Preview helpers
+  const allDims =
+    form.largo && form.alto && form.ancho && form.peso
+      ? `${form.largo}×${form.alto}×${form.ancho} cm · ${form.peso} kg`
+      : null;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 md:py-14">
-      <BrandHeader />
+    <div>
+      {/* ── Navbar ──────────────────────────────────────────────────────────── */}
+      <header style={{
+        position: "sticky", top: 0, zIndex: 50,
+        backdropFilter: "blur(12px)",
+        background: "rgba(250,250,247,0.9)",
+        borderBottom: "1px solid #E8E8E3",
+      }}>
+        <div style={{
+          maxWidth: 1100, margin: "0 auto", padding: "0 24px",
+          display: "flex", alignItems: "center", justifyContent: "space-between", height: 60,
+        }}>
+          <a href="/" style={{ textDecoration: "none" }}>
+            <svg width="168" height="32" viewBox="0 0 168 32" fill="none">
+              <g transform="translate(14, 16) rotate(-42) scale(0.32)">
+                <rect x="-30" y="-16" width="48" height="28" rx="14" stroke="#E8553D" strokeWidth="7" />
+                <rect x="8" y="-4" width="48" height="28" rx="14" stroke="#E8553D" strokeWidth="7" />
+              </g>
+              <circle cx="14" cy="15" r="1.4" fill="#E8553D" opacity="0.65" />
+              <circle cx="16.5" cy="17" r="0.9" fill="#E8553D" opacity="0.35" />
+              <text x="34" y="20" fontFamily="'Instrument Sans', sans-serif" fontSize="15" fontWeight="600" fill="#1A1A18">mochidrop</text>
+              <text x="125" y="20" fontFamily="'Instrument Sans', sans-serif" fontSize="15" fontWeight="500" fill="#E8553D">link</text>
+            </svg>
+          </a>
+          <a href="/" style={{ fontSize: 13, color: "#5C5C57", textDecoration: "none", fontWeight: 500 }}>
+            ← Volver al inicio
+          </a>
+        </div>
+      </header>
 
-      <div className="mt-6 flex justify-center">
-        <LinkQuotaPill linksLeft={linksLeft} />
-      </div>
+      {/* ── Body ────────────────────────────────────────────────────────────── */}
+      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "40px 24px 100px" }}>
 
-      <div className="mt-10 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-        {/* LEFT: Simple Creator */}
-        <div className="rounded-2xl bg-white/95 shadow-2xl ring-1 ring-black/10">
-          <div className="p-6 md:p-8">
-            <div>
-              <h2 className="text-xl md:text-2xl font-semibold text-gray-900">
-                Crea tu link de pago
-              </h2>
-              <p className="mt-1 text-sm text-gray-600">
-                30 segundos. Tu cliente verá el producto, el total y podrá pagar.
+        {/* Page header */}
+        <div style={{ marginBottom: 32, textAlign: "center" }}>
+          <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: "#E8553D", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            Crear link de envío
+          </p>
+          <h1 style={{ margin: "0 0 10px", fontSize: 28, fontWeight: 700, color: "#1A1A18", lineHeight: 1.2 }}>
+            Tu cliente elige courier y paga solo.
+          </h1>
+          <p style={{ margin: 0, fontSize: 15, color: "#5C5C57" }}>
+            Completa los datos del envío. MochiDrop cotiza los couriers en tiempo real y te genera el link para enviar por WhatsApp.
+          </p>
+        </div>
+
+        {/* Two-column grid */}
+        <div style={{ display: "grid", gap: 24, gridTemplateColumns: "1fr" }} className="gen-grid">
+
+          {/* ── LEFT: Form ──────────────────────────────────────────────────── */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+            {/* 1 — Tu negocio */}
+            <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "24px", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
+              <SectionTitle n={1} label="Tu negocio" />
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <Field label="Nombre de tu tienda *">
+                  <TextInput
+                    value={form.nombrePyme}
+                    onChange={(v) => set("nombrePyme", v)}
+                    placeholder="Ej: Tienda Luna"
+                  />
+                </Field>
+                <Field label="Logo" hint="Opcional — aparece en el link que ve tu cliente">
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{
+                      width: 44, height: 44, borderRadius: 10,
+                      background: "#F5F5F0", border: "1px solid #E8E8E3",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      overflow: "hidden", flexShrink: 0,
+                    }}>
+                      {form.logoPreview ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={form.logoPreview} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        <span style={{ fontSize: 20 }}>🏪</span>
+                      )}
+                    </div>
+                    <label style={{
+                      cursor: "pointer", background: "#F5F5F0",
+                      border: "1px solid #E8E8E3", borderRadius: 8,
+                      padding: "8px 14px", fontSize: 13, fontWeight: 600, color: "#1A1A18",
+                    }}>
+                      {form.logoPreview ? "Cambiar logo" : "Subir logo"}
+                      <input type="file" accept="image/*" style={{ display: "none" }}
+                        onChange={(e) => onPickLogo(e.target.files?.[0])} />
+                    </label>
+                    {form.logoPreview && (
+                      <button type="button" onClick={() => setForm((s) => ({ ...s, logoFile: null, logoPreview: "" }))}
+                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#9C9C95", fontFamily: "inherit" }}>
+                        Quitar
+                      </button>
+                    )}
+                  </div>
+                </Field>
+              </div>
+            </div>
+
+            {/* 2 — Datos del cliente */}
+            <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "24px", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
+              <SectionTitle n={2} label="Datos del cliente (destinatario)" />
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <Field label="Nombre completo *">
+                  <TextInput
+                    value={form.clienteNombre}
+                    onChange={(v) => set("clienteNombre", v)}
+                    placeholder="Ej: María López"
+                  />
+                </Field>
+                <Field label="Teléfono" hint="Opcional — para coordinar la entrega">
+                  <TextInput
+                    value={form.clienteTelefono}
+                    onChange={(v) => set("clienteTelefono", v)}
+                    placeholder="+56 9 1234 5678"
+                    type="tel"
+                  />
+                </Field>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <Field label="Comuna *">
+                    <TextInput
+                      value={form.clienteComuna}
+                      onChange={(v) => set("clienteComuna", v)}
+                      placeholder="Ej: Providencia"
+                    />
+                  </Field>
+                  <Field label="Número / Depto">
+                    <TextInput
+                      value={form.clienteNumero}
+                      onChange={(v) => set("clienteNumero", v)}
+                      placeholder="Ej: 1234, Depto 5B"
+                    />
+                  </Field>
+                </div>
+                <Field label="Dirección *">
+                  <TextInput
+                    value={form.clienteDireccion}
+                    onChange={(v) => set("clienteDireccion", v)}
+                    placeholder="Ej: Av. Providencia 1234"
+                  />
+                </Field>
+              </div>
+            </div>
+
+            {/* 3 — Origen */}
+            <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "24px", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
+              <SectionTitle n={3} label="Desde dónde despachas" />
+              <p style={{ margin: "0 0 16px", fontSize: 13, color: "#5C5C57" }}>
+                Dirección de retiro del paquete. Los couriers calculan el precio desde aquí.
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <Field label="Comuna de origen *">
+                  <TextInput
+                    value={form.origenComuna}
+                    onChange={(v) => set("origenComuna", v)}
+                    placeholder="Ej: Las Condes"
+                  />
+                </Field>
+                <Field label="Dirección *">
+                  <TextInput
+                    value={form.origenDireccion}
+                    onChange={(v) => set("origenDireccion", v)}
+                    placeholder="Ej: Av. El Bosque 500"
+                  />
+                </Field>
+              </div>
+            </div>
+
+            {/* 4 — Paquete */}
+            <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "24px", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
+              <SectionTitle n={4} label="Dimensiones del paquete" />
+              <p style={{ margin: "0 0 16px", fontSize: 13, color: "#5C5C57" }}>
+                Necesario para cotizar el precio real del envío con cada courier.
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
+                <Field label="Largo (cm) *">
+                  <TextInput
+                    value={form.largo}
+                    onChange={(v) => set("largo", v.replace(/[^\d.]/g, ""))}
+                    placeholder="30"
+                    type="number"
+                  />
+                </Field>
+                <Field label="Alto (cm) *">
+                  <TextInput
+                    value={form.alto}
+                    onChange={(v) => set("alto", v.replace(/[^\d.]/g, ""))}
+                    placeholder="20"
+                    type="number"
+                  />
+                </Field>
+                <Field label="Ancho (cm) *">
+                  <TextInput
+                    value={form.ancho}
+                    onChange={(v) => set("ancho", v.replace(/[^\d.]/g, ""))}
+                    placeholder="15"
+                    type="number"
+                  />
+                </Field>
+                <Field label="Peso (kg) *">
+                  <TextInput
+                    value={form.peso}
+                    onChange={(v) => set("peso", v.replace(/[^\d.]/g, ""))}
+                    placeholder="1.5"
+                    type="number"
+                  />
+                </Field>
+              </div>
+              <p style={{ margin: "12px 0 0", fontSize: 12, color: "#9C9C95" }}>
+                💡 Si no sabes el peso exacto, estima por exceso. Los couriers cobran por el mayor entre el peso real y el volumétrico.
               </p>
             </div>
 
-            <div className="mt-8 space-y-5">
-              {/* Negocio */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-900">Nombre de tu negocio</label>
-                <input
-                  value={state.businessName}
-                  onChange={(e) => setField("businessName", e.target.value)}
-                  placeholder="Ej: Tienda Luna"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-green-400"
-                />
+            {/* Error */}
+            {error && (
+              <div style={{ background: "#FFF0ED", border: "1px solid #E8553D", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#C23E28" }}>
+                {error}
               </div>
+            )}
 
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-900">
-                  Logo (opcional, recomendado)
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => onPickLogo(e.target.files?.[0])}
-                    className="block w-full text-sm text-gray-700 file:mr-4 file:rounded-xl file:border-0 file:bg-gray-100 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-gray-900 hover:file:bg-gray-200"
-                  />
-                  {state.logoDataUrl ? (
-                    <button
-                      type="button"
-                      onClick={() => setField("logoDataUrl", "")}
-                      className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-900 hover:bg-gray-50"
-                    >
-                      Quitar
-                    </button>
-                  ) : null}
-                </div>
-              </div>
+            {/* Submit */}
+            <button
+              onClick={handleSubmit}
+              disabled={!canSubmit || loading}
+              style={{
+                width: "100%", padding: "16px", borderRadius: 14, border: "none",
+                fontSize: 16, fontWeight: 700, color: "#fff", fontFamily: "inherit",
+                cursor: canSubmit && !loading ? "pointer" : "not-allowed",
+                background: canSubmit && !loading ? "#E8553D" : "#D1D1CC",
+                boxShadow: canSubmit && !loading ? "0 4px 20px rgba(232,85,61,0.3)" : "none",
+                transition: "all 0.2s",
+              }}
+            >
+              {loading ? "Cotizando couriers y generando link…" : "Generar link de envío →"}
+            </button>
 
-              <div className="my-2 h-px bg-gray-100" />
+            {!canSubmit && !generatedUrl && (
+              <p style={{ textAlign: "center", fontSize: 12, color: "#9C9C95", margin: "-8px 0 0" }}>
+                Completa todos los campos marcados con * para continuar
+              </p>
+            )}
 
-              {/* Producto */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-900">Nombre del producto</label>
-                <input
-                  value={state.productName}
-                  onChange={(e) => setField("productName", e.target.value)}
-                  placeholder="Ej: Polera Nike Negra (Talla M)"
-                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-green-400"
-                />
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-900">Precio</label>
-                  <div className="relative">
-                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-500">
-                      $
-                    </span>
-                    <input
-                      inputMode="numeric"
-                      value={formatCLP(toCLP(state.productPrice))}
-                      onChange={(e) => setField("productPrice", toCLP(e.target.value))}
-                      placeholder="14.990"
-                      className="w-full rounded-xl border border-gray-200 bg-white pl-7 pr-4 py-3 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-green-400"
-                    />
+            {/* Generated URL */}
+            {generatedUrl && (
+              <div style={{ background: "#F5FBF7", border: "1px solid #2D8A56", borderRadius: 14, padding: "20px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                  <div style={{
+                    width: 24, height: 24, borderRadius: "50%", background: "#2D8A56",
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
                   </div>
-                  <p className="text-xs text-gray-500">Precio del producto (sin envío).</p>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-900">
-                    Foto del producto (opcional)
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => onPickProductPhoto(e.target.files?.[0])}
-                      className="block w-full text-sm text-gray-700 file:mr-4 file:rounded-xl file:border-0 file:bg-gray-100 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-gray-900 hover:file:bg-gray-200"
-                    />
-                    {state.productPhotoDataUrl ? (
-                      <button
-                        type="button"
-                        onClick={() => setField("productPhotoDataUrl", "")}
-                        className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-900 hover:bg-gray-50"
-                      >
-                        Quitar
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-
-              {error ? (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {error}
-                </div>
-              ) : null}
-
-              <button
-                onClick={onGenerate}
-                disabled={!canGenerate || isSubmitting}
-                className={[
-                  "w-full rounded-xl px-5 py-4 text-base font-semibold text-white transition",
-                  "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-400",
-                  canGenerate && !isSubmitting
-                    ? "bg-green-500 hover:bg-green-600"
-                    : "bg-gray-300 cursor-not-allowed",
-                ].join(" ")}
-              >
-                {isSubmitting ? "Generando…" : "Generar link de pago"}
-              </button>
-
-              {generatedUrl ? (
-                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div className="min-w-0">
-                      <p className="text-xs font-medium text-gray-500">Tu link</p>
-                      <p className="truncate text-sm font-semibold text-gray-900">{generatedUrl}</p>
-                      <p className="mt-1 text-xs text-gray-500">
-                        Pégalo en WhatsApp/Instagram. El cliente completa envío y paga.
-                      </p>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button
-                        onClick={copyToClipboard}
-                        className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100"
-                      >
-                        Copiar
-                      </button>
-                      <a
-                        href={generatedUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="rounded-xl bg-[#0B1020] px-4 py-2 text-sm font-semibold text-white hover:bg-black"
-                      >
-                        Abrir
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              <FooterHint />
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT: Preview */}
-        <div className="lg:sticky lg:top-8 h-fit">
-          <div className="rounded-2xl bg-white/80 shadow-xl ring-1 ring-black/10 p-4 md:p-6">
-            <p className="text-xs font-semibold text-gray-500">Preview (cliente)</p>
-
-            <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-4">
-              <div className="flex items-center gap-3">
-                {state.logoDataUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={state.logoDataUrl}
-                    alt="logo"
-                    className="h-10 w-10 rounded-xl object-cover ring-1 ring-black/10"
-                  />
-                ) : (
-                  <div className="h-10 w-10 rounded-xl bg-gray-100 ring-1 ring-black/10" />
-                )}
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-gray-900">
-                    {state.businessName || "Tu negocio"}
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#2D8A56" }}>
+                    ¡Link generado! Cópialo y mándalo por WhatsApp.
                   </p>
-                  <p className="text-xs text-gray-500">Pago seguro • Link de compra</p>
+                </div>
+                <div style={{ background: "#fff", border: "1px solid #E8E8E3", borderRadius: 10, padding: "10px 14px", marginBottom: 12 }}>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1A1A18", wordBreak: "break-all" }}>{generatedUrl}</p>
+                </div>
+                <p style={{ margin: "0 0 12px", fontSize: 13, color: "#5C5C57" }}>
+                  Tu cliente abre el link, ve los precios reales de cada courier, elige y paga con tarjeta. Tú no tocas nada.
+                </p>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={copyUrl} style={{
+                    flex: 1, padding: "11px", borderRadius: 10,
+                    border: "1px solid #E8E8E3", background: "#fff",
+                    fontSize: 14, fontWeight: 700, color: "#1A1A18",
+                    cursor: "pointer", fontFamily: "inherit",
+                  }}>
+                    {copied ? "✓ Copiado" : "📋 Copiar link"}
+                  </button>
+                  <a href={generatedUrl} target="_blank" rel="noreferrer" style={{
+                    flex: 1, padding: "11px", borderRadius: 10,
+                    background: "#1A1A18", fontSize: 14, fontWeight: 700, color: "#fff",
+                    textDecoration: "none", textAlign: "center", display: "block",
+                  }}>
+                    Abrir →
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── RIGHT: Preview ───────────────────────────────────────────────── */}
+          <div style={{ position: "sticky", top: 76, height: "fit-content" }}>
+            <p style={{ margin: "0 0 12px", fontSize: 11, fontWeight: 700, color: "#9C9C95", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+              Así lo ve tu cliente
+            </p>
+
+            {/* Phone-style card */}
+            <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E8E8E3", overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+              {/* Header de la tienda */}
+              <div style={{ background: "#FAFAF7", padding: "14px 16px", borderBottom: "1px solid #E8E8E3", display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10, background: form.logoPreview ? "transparent" : "#E8553D",
+                  display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0,
+                }}>
+                  {form.logoPreview ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={form.logoPreview} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 64 64" fill="none">
+                      <g transform="translate(32,32) rotate(-42) scale(0.58)">
+                        <rect x="-30" y="-16" width="48" height="28" rx="14" stroke="#fff" strokeWidth="7" />
+                        <rect x="8" y="-4" width="48" height="28" rx="14" stroke="#fff" strokeWidth="7" />
+                      </g>
+                    </svg>
+                  )}
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#1A1A18" }}>
+                    {form.nombrePyme || "Tu Tienda"}
+                  </p>
+                  <p style={{ margin: 0, fontSize: 11, color: "#9C9C95" }}>Link de envío seguro</p>
                 </div>
               </div>
 
-              <div className="mt-4 flex gap-3">
-                {state.productPhotoDataUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={state.productPhotoDataUrl}
-                    alt="producto"
-                    className="h-20 w-20 rounded-xl object-cover ring-1 ring-black/10"
-                  />
-                ) : (
-                  <div className="h-20 w-20 rounded-xl bg-gray-100 ring-1 ring-black/10" />
+              <div style={{ padding: "16px" }}>
+                {/* Destinatario */}
+                <p style={{ margin: "0 0 6px", fontSize: 10, fontWeight: 600, color: "#9C9C95", textTransform: "uppercase", letterSpacing: "0.08em" }}>Envío para</p>
+                <div style={{ background: "#FAFAF7", border: "1px solid #E8E8E3", borderRadius: 10, padding: "10px 12px", marginBottom: 14, display: "flex", gap: 8, alignItems: "flex-start" }}>
+                  <span style={{ fontSize: 14 }}>📍</span>
+                  <div>
+                    <p style={{ margin: "0 0 2px", fontSize: 13, fontWeight: 700, color: "#1A1A18" }}>
+                      {form.clienteNombre || "Nombre del cliente"}
+                    </p>
+                    <p style={{ margin: 0, fontSize: 12, color: "#5C5C57" }}>
+                      {[form.clienteDireccion, form.clienteNumero, form.clienteComuna].filter(Boolean).join(", ") || "Dirección de entrega"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Dimensiones */}
+                {allDims && (
+                  <div style={{ background: "#F5F5F0", borderRadius: 8, padding: "8px 12px", marginBottom: 14, display: "flex", gap: 6, alignItems: "center" }}>
+                    <span style={{ fontSize: 12 }}>📦</span>
+                    <p style={{ margin: 0, fontSize: 11, color: "#5C5C57" }}>{allDims}</p>
+                  </div>
                 )}
 
-                <div className="flex-1 min-w-0">
-                  <p className="truncate text-sm font-semibold text-gray-900">
-                    {state.productName || "Nombre del producto"}
-                  </p>
-                  <p className="mt-1 text-lg font-extrabold text-gray-900">
-                    {formatCLP(toCLP(state.productPrice))
-                      ? `$${formatCLP(toCLP(state.productPrice))}`
-                      : "$0"}
-                  </p>
-                  <p className="mt-1 text-xs text-gray-500">
-                    El envío se calcula en el siguiente paso.
-                  </p>
-                </div>
-              </div>
+                {/* Couriers */}
+                <p style={{ margin: "0 0 8px", fontSize: 10, fontWeight: 600, color: "#9C9C95", textTransform: "uppercase", letterSpacing: "0.08em" }}>Elige tu courier</p>
+                {[
+                  { name: "Starken", days: "2-3 días", highlight: false },
+                  { name: "Chilexpress", days: "1-2 días", highlight: false },
+                  { name: "Blue Express", days: "3-4 días", highlight: true },
+                ].map((c, i) => (
+                  <div key={i} style={{
+                    border: c.highlight ? "1.5px solid #E8553D" : "1px solid #E8E8E3",
+                    background: c.highlight ? "#FFF0ED" : "#fff",
+                    borderRadius: 8, padding: "8px 12px", marginBottom: 6,
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                  }}>
+                    <div>
+                      <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "#1A1A18" }}>{c.name}</p>
+                      <p style={{ margin: 0, fontSize: 10, color: "#9C9C95" }}>{c.days}</p>
+                    </div>
+                    <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: c.highlight ? "#E8553D" : "#9C9C95" }}>
+                      {c.highlight ? "precio real" : "—"}
+                    </p>
+                  </div>
+                ))}
 
-              <button
-                type="button"
-                className="mt-4 w-full rounded-xl bg-gray-900 px-4 py-3 text-sm font-semibold text-white"
-              >
-                Continuar
-              </button>
+                <div style={{ background: "#E8553D", color: "#fff", textAlign: "center", borderRadius: 10, padding: "11px", marginTop: 8, fontSize: 13, fontWeight: 700 }}>
+                  Pagar envío →
+                </div>
+
+                <p style={{ textAlign: "center", fontSize: 11, color: "#9C9C95", margin: "10px 0 0" }}>
+                  🔒 Pago seguro con FLOW
+                </p>
+              </div>
             </div>
 
-            {/* Si quieres mantener tu PreviewCard viejo, lo dejo abajo (opcional): */}
-            <div className="mt-6 hidden">
-              <PreviewCard
-                business={previewBusiness as any}
-                recipient={previewRecipient as any}
-                origin={previewOrigin as any}
-                pack={previewPack as any}
-              />
-              
+            {/* Info pills */}
+            <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+              {[
+                "Los precios de courier se calculan en tiempo real al generar el link",
+                "Tu cliente paga con tarjeta — sin transferencias",
+                "La guía de despacho llega a tu correo automáticamente",
+              ].map((tip, i) => (
+                <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                  <span style={{ fontSize: 12, flexShrink: 0, marginTop: 1 }}>✓</span>
+                  <p style={{ margin: 0, fontSize: 12, color: "#5C5C57" }}>{tip}</p>
+                </div>
+              ))}
             </div>
           </div>
+
         </div>
       </div>
+
+      <style>{`
+        @media (min-width: 768px) {
+          .gen-grid {
+            grid-template-columns: 1.15fr 0.85fr !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

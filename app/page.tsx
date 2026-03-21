@@ -155,7 +155,7 @@ function Navbar() {
       >
         <MochiDropLogo />
         <motion.a
-          href={WA_LINK}
+          href="/generate-link"
           whileHover={{ y: -1 }}
           transition={{ duration: 0.18 }}
           style={{
@@ -528,7 +528,7 @@ function Hero() {
             style={{ display: "flex", gap: 12, flexWrap: "wrap" }}
           >
             <motion.a
-              href={WA_LINK}
+              href="/generate-link"
               whileHover={{ y: -2 }}
               transition={{ type: "spring", stiffness: 300 }}
               style={{

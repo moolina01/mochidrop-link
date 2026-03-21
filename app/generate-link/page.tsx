@@ -1,15 +1,13 @@
-// app/generar-link/page.tsx
-
 import CreateLinkClient from "./CreateLinkClient";
 
 export const metadata = {
-  title: "Generar link de envío | MochiDrop",
-  description: "Crea links de envío profesionales en segundos",
+  title: "Crear link de envío | MochiDrop Link",
+  description: "Crea un link de envío personalizado en 30 segundos.",
 };
 
 export default function Page() {
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#0B1020] to-[#0F172A]">
+    <main style={{ minHeight: "100vh", background: "#FAFAF7" }}>
       <CreateLinkClient />
     </main>
   );

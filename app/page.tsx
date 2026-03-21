@@ -1,7 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/utils/supabase";
 
 const WA_LINK =
@@ -11,7 +11,7 @@ const ID_ENVIO = 3719603;
 // ─── Logo Components ──────────────────────────────────────────────────────────
 function MochiDropLogo({ dark = false }: { dark?: boolean }) {
   return (
-    <svg width="140" height="32" viewBox="0 0 140 32" fill="none">
+    <svg width="168" height="32" viewBox="0 0 168 32" fill="none">
       <g transform="translate(14, 16) rotate(-42) scale(0.32)">
         <rect x="-30" y="-16" width="48" height="28" rx="14" stroke="#E8553D" strokeWidth="7" />
         <rect x="8" y="-4" width="48" height="28" rx="14" stroke="#E8553D" strokeWidth="7" />
@@ -176,7 +176,84 @@ function Navbar() {
 }
 
 // ─── Phone Mockup ─────────────────────────────────────────────────────────────
+const COURIERS = [
+  { name: "Starken", price: "$3.490", days: "2-3 días" },
+  { name: "Chilexpress", price: "$4.190", days: "1-2 días" },
+  { name: "Blue Express", price: "$2.890", days: "3-4 días" },
+];
+
+type Phase = "initial" | "selecting" | "processing" | "paid" | "confirmed";
+
 function PhoneMockup() {
+  const [phase, setPhase] = useState<Phase>("initial");
+  const [selectedCourier, setSelectedCourier] = useState(-1);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  function addTimeout(fn: () => void, delay: number) {
+    const t = setTimeout(fn, delay);
+    timeoutRef.current.push(t);
+    return t;
+  }
+
+  function runAnimation() {
+    // Clear any stale timeouts
+    timeoutRef.current.forEach(clearTimeout);
+    timeoutRef.current = [];
+
+    // Phase 1 already set by reset — wait then start selecting
+    addTimeout(() => {
+      setPhase("selecting");
+      setSelectedCourier(0); // Starken
+    }, 1500);
+
+    addTimeout(() => {
+      setSelectedCourier(1); // Chilexpress
+    }, 2500);
+
+    addTimeout(() => {
+      setSelectedCourier(2); // Blue Express
+    }, 3300);
+
+    addTimeout(() => {
+      setPhase("processing");
+    }, 4500);
+
+    addTimeout(() => {
+      setPhase("paid");
+    }, 5700);
+
+    addTimeout(() => {
+      setPhase("confirmed");
+    }, 6500);
+
+    addTimeout(() => {
+      // Reset to initial
+      setPhase("initial");
+      setSelectedCourier(-1);
+      // Schedule next loop
+      addTimeout(() => runAnimation(), 300);
+    }, 8500);
+  }
+
+  useEffect(() => {
+    const startDelay = setTimeout(() => runAnimation(), 1000);
+    return () => {
+      clearTimeout(startDelay);
+      timeoutRef.current.forEach(clearTimeout);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Button state derived from phase
+  const btnStyle: { text: string; bg: string } =
+    phase === "processing"
+      ? { text: "Procesando...", bg: "#B8B8B3" }
+      : phase === "paid"
+      ? { text: "✓ Pagado", bg: "#2D8A56" }
+      : selectedCourier >= 0
+      ? { text: "Pagar envío →", bg: "#E8553D" }
+      : { text: "Pagar envío →", bg: "#D1D1CC" };
+
   return (
     <div style={{ position: "relative", display: "flex", justifyContent: "center" }}>
       {/* Floating decorative pills */}
@@ -190,8 +267,7 @@ function PhoneMockup() {
           width: 280,
           background: "#fff",
           borderRadius: 32,
-          boxShadow:
-            "0 32px 80px rgba(0,0,0,0.18), 0 8px 24px rgba(0,0,0,0.1)",
+          boxShadow: "0 32px 80px rgba(0,0,0,0.18), 0 8px 24px rgba(0,0,0,0.1)",
           border: "1px solid rgba(0,0,0,0.08)",
           padding: 10,
           overflow: "hidden",
@@ -199,139 +275,141 @@ function PhoneMockup() {
       >
         {/* Notch */}
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>
-          <div
-            style={{
-              width: 100,
-              height: 24,
-              background: "#1A1A18",
-              borderRadius: "0 0 16px 16px",
-            }}
-          />
+          <div style={{ width: 100, height: 24, background: "#1A1A18", borderRadius: "0 0 16px 16px" }} />
         </div>
 
         {/* Screen */}
-        <div
-          style={{
-            background: "#FAFAF7",
-            borderRadius: 20,
-            padding: "16px 14px",
-          }}
-        >
-          {/* Header */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 14,
-            }}
-          >
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 8,
-                background: "#E8553D",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <MochiDropIcon size={18} />
-            </div>
-            <div>
-              <p style={{ margin: 0, fontSize: 10, fontWeight: 600, color: "#1A1A18" }}>
-                Tu Tienda
-              </p>
-              <p style={{ margin: 0, fontSize: 8, color: "#9C9C95" }}>link de envío</p>
-            </div>
-          </div>
-
-          {/* Recipient */}
-          <p style={{ margin: "0 0 2px", fontSize: 9, color: "#9C9C95", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-            Envío para
-          </p>
-          <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 600, color: "#1A1A18" }}>
-            María López
-          </p>
-
-          {/* Address */}
-          <div
-            style={{
-              background: "#fff",
-              border: "1px solid #E8E8E3",
-              borderRadius: 8,
-              padding: "7px 10px",
-              marginBottom: 12,
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-            }}
-          >
-            <span style={{ fontSize: 10 }}>📍</span>
-            <span style={{ fontSize: 9, color: "#5C5C57" }}>
-              Av. Providencia 1234, Santiago
-            </span>
-          </div>
-
-          {/* Courier label */}
-          <p style={{ margin: "0 0 7px", fontSize: 9, color: "#9C9C95", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-            Elige tu courier
-          </p>
-
-          {/* Courier options */}
-          {[
-            { name: "Starken", price: "$3.490", days: "2-3 días", selected: true },
-            { name: "Chilexpress", price: "$4.190", days: "1-2 días", selected: false },
-            { name: "Blue Express", price: "$2.890", days: "3-4 días", selected: false },
-          ].map((c, i) => (
-            <div
-              key={i}
-              style={{
-                border: c.selected ? "1.5px solid #E8553D" : "1px solid #E8E8E3",
-                background: c.selected ? "#FFF0ED" : "#fff",
-                borderRadius: 8,
-                padding: "7px 10px",
-                marginBottom: 5,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <div>
-                <p style={{ margin: 0, fontSize: 9, fontWeight: 600, color: "#1A1A18" }}>
-                  {c.name}
-                </p>
-                <p style={{ margin: 0, fontSize: 8, color: "#9C9C95" }}>{c.days}</p>
-              </div>
-              <p
+        <div style={{ background: "#FAFAF7", borderRadius: 20, padding: "16px 14px", minHeight: 340, position: "relative", overflow: "hidden" }}>
+          <AnimatePresence mode="wait">
+            {phase === "confirmed" ? (
+              <motion.div
+                key="confirmed"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
                 style={{
-                  margin: 0,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: c.selected ? "#E8553D" : "#1A1A18",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
+                  minHeight: 308,
+                  padding: "40px 20px",
+                  textAlign: "center",
                 }}
               >
-                {c.price}
-              </p>
-            </div>
-          ))}
+                <div style={{
+                  width: 48, height: 48, borderRadius: "50%", background: "#2D8A56",
+                  display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14,
+                }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#1A1A18", marginBottom: 6, margin: "0 0 6px" }}>
+                  Envío confirmado
+                </p>
+                <p style={{ fontSize: 9, color: "#9C9C95", margin: 0 }}>
+                  El tracking llegará a tu correo
+                </p>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="main"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+              >
+                {/* Header */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: "#E8553D", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <MochiDropIcon size={18} />
+                  </div>
+                  <div>
+                    <p style={{ margin: 0, fontSize: 10, fontWeight: 600, color: "#1A1A18" }}>Tu Tienda</p>
+                    <p style={{ margin: 0, fontSize: 8, color: "#9C9C95" }}>link de envío</p>
+                  </div>
+                </div>
 
-          {/* CTA button */}
-          <div
-            style={{
-              background: "#E8553D",
-              color: "#fff",
-              textAlign: "center",
-              borderRadius: 10,
-              padding: "10px",
-              marginTop: 10,
-              fontSize: 10,
-              fontWeight: 600,
-            }}
-          >
-            Pagar envío →
-          </div>
+                {/* Recipient */}
+                <p style={{ margin: "0 0 2px", fontSize: 9, color: "#9C9C95", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  Envío para
+                </p>
+                <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 600, color: "#1A1A18" }}>
+                  María López
+                </p>
+
+                {/* Address */}
+                <div style={{
+                  background: "#fff", border: "1px solid #E8E8E3", borderRadius: 8,
+                  padding: "7px 10px", marginBottom: 12, display: "flex", alignItems: "center", gap: 5,
+                }}>
+                  <span style={{ fontSize: 10 }}>📍</span>
+                  <span style={{ fontSize: 9, color: "#5C5C57" }}>Av. Providencia 1234, Santiago</span>
+                </div>
+
+                {/* Courier label */}
+                <p style={{ margin: "0 0 7px", fontSize: 9, color: "#9C9C95", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  Elige tu courier
+                </p>
+
+                {/* Courier options */}
+                {COURIERS.map((c, i) => {
+                  const isSelected = selectedCourier === i;
+                  return (
+                    <motion.div
+                      key={i}
+                      animate={{
+                        borderColor: isSelected ? "#E8553D" : "#E8E8E3",
+                        backgroundColor: isSelected ? "#FFF0ED" : "#fff",
+                      }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      style={{
+                        border: `${isSelected ? "1.5px" : "1px"} solid`,
+                        borderRadius: 8,
+                        padding: "7px 10px",
+                        marginBottom: 5,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <div>
+                        <p style={{ margin: 0, fontSize: 9, fontWeight: 600, color: "#1A1A18" }}>{c.name}</p>
+                        <p style={{ margin: 0, fontSize: 8, color: "#9C9C95" }}>{c.days}</p>
+                      </div>
+                      <motion.p
+                        animate={{ color: isSelected ? "#E8553D" : "#1A1A18" }}
+                        transition={{ duration: 0.2 }}
+                        style={{ margin: 0, fontSize: 10, fontWeight: 700 }}
+                      >
+                        {c.price}
+                      </motion.p>
+                    </motion.div>
+                  );
+                })}
+
+                {/* CTA button */}
+                <motion.div
+                  animate={{ backgroundColor: btnStyle.bg }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  style={{
+                    color: "#fff",
+                    textAlign: "center",
+                    borderRadius: 10,
+                    padding: "10px",
+                    marginTop: 10,
+                    fontSize: 10,
+                    fontWeight: 600,
+                  }}
+                >
+                  {btnStyle.text}
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>
@@ -423,9 +501,9 @@ function Hero() {
               marginBottom: 20,
             }}
           >
-            Cada envío que gestionas a mano
+            Tú vendes.
             <br />
-            <span style={{ color: "#E8553D" }}>es una venta que casi pierdes.</span>
+            <span style={{ color: "#E8553D" }}>El envío que se resuelva solo.</span>
           </motion.h1>
 
           <motion.p

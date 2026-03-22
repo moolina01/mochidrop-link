@@ -1,7 +1,7 @@
 import CreateLinkClient from "./CreateLinkClient";
 
 export const metadata = {
-  title: "Crear link de envío | MochiDrop Link",
+  title: "Crear link de envío | LinkDrop",
   description: "Crea un link de envío personalizado en 30 segundos.",
 };
 

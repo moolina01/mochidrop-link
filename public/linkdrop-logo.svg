@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="52" viewBox="0 0 200 52">
+  <g transform="translate(0, 26) rotate(-42) scale(0.52)">
+    <rect x="-30" y="-16" width="48" height="28" rx="14" fill="none" stroke="#E8553D" stroke-width="6.5"/>
+    <rect x="8" y="-4" width="48" height="28" rx="14" fill="none" stroke="#E8553D" stroke-width="6.5"/>
+  </g>
+  <circle cx="24" cy="24" r="2.2" fill="#E8553D" opacity="0.65"/>
+  <circle cx="28" cy="27" r="1.4" fill="#E8553D" opacity="0.35"/>
+  <text x="62" y="24" font-family="'Instrument Sans', -apple-system, sans-serif" font-size="24" font-weight="600" fill="#1A1A18">link</text>
+  <text x="62" y="44" font-family="'Instrument Sans', -apple-system, sans-serif" font-size="24" font-weight="600" fill="#E8553D">drop</text>
+</svg>

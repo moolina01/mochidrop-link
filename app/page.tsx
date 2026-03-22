@@ -5,11 +5,11 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/utils/supabase";
 
 const WA_LINK =
-  "https://wa.me/56994284520?text=Hola,%20quiero%20probar%20MochiDrop%20gratis";
+  "https://wa.me/56994284520?text=Hola,%20quiero%20probar%20LinkDrop%20gratis";
 const ID_ENVIO = 3719603;
 
 // ─── Logo Components ──────────────────────────────────────────────────────────
-function MochiDropLogo({ dark = false }: { dark?: boolean }) {
+function LinkDropLogo({ dark = false }: { dark?: boolean }) {
   return (
     <svg width="168" height="32" viewBox="0 0 168 32" fill="none">
       <g transform="translate(14, 16) rotate(-42) scale(0.32)">
@@ -19,24 +19,17 @@ function MochiDropLogo({ dark = false }: { dark?: boolean }) {
       <circle cx="14" cy="15" r="1.4" fill="#E8553D" opacity="0.65" />
       <circle cx="16.5" cy="17" r="0.9" fill="#E8553D" opacity="0.35" />
       <text
-        x="34" y="20"
+        x="44" y="21"
         fontFamily="'Instrument Sans', sans-serif"
-        fontSize="15" fontWeight="600" fill={dark ? "#fff" : "#1A1A18"}
+        fontSize="15" fontWeight="600"
       >
-        mochidrop
-      </text>
-      <text
-        x="125" y="20"
-        fontFamily="'Instrument Sans', sans-serif"
-        fontSize="15" fontWeight="500" fill="#E8553D"
-      >
-        link
+        <tspan fill={dark ? "#fff" : "#1A1A18"}>link</tspan><tspan fill="#E8553D">drop</tspan>
       </text>
     </svg>
   );
 }
 
-function MochiDropIcon({ size = 28 }: { size?: number }) {
+function LinkDropIcon({ size = 28 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" fill="none">
       <g transform="translate(32,32) rotate(-42) scale(0.58)">
@@ -153,7 +146,7 @@ function Navbar() {
           height: 64,
         }}
       >
-        <MochiDropLogo />
+        <LinkDropLogo />
         <motion.a
           href="/generate-link"
           whileHover={{ y: -1 }}
@@ -325,7 +318,7 @@ function PhoneMockup() {
                 {/* Header */}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
                   <div style={{ width: 28, height: 28, borderRadius: 8, background: "#E8553D", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <MochiDropIcon size={18} />
+                    <LinkDropIcon size={18} />
                   </div>
                   <div>
                     <p style={{ margin: 0, fontSize: 10, fontWeight: 600, color: "#1A1A18" }}>Tu Tienda</p>
@@ -518,7 +511,7 @@ function Hero() {
               lineHeight: 1.65,
             }}
           >
-            MochiDrop genera un link que le mandas a tu cliente por WhatsApp. Ahí elige courier, paga con tarjeta y recibe su tracking. Tú no tocas nada.
+            LinkDrop genera un link que le mandas a tu cliente por WhatsApp. Ahí elige courier, paga con tarjeta y recibe su tracking. Tú no tocas nada.
           </motion.p>
 
           <motion.div
@@ -808,7 +801,7 @@ function HowItWorks() {
       color: "#E8553D",
       shadow: "rgba(232,85,61,0.28)",
       title: "Creas el link en segundos",
-      desc: "Nombre del cliente y dirección. MochiDrop arma un link personalizado con tu marca al instante.",
+      desc: "Nombre del cliente y dirección. LinkDrop arma un link personalizado con tu marca al instante.",
     },
     {
       num: "2",
@@ -1094,7 +1087,7 @@ function Comparison() {
                   marginBottom: 24,
                 }}
               >
-                ✗ Sin MochiDrop
+                ✗ Sin LinkDrop
               </h3>
               <ul
                 style={{
@@ -1136,7 +1129,7 @@ function Comparison() {
                   marginBottom: 24,
                 }}
               >
-                ✓ Con MochiDrop
+                ✓ Con LinkDrop
               </h3>
               <ul
                 style={{
@@ -1192,7 +1185,7 @@ function Comparison() {
                 ~30 seg
               </p>
               <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.4)" }}>
-                por envío con MochiDrop
+                por envío con LinkDrop
               </p>
             </div>
             <motion.a
@@ -1376,7 +1369,7 @@ function Calculator() {
           >
             {[
               { label: "Tiempo manual por semana", value: fmt(manualMin) },
-              { label: "Tiempo con MochiDrop", value: fmt(mochiMin) },
+              { label: "Tiempo con LinkDrop", value: fmt(mochiMin) },
             ].map((row, i) => (
               <div
                 key={i}
@@ -1478,7 +1471,7 @@ function Integrations() {
             fontSize: 16, color: "#5C5C57", maxWidth: 460,
             margin: "0 auto", lineHeight: 1.7,
           }}>
-            MochiDrop conecta couriers y pagos para que tu cliente haga todo solo desde un link.
+            LinkDrop conecta couriers y pagos para que tu cliente haga todo solo desde un link.
           </p>
         </motion.div>
 
@@ -1977,7 +1970,7 @@ function Footer() {
           {/* Col 1 — Brand */}
           <div>
             <div style={{ marginBottom: 20 }}>
-              <MochiDropLogo dark />
+              <LinkDropLogo dark />
             </div>
             <p
               style={{
@@ -2106,7 +2099,7 @@ function Footer() {
           }}
         >
           <p style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", margin: 0 }}>
-            © 2026 MochiDrop. Todos los derechos reservados.
+            © 2026 LinkDrop. Todos los derechos reservados.
           </p>
           <p style={{ fontSize: 12, color: "rgba(255,255,255,0.25)", margin: 0 }}>
             Hecho con ❤️ en Santiago, Chile 🇨🇱

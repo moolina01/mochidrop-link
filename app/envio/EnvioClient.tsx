@@ -239,7 +239,7 @@ return (
         </div> */}
 
         <p className="text-[11px] text-gray-400">
-          Powered by <span className="font-semibold">MochiDrop</span>
+          Powered by <span className="font-semibold">LinkDrop</span>
         </p>
       </div>
 

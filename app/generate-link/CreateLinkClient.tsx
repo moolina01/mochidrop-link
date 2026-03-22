@@ -259,8 +259,7 @@ export default function CreateLinkClient() {
               </g>
               <circle cx="14" cy="15" r="1.4" fill="#E8553D" opacity="0.65" />
               <circle cx="16.5" cy="17" r="0.9" fill="#E8553D" opacity="0.35" />
-              <text x="34" y="20" fontFamily="'Instrument Sans', sans-serif" fontSize="15" fontWeight="600" fill="#1A1A18">mochidrop</text>
-              <text x="125" y="20" fontFamily="'Instrument Sans', sans-serif" fontSize="15" fontWeight="500" fill="#E8553D">link</text>
+              <text x="44" y="21" fontFamily="'Instrument Sans', sans-serif" fontSize="15" fontWeight="600"><tspan fill="#1A1A18">link</tspan><tspan fill="#E8553D">drop</tspan></text>
             </svg>
           </a>
           <a href="/" style={{ fontSize: 13, color: "#5C5C57", textDecoration: "none", fontWeight: 500 }}>
@@ -281,7 +280,7 @@ export default function CreateLinkClient() {
             Tu cliente elige courier y paga solo.
           </h1>
           <p style={{ margin: 0, fontSize: 15, color: "#5C5C57" }}>
-            Completa los datos del envío. MochiDrop cotiza los couriers en tiempo real y te genera el link para enviar por WhatsApp.
+            Completa los datos del envío. LinkDrop cotiza los couriers en tiempo real y te genera el link para enviar por WhatsApp.
           </p>
         </div>
 

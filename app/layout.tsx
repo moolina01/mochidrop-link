@@ -9,7 +9,7 @@ const instrumentSans = Instrument_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "MochiDrop — Links de envío para PYMEs",
+  title: "LinkDrop — Links de envío para PYMEs",
   description: "Deja de cotizar envíos uno por uno. Manda un link, tu cliente elige courier, paga y recibe su tracking.",
 };
 

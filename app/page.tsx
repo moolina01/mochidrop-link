@@ -2137,32 +2137,37 @@ export default function Home() {
 
     try {
       if (logoFile) {
-        const ext = logoFile.name.split(".").pop();
-        const fileName = `logos/${Date.now()}.${ext}`;
-        const { error: uploadErr } = await supabase.storage
-          .from("mochidrop")
-          .upload(fileName, logoFile);
-        if (uploadErr) throw uploadErr;
-        const { data: urlData } = supabase.storage
-          .from("mochidrop")
-          .getPublicUrl(fileName);
-        logoUrl = urlData.publicUrl;
+        try {
+          const ext = logoFile.name.split(".").pop();
+          const fileName = `logos/${Date.now()}.${ext}`;
+          const { error: uploadErr } = await supabase.storage
+            .from("mochidrop")
+            .upload(fileName, logoFile);
+          if (!uploadErr) {
+            const { data: urlData } = supabase.storage
+              .from("mochidrop")
+              .getPublicUrl(fileName);
+            logoUrl = urlData.publicUrl;
+          }
+        } catch {
+          // Si falla el upload del logo, continúa sin él
+        }
       }
 
-      const res = await fetch(
-        "https://mochidrop-n8n.utdxt3.easypanel.host/webhook/a58a5ae8-6128-4a3f-94fa-27581654f2bf",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id_envio: ID_ENVIO,
-            nombre_pyme: nombre,
-            email,
-            logo_url: logoUrl,
-          }),
-        }
-      );
-      if (!res.ok) throw new Error("Webhook error");
+      const res = await fetch("/api/demo-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id_envio: ID_ENVIO,
+          nombre_pyme: nombre,
+          email,
+          logo_url: logoUrl,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error ?? `HTTP ${res.status}`);
+      }
       setModalOpen(true);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

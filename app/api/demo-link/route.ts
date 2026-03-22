@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const N8N_WEBHOOK =
-  "https://mochidrop-n8n.utdxt3.easypanel.host/webhook/a58a5ae8-6128-4a3f-94fa-27581654f2bf";
+  "https://mochidrop-n8n.utdxt3.easypanel.host/webhook/confirmar-envio";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();

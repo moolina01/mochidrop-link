@@ -6,7 +6,7 @@ import { supabase } from "@/utils/supabase";
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const N8N_CREATE_LINK =
-  "https://mochidrop-n8n.utdxt3.easypanel.host/webhook/crear-link";
+  "https://mochidrop-n8n.utdxt3.easypanel.host/webhook/confirmar-envio";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 

@@ -2165,8 +2165,9 @@ export default function Home() {
       if (!res.ok) throw new Error("Webhook error");
       setModalOpen(true);
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
       console.error(err);
-      alert("Ocurrió un error generando el link.");
+      alert(`Error: ${msg}`);
     } finally {
       setLoading(false);
     }

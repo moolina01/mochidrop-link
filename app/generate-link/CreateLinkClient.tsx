@@ -206,7 +206,10 @@ export default function CreateLinkClient() {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("webhook_error");
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody?.message ?? `HTTP ${res.status}`);
+      }
 
       const data = await res.json();
 
@@ -216,9 +219,12 @@ export default function CreateLinkClient() {
 
       const baseUrl = window.location.origin;
       setGeneratedUrl(`${baseUrl}/envio?id=${id}`);
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
       setError(
-        "No pudimos generar el link. Verifica los datos y vuelve a intentar."
+        msg && msg !== "no_id"
+          ? `Error: ${msg}`
+          : "No pudimos generar el link. Verifica los datos y vuelve a intentar."
       );
     } finally {
       setLoading(false);

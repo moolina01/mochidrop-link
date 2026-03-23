@@ -278,12 +278,12 @@ function LimitModal({ onClose }: { onClose: () => void }) {
         width: "100%", maxWidth: 400, boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
         textAlign: "center",
       }}>
-        <div style={{ fontSize: 40, marginBottom: 16 }}>🔒</div>
+        <div style={{ fontSize: 40, marginBottom: 16 }}>🎉</div>
         <h2 style={{ margin: "0 0 12px", fontSize: 22, fontWeight: 700, color: "#1A1A18" }}>
-          Has alcanzado tu límite
+          Tu prueba gratuita ha terminado
         </h2>
         <p style={{ margin: "0 0 24px", fontSize: 14, color: "#5C5C57", lineHeight: 1.6 }}>
-          Ya usaste tus 5 links gratuitos. Nos pondremos en contacto contigo muy pronto para darte acceso ilimitado.
+          Ya usaste todos tus links de prueba. Nos pondremos en contacto contigo muy pronto para activar tu plan y seguir enviando sin límites.
         </p>
         <button
           onClick={onClose}

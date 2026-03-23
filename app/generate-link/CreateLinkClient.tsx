@@ -370,19 +370,16 @@ export default function CreateLinkClient() {
       // 2. Subir logo (si hay)
       let logoUrl = "";
       if (form.logoFile) {
-        try {
-          const ext = form.logoFile.name.split(".").pop();
-          const path = `logos/${Date.now()}.${ext}`;
-          const { error: uploadErr } = await supabase.storage
-            .from("mochidrop")
-            .upload(path, form.logoFile, { upsert: true });
-          if (!uploadErr) {
-            const { data: publicData } = supabase.storage.from("mochidrop").getPublicUrl(path);
-            logoUrl = publicData.publicUrl;
-          }
-        } catch {
-          // Si falla el upload del logo, continúa sin él
+        const ext = form.logoFile.name.split(".").pop();
+        const path = `logos/${Date.now()}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from("mochidrop")
+          .upload(path, form.logoFile, { upsert: true });
+        if (uploadErr) {
+          throw new Error(`Error al subir el logo: ${uploadErr.message}`);
         }
+        const { data: publicData } = supabase.storage.from("mochidrop").getPublicUrl(path);
+        logoUrl = publicData.publicUrl;
       }
 
       // 3. Llamar al webhook de N8N

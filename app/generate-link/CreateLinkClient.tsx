@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/utils/supabase";
+import type { User } from "@supabase/supabase-js";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -11,21 +12,16 @@ const N8N_CREATE_LINK =
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 type FormState = {
-  // Negocio
   nombrePyme: string;
   logoFile: File | null;
   logoPreview: string;
-
-  // Origen (desde dónde despacha la PyME)
   origenComuna: string;
   origenDireccion: string;
   origenNumero: string;
-
-  // Paquete
-  largo: string;  // cm
-  alto: string;   // cm
-  ancho: string;  // cm
-  peso: string;   // kg
+  largo: string;
+  alto: string;
+  ancho: string;
+  peso: string;
 };
 
 const DEFAULT: FormState = {
@@ -115,8 +111,193 @@ function TextInput({
   );
 }
 
-function Divider() {
-  return <div style={{ height: 1, background: "#E8E8E3", margin: "8px 0" }} />;
+// ─── Modal overlay base ───────────────────────────────────────────────────────
+
+function ModalOverlay({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 100,
+      background: "rgba(0,0,0,0.45)", backdropFilter: "blur(6px)",
+      display: "flex", alignItems: "center", justifyContent: "center", padding: "24px",
+    }}>
+      {children}
+    </div>
+  );
+}
+
+// ─── AuthModal ────────────────────────────────────────────────────────────────
+
+function AuthModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const [mode, setMode] = useState<"register" | "login">("register");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [confirmMsg, setConfirmMsg] = useState("");
+
+  async function handleAuth() {
+    if (!email.trim() || password.length < 6) {
+      setError("Ingresa un email válido y contraseña de al menos 6 caracteres.");
+      return;
+    }
+    setError("");
+    setConfirmMsg("");
+    setLoading(true);
+    try {
+      if (mode === "register") {
+        const { data, error: signUpErr } = await supabase.auth.signUp({ email: email.trim(), password });
+        if (signUpErr) throw signUpErr;
+        if (data.user && data.session) {
+          // Sesión activa inmediatamente — crear fila en pymes
+          await supabase.from("pymes").insert({ auth_id: data.user.id, email: email.trim() });
+          onSuccess();
+        } else {
+          // Email confirmation required
+          setConfirmMsg("Revisa tu correo y confirma tu cuenta para continuar.");
+        }
+      } else {
+        const { error: signInErr } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+        if (signInErr) throw signInErr;
+        onSuccess();
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Error desconocido";
+      if (msg.includes("already registered")) setError("Este email ya está registrado. Inicia sesión.");
+      else if (msg.includes("Invalid login")) setError("Email o contraseña incorrectos.");
+      else setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", boxSizing: "border-box",
+    border: "1px solid #E8E8E3", borderRadius: 10,
+    padding: "12px 14px", fontSize: 14, color: "#1A1A18",
+    background: "#FAFAF7", outline: "none", fontFamily: "inherit",
+  };
+
+  return (
+    <ModalOverlay>
+      <div style={{
+        background: "#fff", borderRadius: 20, padding: "32px",
+        width: "100%", maxWidth: 420, boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+        position: "relative",
+      }}>
+        {/* Close */}
+        <button onClick={onClose} style={{
+          position: "absolute", top: 16, right: 16,
+          background: "none", border: "none", cursor: "pointer",
+          fontSize: 20, color: "#9C9C95", fontFamily: "inherit", lineHeight: 1,
+        }}>✕</button>
+
+        {/* Header */}
+        <div style={{ marginBottom: 24 }}>
+          <h2 style={{ margin: "0 0 6px", fontSize: 22, fontWeight: 700, color: "#1A1A18" }}>
+            {mode === "register" ? "Crea tu cuenta gratis" : "Inicia sesión"}
+          </h2>
+          <p style={{ margin: 0, fontSize: 14, color: "#5C5C57" }}>
+            {mode === "register"
+              ? "Genera hasta 5 links de envío gratis"
+              : "Accede a tu cuenta"}
+          </p>
+        </div>
+
+        {/* Form */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div>
+            <p style={{ margin: "0 0 5px", fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Email</p>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="tu@email.com"
+              style={inputStyle}
+              onKeyDown={(e) => e.key === "Enter" && handleAuth()}
+            />
+          </div>
+          <div>
+            <p style={{ margin: "0 0 5px", fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Contraseña</p>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Mínimo 6 caracteres"
+              style={inputStyle}
+              onKeyDown={(e) => e.key === "Enter" && handleAuth()}
+            />
+          </div>
+
+          {error && (
+            <p style={{ margin: 0, fontSize: 13, color: "#C23E28", background: "#FFF0ED", padding: "10px 14px", borderRadius: 8 }}>
+              {error}
+            </p>
+          )}
+          {confirmMsg && (
+            <p style={{ margin: 0, fontSize: 13, color: "#2D8A56", background: "#F5FBF7", padding: "10px 14px", borderRadius: 8 }}>
+              {confirmMsg}
+            </p>
+          )}
+
+          <button
+            onClick={handleAuth}
+            disabled={loading}
+            style={{
+              width: "100%", padding: "14px", borderRadius: 12, border: "none",
+              fontSize: 15, fontWeight: 700, color: "#fff", fontFamily: "inherit",
+              background: loading ? "#D1D1CC" : "#E8553D",
+              cursor: loading ? "not-allowed" : "pointer",
+              marginTop: 4,
+            }}
+          >
+            {loading ? "Procesando…" : mode === "register" ? "Crear cuenta →" : "Iniciar sesión →"}
+          </button>
+
+          <p style={{ margin: 0, textAlign: "center", fontSize: 13, color: "#9C9C95" }}>
+            {mode === "register" ? "¿Ya tienes cuenta? " : "¿No tienes cuenta? "}
+            <button
+              onClick={() => { setMode(mode === "register" ? "login" : "register"); setError(""); setConfirmMsg(""); }}
+              style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#E8553D", fontWeight: 600, fontFamily: "inherit", padding: 0 }}
+            >
+              {mode === "register" ? "Inicia sesión" : "Regístrate"}
+            </button>
+          </p>
+        </div>
+      </div>
+    </ModalOverlay>
+  );
+}
+
+// ─── LimitModal ───────────────────────────────────────────────────────────────
+
+function LimitModal({ onClose }: { onClose: () => void }) {
+  return (
+    <ModalOverlay>
+      <div style={{
+        background: "#fff", borderRadius: 20, padding: "32px",
+        width: "100%", maxWidth: 400, boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+        textAlign: "center",
+      }}>
+        <div style={{ fontSize: 40, marginBottom: 16 }}>🔒</div>
+        <h2 style={{ margin: "0 0 12px", fontSize: 22, fontWeight: 700, color: "#1A1A18" }}>
+          Has alcanzado tu límite
+        </h2>
+        <p style={{ margin: "0 0 24px", fontSize: 14, color: "#5C5C57", lineHeight: 1.6 }}>
+          Ya usaste tus 5 links gratuitos. Nos pondremos en contacto contigo muy pronto para darte acceso ilimitado.
+        </p>
+        <button
+          onClick={onClose}
+          style={{
+            width: "100%", padding: "14px", borderRadius: 12, border: "none",
+            fontSize: 15, fontWeight: 700, color: "#fff", fontFamily: "inherit",
+            background: "#1A1A18", cursor: "pointer",
+          }}
+        >
+          Entendido
+        </button>
+      </div>
+    </ModalOverlay>
+  );
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
@@ -128,7 +309,35 @@ export default function CreateLinkClient() {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
 
+  // Auth
+  const [user, setUser] = useState<User | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [linksCount, setLinksCount] = useState<{ used: number; limit: number } | null>(null);
+
   const canSubmit = useMemo(() => isComplete(form), [form]);
+
+  // Verificar auth al cargar
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Cargar contador de links cuando hay usuario
+  useEffect(() => {
+    if (!user) { setLinksCount(null); return; }
+    supabase
+      .from("pymes")
+      .select("links_creados, limite_links")
+      .eq("auth_id", user.id)
+      .single()
+      .then(({ data }) => {
+        if (data) setLinksCount({ used: data.links_creados, limit: data.limite_links });
+      });
+  }, [user]);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((s) => ({ ...s, [key]: value }));
@@ -142,32 +351,45 @@ export default function CreateLinkClient() {
     reader.readAsDataURL(file);
   }
 
-  async function handleSubmit() {
-    if (!canSubmit) return;
+  async function doGenerateLink(currentUser: User) {
     setError("");
     setLoading(true);
-
     try {
-      // 1. Subir logo a Supabase Storage (si hay)
+      // 1. Verificar límite
+      const { data: pymeData } = await supabase
+        .from("pymes")
+        .select("links_creados, limite_links")
+        .eq("auth_id", currentUser.id)
+        .single();
+
+      if (pymeData && pymeData.links_creados >= pymeData.limite_links) {
+        setShowLimitModal(true);
+        return;
+      }
+
+      // 2. Subir logo (si hay)
       let logoUrl = "";
       if (form.logoFile) {
-        const ext = form.logoFile.name.split(".").pop();
-        const path = `logos/${Date.now()}.${ext}`;
-        const { error: uploadErr } = await supabase.storage
-          .from("mochidrop")
-          .upload(path, form.logoFile, { upsert: true });
-        if (!uploadErr) {
-          const { data: publicData } = supabase.storage
+        try {
+          const ext = form.logoFile.name.split(".").pop();
+          const path = `logos/${Date.now()}.${ext}`;
+          const { error: uploadErr } = await supabase.storage
             .from("mochidrop")
-            .getPublicUrl(path);
-          logoUrl = publicData.publicUrl;
+            .upload(path, form.logoFile, { upsert: true });
+          if (!uploadErr) {
+            const { data: publicData } = supabase.storage.from("mochidrop").getPublicUrl(path);
+            logoUrl = publicData.publicUrl;
+          }
+        } catch {
+          // Si falla el upload del logo, continúa sin él
         }
       }
 
-      // 2. Llamar al webhook de N8N que crea el envío y cotiza couriers
+      // 3. Llamar al webhook de N8N
       const payload = {
         nombre_pyme: form.nombrePyme.trim(),
         logo_pyme: logoUrl,
+        pyme_id: currentUser.id,
         origen: {
           comuna: form.origenComuna.trim(),
           direccion: form.origenDireccion.trim(),
@@ -196,6 +418,14 @@ export default function CreateLinkClient() {
       const id = data?.id;
       if (!id) throw new Error("no_id");
 
+      // 4. Incrementar contador
+      const newCount = (pymeData?.links_creados ?? 0) + 1;
+      await supabase
+        .from("pymes")
+        .update({ links_creados: newCount })
+        .eq("auth_id", currentUser.id);
+      setLinksCount((prev) => prev ? { ...prev, used: newCount } : prev);
+
       const baseUrl = window.location.origin;
       setGeneratedUrl(`${baseUrl}/envio?id=${id}`);
     } catch (err) {
@@ -210,6 +440,16 @@ export default function CreateLinkClient() {
     }
   }
 
+  async function handleSubmit() {
+    if (!canSubmit) return;
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) {
+      setShowAuthModal(true);
+      return;
+    }
+    await doGenerateLink(currentUser);
+  }
+
   async function copyUrl() {
     if (!generatedUrl) return;
     await navigator.clipboard.writeText(generatedUrl).catch(() => {});
@@ -217,7 +457,6 @@ export default function CreateLinkClient() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  // Preview helpers
   const allDims =
     form.largo && form.alto && form.ancho && form.peso
       ? `${form.largo}×${form.alto}×${form.ancho} cm · ${form.peso} kg`
@@ -225,6 +464,19 @@ export default function CreateLinkClient() {
 
   return (
     <div>
+      {/* Modales */}
+      {showAuthModal && (
+        <AuthModal
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={async () => {
+            setShowAuthModal(false);
+            const { data: { user: u } } = await supabase.auth.getUser();
+            if (u) await doGenerateLink(u);
+          }}
+        />
+      )}
+      {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
+
       {/* ── Navbar ──────────────────────────────────────────────────────────── */}
       <header style={{
         position: "sticky", top: 0, zIndex: 50,
@@ -247,9 +499,32 @@ export default function CreateLinkClient() {
               <text x="44" y="21" fontFamily="'Instrument Sans', sans-serif" fontSize="15" fontWeight="600"><tspan fill="#1A1A18">link</tspan><tspan fill="#E8553D">drop</tspan></text>
             </svg>
           </a>
-          <a href="/" style={{ fontSize: 13, color: "#5C5C57", textDecoration: "none", fontWeight: 500 }}>
-            ← Volver al inicio
-          </a>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            {user && (
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                {linksCount && (
+                  <span style={{ fontSize: 12, color: "#5C5C57", fontWeight: 500 }}>
+                    <span style={{ fontWeight: 700, color: linksCount.used >= linksCount.limit ? "#C23E28" : "#1A1A18" }}>
+                      {linksCount.used}
+                    </span>
+                    <span style={{ color: "#9C9C95" }}> / {linksCount.limit} links usados</span>
+                  </span>
+                )}
+                <span style={{ fontSize: 12, color: "#9C9C95" }}>{user.email}</span>
+                <button
+                  onClick={() => supabase.auth.signOut()}
+                  style={{ fontSize: 12, color: "#5C5C57", background: "none", border: "1px solid #E8E8E3", borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit" }}
+                >
+                  Salir
+                </button>
+              </div>
+            )}
+            {!user && (
+              <a href="/" style={{ fontSize: 13, color: "#5C5C57", textDecoration: "none", fontWeight: 500 }}>
+                ← Volver al inicio
+              </a>
+            )}
+          </div>
         </div>
       </header>
 
@@ -362,36 +637,16 @@ export default function CreateLinkClient() {
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
                 <Field label="Largo (cm) *">
-                  <TextInput
-                    value={form.largo}
-                    onChange={(v) => set("largo", v.replace(/[^\d.]/g, ""))}
-                    placeholder="30"
-                    type="number"
-                  />
+                  <TextInput value={form.largo} onChange={(v) => set("largo", v.replace(/[^\d.]/g, ""))} placeholder="30" type="number" />
                 </Field>
                 <Field label="Alto (cm) *">
-                  <TextInput
-                    value={form.alto}
-                    onChange={(v) => set("alto", v.replace(/[^\d.]/g, ""))}
-                    placeholder="20"
-                    type="number"
-                  />
+                  <TextInput value={form.alto} onChange={(v) => set("alto", v.replace(/[^\d.]/g, ""))} placeholder="20" type="number" />
                 </Field>
                 <Field label="Ancho (cm) *">
-                  <TextInput
-                    value={form.ancho}
-                    onChange={(v) => set("ancho", v.replace(/[^\d.]/g, ""))}
-                    placeholder="15"
-                    type="number"
-                  />
+                  <TextInput value={form.ancho} onChange={(v) => set("ancho", v.replace(/[^\d.]/g, ""))} placeholder="15" type="number" />
                 </Field>
                 <Field label="Peso (kg) *">
-                  <TextInput
-                    value={form.peso}
-                    onChange={(v) => set("peso", v.replace(/[^\d.]/g, ""))}
-                    placeholder="1.5"
-                    type="number"
-                  />
+                  <TextInput value={form.peso} onChange={(v) => set("peso", v.replace(/[^\d.]/g, ""))} placeholder="1.5" type="number" />
                 </Field>
               </div>
               <p style={{ margin: "12px 0 0", fontSize: 12, color: "#9C9C95" }}>
@@ -419,7 +674,7 @@ export default function CreateLinkClient() {
                 transition: "all 0.2s",
               }}
             >
-              {loading ? "Cotizando couriers y generando link…" : "Generar link de envío →"}
+              {loading ? "Generando link…" : "Generar link de envío →"}
             </button>
 
             {!canSubmit && !generatedUrl && (
@@ -448,7 +703,7 @@ export default function CreateLinkClient() {
                   <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1A1A18", wordBreak: "break-all" }}>{generatedUrl}</p>
                 </div>
                 <p style={{ margin: "0 0 12px", fontSize: 13, color: "#5C5C57" }}>
-                  Tu cliente abre el link, ve los precios reales de cada courier, elige y paga con tarjeta. Tú no tocas nada.
+                  Tu cliente abre el link, llena sus datos, elige courier y paga. Tú no tocas nada.
                 </p>
                 <div style={{ display: "flex", gap: 8 }}>
                   <button onClick={copyUrl} style={{
@@ -477,7 +732,6 @@ export default function CreateLinkClient() {
               Así lo ve tu cliente
             </p>
 
-            {/* Phone-style card */}
             <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E8E8E3", overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
               {/* Header de la tienda */}
               <div style={{ background: "#FAFAF7", padding: "14px 16px", borderBottom: "1px solid #E8E8E3", display: "flex", alignItems: "center", gap: 10 }}>

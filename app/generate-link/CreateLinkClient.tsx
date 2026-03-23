@@ -16,16 +16,10 @@ type FormState = {
   logoFile: File | null;
   logoPreview: string;
 
-  // Cliente (destinatario)
-  clienteNombre: string;
-  clienteTelefono: string;
-  clienteComuna: string;
-  clienteDireccion: string;
-  clienteNumero: string; // número/depto
-
   // Origen (desde dónde despacha la PyME)
   origenComuna: string;
   origenDireccion: string;
+  origenNumero: string;
 
   // Paquete
   largo: string;  // cm
@@ -38,13 +32,9 @@ const DEFAULT: FormState = {
   nombrePyme: "",
   logoFile: null,
   logoPreview: "",
-  clienteNombre: "",
-  clienteTelefono: "",
-  clienteComuna: "",
-  clienteDireccion: "",
-  clienteNumero: "",
   origenComuna: "",
   origenDireccion: "",
+  origenNumero: "",
   largo: "",
   alto: "",
   ancho: "",
@@ -54,9 +44,6 @@ const DEFAULT: FormState = {
 function isComplete(s: FormState) {
   return (
     s.nombrePyme.trim() !== "" &&
-    s.clienteNombre.trim() !== "" &&
-    s.clienteComuna.trim() !== "" &&
-    s.clienteDireccion.trim() !== "" &&
     s.origenComuna.trim() !== "" &&
     s.origenDireccion.trim() !== "" &&
     Number(s.largo) > 0 &&
@@ -181,16 +168,10 @@ export default function CreateLinkClient() {
       const payload = {
         nombre_pyme: form.nombrePyme.trim(),
         logo_pyme: logoUrl,
-        datos_destino: {
-          nombre: form.clienteNombre.trim(),
-          telefono: form.clienteTelefono.trim(),
-          comuna: form.clienteComuna.trim(),
-          direccion: form.clienteDireccion.trim(),
-          number: form.clienteNumero.trim(),
-        },
         origen: {
           comuna: form.origenComuna.trim(),
           direccion: form.origenDireccion.trim(),
+          numero: form.origenNumero.trim(),
         },
         paquete: {
           largo: Number(form.largo),
@@ -212,9 +193,7 @@ export default function CreateLinkClient() {
       }
 
       const data = await res.json();
-
-      // N8N debe devolver el id del envío creado en Supabase
-      const id = data?.id ?? data?.id_envio ?? data?.[0]?.id;
+      const id = data?.id;
       if (!id) throw new Error("no_id");
 
       const baseUrl = window.location.origin;
@@ -342,54 +321,9 @@ export default function CreateLinkClient() {
               </div>
             </div>
 
-            {/* 2 — Datos del cliente */}
+            {/* 2 — Origen */}
             <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "24px", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
-              <SectionTitle n={2} label="Datos del cliente (destinatario)" />
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <Field label="Nombre completo *">
-                  <TextInput
-                    value={form.clienteNombre}
-                    onChange={(v) => set("clienteNombre", v)}
-                    placeholder="Ej: María López"
-                  />
-                </Field>
-                <Field label="Teléfono" hint="Opcional — para coordinar la entrega">
-                  <TextInput
-                    value={form.clienteTelefono}
-                    onChange={(v) => set("clienteTelefono", v)}
-                    placeholder="+56 9 1234 5678"
-                    type="tel"
-                  />
-                </Field>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                  <Field label="Comuna *">
-                    <TextInput
-                      value={form.clienteComuna}
-                      onChange={(v) => set("clienteComuna", v)}
-                      placeholder="Ej: Providencia"
-                    />
-                  </Field>
-                  <Field label="Número / Depto">
-                    <TextInput
-                      value={form.clienteNumero}
-                      onChange={(v) => set("clienteNumero", v)}
-                      placeholder="Ej: 1234, Depto 5B"
-                    />
-                  </Field>
-                </div>
-                <Field label="Dirección *">
-                  <TextInput
-                    value={form.clienteDireccion}
-                    onChange={(v) => set("clienteDireccion", v)}
-                    placeholder="Ej: Av. Providencia 1234"
-                  />
-                </Field>
-              </div>
-            </div>
-
-            {/* 3 — Origen */}
-            <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "24px", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
-              <SectionTitle n={3} label="Desde dónde despachas" />
+              <SectionTitle n={2} label="Desde dónde despachas" />
               <p style={{ margin: "0 0 16px", fontSize: 13, color: "#5C5C57" }}>
                 Dirección de retiro del paquete. Los couriers calculan el precio desde aquí.
               </p>
@@ -409,11 +343,20 @@ export default function CreateLinkClient() {
                   />
                 </Field>
               </div>
+              <div style={{ marginTop: 12 }}>
+                <Field label="Número/Depto">
+                  <TextInput
+                    value={form.origenNumero}
+                    onChange={(v) => set("origenNumero", v)}
+                    placeholder="Ej: 1234, Of. 5"
+                  />
+                </Field>
+              </div>
             </div>
 
-            {/* 4 — Paquete */}
+            {/* 3 — Paquete */}
             <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "24px", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
-              <SectionTitle n={4} label="Dimensiones del paquete" />
+              <SectionTitle n={3} label="Dimensiones del paquete" />
               <p style={{ margin: "0 0 16px", fontSize: 13, color: "#5C5C57" }}>
                 Necesario para cotizar el precio real del envío con cada courier.
               </p>
@@ -563,17 +506,12 @@ export default function CreateLinkClient() {
               </div>
 
               <div style={{ padding: "16px" }}>
-                {/* Destinatario */}
-                <p style={{ margin: "0 0 6px", fontSize: 10, fontWeight: 600, color: "#9C9C95", textTransform: "uppercase", letterSpacing: "0.08em" }}>Envío para</p>
-                <div style={{ background: "#FAFAF7", border: "1px solid #E8E8E3", borderRadius: 10, padding: "10px 12px", marginBottom: 14, display: "flex", gap: 8, alignItems: "flex-start" }}>
-                  <span style={{ fontSize: 14 }}>📍</span>
+                {/* Destinatario placeholder */}
+                <div style={{ background: "#FAFAF7", border: "1px solid #E8E8E3", borderRadius: 10, padding: "10px 12px", marginBottom: 14, display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ fontSize: 18 }}>📋</span>
                   <div>
-                    <p style={{ margin: "0 0 2px", fontSize: 13, fontWeight: 700, color: "#1A1A18" }}>
-                      {form.clienteNombre || "Nombre del cliente"}
-                    </p>
-                    <p style={{ margin: 0, fontSize: 12, color: "#5C5C57" }}>
-                      {[form.clienteDireccion, form.clienteNumero, form.clienteComuna].filter(Boolean).join(", ") || "Dirección de entrega"}
-                    </p>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#1A1A18" }}>Tu cliente completará sus datos aquí</p>
+                    <p style={{ margin: 0, fontSize: 12, color: "#9C9C95" }}>Nombre, dirección y comuna de destino</p>
                   </div>
                 </div>
 

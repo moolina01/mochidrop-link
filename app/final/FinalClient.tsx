@@ -3,7 +3,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase";
 import { useSearchParams } from "next/navigation";
-import { CheckCircleIcon, LinkIcon } from "@heroicons/react/24/solid";
+import {
+  CheckCircleIcon,
+  MapPinIcon,
+  ClockIcon,
+  ClipboardDocumentIcon,
+  ClipboardDocumentCheckIcon,
+  ArrowTopRightOnSquareIcon,
+} from "@heroicons/react/24/solid";
 
 type EnvioType = {
   nombre_pyme: string;
@@ -26,6 +33,43 @@ type EnvioType = {
   tracking_url?: string;
   link_publico?: string;
 };
+
+const COURIER_STYLES: Record<string, { color: string; label: string }> = {
+  starken:     { color: "text-green-700", label: "Starken"      },
+  chilexpress: { color: "text-red-600",   label: "Chilexpress"  },
+  blueexpress: { color: "text-blue-700",  label: "Blue Express" },
+};
+
+function LoadingFallback() {
+  return (
+    <div className="fixed inset-0 bg-white flex items-center justify-center">
+      <div className="animate-spin h-10 w-10 border-4 border-[#E8E8E3] border-t-[#E8553D] rounded-full" />
+    </div>
+  );
+}
+
+function StoreHeader({ nombre, logo }: { nombre: string; logo: string }) {
+  return (
+    <div className="bg-white border-b border-[#E8E8E3] px-6 py-8 text-center">
+      {logo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={logo}
+          alt={nombre}
+          className="w-20 h-20 rounded-full object-cover mx-auto mb-4 border-2 border-[#E8E8E3] shadow-md"
+        />
+      ) : (
+        <div className="w-20 h-20 rounded-full bg-[#E8553D] mx-auto mb-4 flex items-center justify-center shadow-md">
+          <span className="text-white text-3xl font-bold">
+            {nombre?.[0]?.toUpperCase() ?? "T"}
+          </span>
+        </div>
+      )}
+      <h1 className="text-2xl font-bold text-[#1A1A18]">{nombre}</h1>
+      <p className="text-sm text-[#9C9C95] mt-1">Envío confirmado</p>
+    </div>
+  );
+}
 
 export default function FinalClient() {
   const searchParams = useSearchParams();
@@ -52,7 +96,6 @@ export default function FinalClient() {
       setEnvio(data ?? null);
       setLoading(false);
 
-      // Delay de animación profesional
       setTimeout(() => setGenerating(false), 1500);
     }
 
@@ -89,43 +132,34 @@ export default function FinalClient() {
   // ===========================================================
   // LOADING
   // ===========================================================
-  if (loading) {
-    return (
-      <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
-        <div className="animate-spin h-10 w-10 border-4 border-gray-300 border-t-black rounded-full"></div>
-      </div>
-    );
-  }
+  if (loading) return <LoadingFallback />;
 
   // ===========================================================
   // ANIMACIÓN PROFESIONAL
   // ===========================================================
   if (generating) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
+      <div className="fixed inset-0 bg-[#FAFAF7] flex items-center justify-center">
         <div className="w-full max-w-sm text-center px-6">
-
-          <div className="flex justify-center mb-4">
-            <div className="p-4 bg-blue-600 rounded-full animate-pulse">
-              <CheckCircleIcon className="w-10 h-10 text-white" />
+          <div className="flex justify-center mb-6">
+            <div className="w-20 h-20 rounded-full bg-[#2D8A56]/10 flex items-center justify-center animate-pulse">
+              <CheckCircleIcon className="w-12 h-12 text-[#2D8A56]" />
             </div>
           </div>
-
-          <h2 className="text-xl font-bold text-gray-800">Espere un momento…</h2>
-          <p className="text-gray-500 text-sm mt-1">Esto puede tardar unos segundos</p>
-
-          <div className="w-full bg-gray-200 rounded-full h-2 mt-6 overflow-hidden">
-            <div className="bg-blue-600 h-2 w-1/2 animate-[loadingbar_1.2s_infinite]"></div>
+          <h2 className="text-xl font-bold text-[#1A1A18]">Procesando tu envío…</h2>
+          <p className="text-[#9C9C95] text-sm mt-2">Esto puede tardar unos segundos</p>
+          <div className="w-full bg-[#E8E8E3] rounded-full h-1.5 mt-8 overflow-hidden">
+            <div
+              className="bg-[#E8553D] h-1.5 rounded-full"
+              style={{ animation: "loadingbar 1.2s infinite" }}
+            />
           </div>
-
-          <style>
-            {`
-              @keyframes loadingbar {
-                0% { transform: translateX(-100%); }
-                100% { transform: translateX(200%); }
-              }
-            `}
-          </style>
+          <style>{`
+            @keyframes loadingbar {
+              0%   { transform: translateX(-100%); width: 60%; }
+              100% { transform: translateX(200%);  width: 60%; }
+            }
+          `}</style>
         </div>
       </div>
     );
@@ -135,28 +169,15 @@ export default function FinalClient() {
   // VALIDACIONES
   // ===========================================================
   if (!envio) {
-    return (
-      <div className="p-10 text-center text-gray-600">
-        No se pudo cargar la información del envío.
-      </div>
-    );
+    return <div className="p-10 text-center text-[#5C5C57]">No se pudo cargar la información del envío.</div>;
   }
 
-  const courierKey = envio.courier?.toLowerCase() as
-    | "starken"
-    | "chilexpress"
-    | "blueexpress";
-
+  const courierKey = envio.courier?.toLowerCase() as "starken" | "chilexpress" | "blueexpress";
   const info = courierKey ? envio.cotizaciones[courierKey] : null;
 
-  // Aún no está lista la info → evitar crasheo
-  if (!info) {
-    return (
-      <div className="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center">
-        <div className="animate-spin h-10 w-10 border-4 border-gray-300 border-t-black rounded-full"></div>
-      </div>
-    );
-  }
+  if (!info) return <LoadingFallback />;
+
+  const style = COURIER_STYLES[courierKey] ?? { color: "text-[#1A1A18]", label: envio.courier ?? "" };
 
   // ===========================================================
   // COPIAR LINK (SAFARI SAFE)
@@ -166,10 +187,7 @@ export default function FinalClient() {
 
     if (navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(text)
-        .then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1500);
-        })
+        .then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); })
         .catch(() => fallbackCopy(text));
     } else {
       fallbackCopy(text);
@@ -183,7 +201,6 @@ export default function FinalClient() {
     textarea.style.opacity = "0";
     document.body.appendChild(textarea);
     textarea.select();
-
     try {
       document.execCommand("copy");
       setCopied(true);
@@ -191,84 +208,117 @@ export default function FinalClient() {
     } catch {
       alert("No se pudo copiar. Copia el link manualmente.");
     }
-
     textarea.remove();
-  }
-
-  function volver() {
-    window.history.back();
   }
 
   // ===========================================================
   // UI FINAL
   // ===========================================================
   return (
-    <div className="flex justify-center p-6 bg-gray-100 min-h-screen">
-      <div className="bg-white shadow-xl rounded-3xl p-6 w-full max-w-md border border-gray-200">
+    <div className="min-h-screen bg-[#FAFAF7]">
+      <StoreHeader nombre={envio.nombre_pyme} logo={envio.logo_pyme} />
 
-        <div className="bg-green-50 border border-green-200 text-green-700 p-3 rounded-xl mb-4 flex items-center gap-2">
-          <CheckCircleIcon className="w-5 h-5" />
-          <span className="text-sm font-medium">La guía fue generada correctamente</span>
-        </div>
+      <div className="max-w-md mx-auto px-4 py-6 pb-16 flex flex-col gap-4">
 
-        <div className="flex justify-center mb-3">
-          <div className="bg-green-600 p-2 rounded-full">
-            <CheckCircleIcon className="w-8 h-8 text-white" />
+        {/* Success banner */}
+        <div className="bg-[#2D8A56]/10 border border-[#2D8A56]/20 rounded-2xl px-5 py-4 flex items-start gap-3">
+          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-[#2D8A56]/15 flex items-center justify-center mt-0.5">
+            <CheckCircleIcon className="w-6 h-6 text-[#2D8A56]" />
           </div>
-        </div>
-
-        <h1 className="text-center text-2xl font-bold text-black">¡Tu guía está lista!</h1>
-        <p className="text-center mt-1 text-gray-600 text-sm">Todo se generó correctamente.</p>
-
-        {/* COURIER INFO */}
-        <div className="bg-white p-4 rounded-xl border border-gray-200 mt-6 mb-4 flex justify-between items-start shadow-sm">
           <div>
-            <p className="font-semibold text-black">{envio.courier} — {info.tipo}</p>
-            <p className="text-gray-700 text-sm mt-1">Llega en {info.tiempo}</p>
-            <p className="text-gray-700 text-sm">Paquete estándar</p>
+            <p className="font-bold text-[#1A1A18] text-base">¡Tu envío está en camino!</p>
+            <p className="text-[#5C5C57] text-sm mt-0.5">La guía fue generada correctamente.</p>
           </div>
-          <p className="font-bold text-black">${info.price}</p>
         </div>
 
-        {/* TRACKING */}
-        <div className="mt-3 mb-4">
-          <p className="font-semibold text-black text-sm">Tracking: {envio.tracking}</p>
-          <a href={envio.tracking_url!} target="_blank" className="text-blue-600 text-sm underline">
-            Seguir tu envío
-          </a>
-        </div>
-
-        {/* LINK DE ENVÍO */}
-        <div className="bg-white p-4 rounded-xl border border-gray-200 mb-6 shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
-            <LinkIcon className="w-5 h-5 text-black" />
-            <p className="font-semibold text-black">Tu link de envío</p>
+        {/* Card courier + tracking */}
+        <div className="bg-white rounded-2xl border border-[#E8E8E3] shadow-sm overflow-hidden">
+          {/* Courier info */}
+          <div className="px-5 py-4 border-b border-[#E8E8E3] flex justify-between items-start">
+            <div>
+              <p className="text-xs font-semibold text-[#9C9C95] uppercase tracking-wider mb-1">Courier</p>
+              <p className={`font-bold text-xl ${style.color}`}>{style.label}</p>
+              <p className="text-[#5C5C57] text-sm mt-0.5">{info.tipo}</p>
+              <div className="flex items-center gap-1 text-[#9C9C95] text-sm mt-1.5">
+                <ClockIcon className="w-4 h-4" />
+                <span>Llega en {info.tiempo}</span>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="font-bold text-[#1A1A18] text-2xl">${info.price.toLocaleString("es-CL")}</p>
+            </div>
           </div>
 
-          <button
-            onClick={copyLink}
-            className={`border px-3 py-1 rounded-lg text-sm transition-all ${
-              copied
-                ? "bg-green-100 text-green-700 border-green-300"
-                : "bg-gray-100 text-black border-gray-300 hover:bg-gray-200"
-            }`}
-          >
-            {copied ? "Copiado ✓" : "Copiar link"}
-          </button>
+          {/* Tracking */}
+          {(envio.tracking || envio.tracking_url) && (
+            <div className="px-5 py-4 border-b border-[#E8E8E3]">
+              <p className="text-xs font-semibold text-[#9C9C95] uppercase tracking-wider mb-2">Número de seguimiento</p>
+              {envio.tracking && (
+                <p className="font-mono font-semibold text-[#1A1A18] text-base mb-2">{envio.tracking}</p>
+              )}
+              <div className="flex gap-2 flex-wrap">
+                {envio.tracking_url && (
+                  <a
+                    href={envio.tracking_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 bg-[#1A1A18] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-[#2a2a26] transition-colors"
+                  >
+                    <ArrowTopRightOnSquareIcon className="w-4 h-4" />
+                    Seguir mi envío
+                  </a>
+                )}
+                {envio.tracking_url && (
+                  <button
+                    onClick={copyLink}
+                    className={`inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl border transition-all ${
+                      copied
+                        ? "bg-[#2D8A56]/10 text-[#2D8A56] border-[#2D8A56]/30"
+                        : "bg-white text-[#5C5C57] border-[#E8E8E3] hover:border-[#9C9C95]"
+                    }`}
+                  >
+                    {copied ? (
+                      <>
+                        <ClipboardDocumentCheckIcon className="w-4 h-4" />
+                        Copiado
+                      </>
+                    ) : (
+                      <>
+                        <ClipboardDocumentIcon className="w-4 h-4" />
+                        Copiar link
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Destinatario */}
+          <div className="px-5 py-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#FAFAF7] border border-[#E8E8E3] flex items-center justify-center mt-0.5">
+                <MapPinIcon className="w-4 h-4 text-[#E8553D]" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-[#9C9C95] uppercase tracking-wider mb-1">Destinatario</p>
+                <p className="font-semibold text-[#1A1A18] text-sm">{envio.datos_destino.nombre}</p>
+                <p className="text-[#5C5C57] text-sm leading-snug">
+                  {envio.datos_destino.direccion}
+                  {envio.datos_destino.number ? `, ${envio.datos_destino.number}` : ""}
+                  {", "}{envio.datos_destino.comuna}
+                </p>
+                {envio.datos_destino.telefono && (
+                  <p className="text-[#9C9C95] text-sm mt-0.5">{envio.datos_destino.telefono}</p>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* DESTINATARIO */}
-        <div className="bg-white p-4 rounded-xl border border-gray-200 mb-6 shadow-sm">
-          <p className="font-semibold text-black">{envio.datos_destino.nombre}</p>
-          <p className="text-gray-700 text-sm">
-            {envio.datos_destino.direccion} {envio.datos_destino.number}, {envio.datos_destino.comuna}
-          </p>
-          <p className="text-gray-700 text-sm">{envio.datos_destino.telefono}</p>
-        </div>
-
-        <button onClick={volver} className="w-full bg-black text-white font-semibold py-3 rounded-xl">
-          Recargar
-        </button>
+        <p className="text-center text-[11px] text-[#9C9C95] mt-2">
+          Powered by <span className="font-semibold text-[#5C5C57]">LinkDrop</span>
+        </p>
       </div>
     </div>
   );

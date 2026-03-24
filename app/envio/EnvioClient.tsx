@@ -117,7 +117,7 @@ export default function EnvioClient() {
     setErrorCotizar("");
     setCotizando(true);
     try {
-      const res = await fetch("https://mochidrop-n8n.utdxt3.easypanel.host/webhook/cotizar-envio", {
+      const res = await fetch("/api/cotizar-envio", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

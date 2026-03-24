@@ -1,21 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildFlowFormData } from "@/utils/flow";
 
-export async function POST(req: NextRequest) {
+async function handleReturn(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const envioId = searchParams.get("envioId");
+  const courier = searchParams.get("courier");
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL!;
+
   try {
-    const { searchParams } = new URL(req.url);
-    const envioId = searchParams.get("envioId");
-    const courier  = searchParams.get("courier");
+    // Flow puede enviar el token como query param (GET) o form data (POST)
+    let token = searchParams.get("token");
 
-    // Flow envía el token como form data
-    const body   = await req.text();
-    const params = new URLSearchParams(body);
-    const token  = params.get("token");
-
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL!;
+    if (!token && req.method === "POST") {
+      const body = await req.text();
+      const params = new URLSearchParams(body);
+      token = params.get("token");
+    }
 
     if (!token || !envioId) {
-      return NextResponse.redirect(`${baseUrl}/pago?id=${envioId}&courier=${courier}&error=missing_token`);
+      return NextResponse.redirect(
+        `${baseUrl}/pago?id=${envioId}&courier=${courier}&error=missing_token`
+      );
     }
 
     // Verificar estado con Flow
@@ -35,17 +40,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.redirect(`${baseUrl}/final?id=${envioId}&courier=${courier}`);
     }
 
-    // Rechazado o pendiente → volver a pago con error
     return NextResponse.redirect(
       `${baseUrl}/pago?id=${envioId}&courier=${courier}&error=rejected`
     );
   } catch (err) {
     console.error("return error:", err);
-    const { searchParams } = new URL(req.url);
-    const envioId = searchParams.get("envioId");
-    const courier  = searchParams.get("courier");
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/pago?id=${envioId}&courier=${courier}&error=unknown`
+      `${baseUrl}/pago?id=${envioId}&courier=${courier}&error=unknown`
     );
   }
+}
+
+export async function GET(req: NextRequest) {
+  return handleReturn(req);
+}
+
+export async function POST(req: NextRequest) {
+  return handleReturn(req);
 }

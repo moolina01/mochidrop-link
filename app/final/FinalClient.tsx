@@ -74,6 +74,7 @@ function StoreHeader({ nombre, logo }: { nombre: string; logo: string }) {
 export default function FinalClient() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
+  const courierParam = searchParams.get("courier");
 
   const [envio, setEnvio] = useState<EnvioType | null>(null);
   const [loading, setLoading] = useState(true);
@@ -172,7 +173,7 @@ export default function FinalClient() {
     return <div className="p-10 text-center text-[#5C5C57]">No se pudo cargar la información del envío.</div>;
   }
 
-  const courierKey = envio.courier?.toLowerCase() as "starken" | "chilexpress" | "blueexpress";
+  const courierKey = (envio.courier ?? courierParam)?.toLowerCase() as "starken" | "chilexpress" | "blueexpress";
   const info = courierKey ? envio.cotizaciones[courierKey] : null;
 
   if (!info) return <LoadingFallback />;
@@ -183,7 +184,7 @@ export default function FinalClient() {
   // COPIAR LINK (SAFARI SAFE)
   // ===========================================================
   function copyLink() {
-    const text = envio!.tracking_url ?? "";
+    const text = envio!.tracking ?? envio!.tracking_url ?? "";
 
     if (navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(text)
@@ -250,49 +251,61 @@ export default function FinalClient() {
           </div>
 
           {/* Tracking */}
-          {(envio.tracking || envio.tracking_url) && (
-            <div className="px-5 py-4 border-b border-[#E8E8E3]">
-              <p className="text-xs font-semibold text-[#9C9C95] uppercase tracking-wider mb-2">Número de seguimiento</p>
-              {envio.tracking && (
-                <p className="font-mono font-semibold text-[#1A1A18] text-base mb-2">{envio.tracking}</p>
-              )}
-              <div className="flex gap-2 flex-wrap">
-                {envio.tracking_url && (
-                  <a
-                    href={envio.tracking_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 bg-[#1A1A18] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-[#2a2a26] transition-colors"
-                  >
-                    <ArrowTopRightOnSquareIcon className="w-4 h-4" />
-                    Seguir mi envío
-                  </a>
+          <div className="px-5 py-4 border-b border-[#E8E8E3]">
+            <p className="text-xs font-semibold text-[#9C9C95] uppercase tracking-wider mb-3">
+              Seguimiento de tu envío
+            </p>
+
+            {envio.tracking_url ? (
+              /* Tracking disponible */
+              <div className="flex flex-col gap-3">
+                {envio.tracking && (
+                  <div className="flex items-center justify-between bg-[#FAFAF7] rounded-xl px-4 py-2.5 border border-[#E8E8E3]">
+                    <div>
+                      <p className="text-[10px] text-[#9C9C95] font-semibold uppercase tracking-wide mb-0.5">N° de guía</p>
+                      <p className="font-mono font-bold text-[#1A1A18] text-sm">{envio.tracking}</p>
+                    </div>
+                    <button
+                      onClick={copyLink}
+                      className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all ${
+                        copied
+                          ? "bg-[#2D8A56]/10 text-[#2D8A56] border-[#2D8A56]/30"
+                          : "bg-white text-[#5C5C57] border-[#E8E8E3] hover:border-[#9C9C95]"
+                      }`}
+                    >
+                      {copied ? (
+                        <><ClipboardDocumentCheckIcon className="w-3.5 h-3.5" />Copiado</>
+                      ) : (
+                        <><ClipboardDocumentIcon className="w-3.5 h-3.5" />Copiar</>
+                      )}
+                    </button>
+                  </div>
                 )}
-                {envio.tracking_url && (
-                  <button
-                    onClick={copyLink}
-                    className={`inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl border transition-all ${
-                      copied
-                        ? "bg-[#2D8A56]/10 text-[#2D8A56] border-[#2D8A56]/30"
-                        : "bg-white text-[#5C5C57] border-[#E8E8E3] hover:border-[#9C9C95]"
-                    }`}
-                  >
-                    {copied ? (
-                      <>
-                        <ClipboardDocumentCheckIcon className="w-4 h-4" />
-                        Copiado
-                      </>
-                    ) : (
-                      <>
-                        <ClipboardDocumentIcon className="w-4 h-4" />
-                        Copiar link
-                      </>
-                    )}
-                  </button>
-                )}
+                <a
+                  href={envio.tracking_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2 bg-[#1A1A18] text-white font-bold py-4 rounded-xl text-[15px] hover:bg-[#2a2a26] active:scale-[0.99] transition-all shadow-[0_4px_14px_rgba(26,26,24,0.18)]"
+                >
+                  <ArrowTopRightOnSquareIcon className="w-5 h-5" />
+                  Ver estado de mi envío
+                </a>
               </div>
-            </div>
-          )}
+            ) : (
+              /* Esperando que N8N genere la guía */
+              <div className="animate-pulse flex flex-col gap-3">
+                <div className="flex items-center gap-3 bg-[#FAFAF7] rounded-xl px-4 py-3 border border-[#E8E8E3]">
+                  <div className="w-4 h-4 rounded-full bg-[#E8E8E3]" />
+                  <div className="flex-1">
+                    <div className="h-3 bg-[#E8E8E3] rounded-full w-28 mb-1.5" />
+                    <div className="h-2.5 bg-[#E8E8E3] rounded-full w-40" />
+                  </div>
+                </div>
+                <div className="w-full h-12 bg-[#E8E8E3] rounded-xl" />
+                <p className="text-center text-xs text-[#9C9C95]">Generando guía de despacho…</p>
+              </div>
+            )}
+          </div>
 
           {/* Destinatario */}
           <div className="px-5 py-4">

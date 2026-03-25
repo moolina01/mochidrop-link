@@ -8,6 +8,7 @@ import {
   ClockIcon,
   LockClosedIcon,
   PencilSquareIcon,
+  CheckBadgeIcon,
 } from "@heroicons/react/24/solid";
 import { useRouter } from "next/navigation";
 
@@ -32,10 +33,53 @@ type EnvioType = {
   tracking_url?: string;
 };
 
-const COURIER_STYLES: Record<string, { color: string; border: string; label: string }> = {
-  starken:     { color: "text-green-700",  border: "border-l-green-500",  label: "Starken"      },
-  chilexpress: { color: "text-red-600",    border: "border-l-red-500",    label: "Chilexpress"  },
-  blueexpress: { color: "text-blue-700",   border: "border-l-blue-500",   label: "Blue Express" },
+const COURIER_CONFIG: Record<
+  string,
+  {
+    bgAccent: string;
+    textAccent: string;
+    borderAccent: string;
+    iconBg: string;
+    iconText: string;
+    initials: string;
+    label: string;
+    tagline: string;
+    deliveries: string;
+  }
+> = {
+  starken: {
+    bgAccent: "bg-red-50",
+    textAccent: "text-[#E31E24]",
+    borderAccent: "border-[#E31E24]",
+    iconBg: "bg-[#E31E24]",
+    iconText: "text-white",
+    initials: "SK",
+    label: "Starken",
+    tagline: "Seguimiento en tiempo real",
+    deliveries: "+120k entregas",
+  },
+  chilexpress: {
+    bgAccent: "bg-yellow-50",
+    textAccent: "text-[#1A1A18]",
+    borderAccent: "border-[#FFD000]",
+    iconBg: "bg-[#FFD000]",
+    iconText: "text-[#1A1A18]",
+    initials: "CX",
+    label: "Chilexpress",
+    tagline: "Red de puntos más grande de Chile",
+    deliveries: "+500k entregas",
+  },
+  blueexpress: {
+    bgAccent: "bg-blue-50",
+    textAccent: "text-[#0052CC]",
+    borderAccent: "border-[#0052CC]",
+    iconBg: "bg-[#0052CC]",
+    iconText: "text-white",
+    initials: "BX",
+    label: "Blue Express",
+    tagline: "Asegurado y verificado",
+    deliveries: "+80k entregas",
+  },
 };
 
 function StoreHeader({ envio }: { envio: EnvioType }) {
@@ -60,6 +104,28 @@ function StoreHeader({ envio }: { envio: EnvioType }) {
   );
 }
 
+function SkeletonCard() {
+  return (
+    <div className="w-full bg-white border border-[#E8E8E3] rounded-2xl p-4 shadow-sm animate-pulse">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="w-12 h-12 rounded-xl bg-[#E8E8E3]" />
+        <div className="flex-1">
+          <div className="h-4 bg-[#E8E8E3] rounded-full w-28 mb-2" />
+          <div className="h-3 bg-[#E8E8E3] rounded-full w-40" />
+        </div>
+        <div className="text-right">
+          <div className="h-6 bg-[#E8E8E3] rounded-full w-20 mb-1" />
+          <div className="h-3 bg-[#E8E8E3] rounded-full w-16 ml-auto" />
+        </div>
+      </div>
+      <div className="flex items-center justify-between pt-2 border-t border-[#F0F0EB]">
+        <div className="h-3 bg-[#E8E8E3] rounded-full w-24" />
+        <div className="h-9 bg-[#E8E8E3] rounded-xl w-28" />
+      </div>
+    </div>
+  );
+}
+
 export default function EnvioClient() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
@@ -67,6 +133,8 @@ export default function EnvioClient() {
   const [envio, setEnvio] = useState<EnvioType | null>(null);
   const [loading, setLoading] = useState(true);
   const [transitioning, setTransitioning] = useState(false);
+  const [cardsVisible, setCardsVisible] = useState(false);
+  const [selectedCourier, setSelectedCourier] = useState<string | null>(null);
 
   const [formCliente, setFormCliente] = useState({
     nombre: "", telefono: "", comuna: "", direccion: "", numero: "",
@@ -77,6 +145,7 @@ export default function EnvioClient() {
   const router = useRouter();
 
   async function elegir(courier: string) {
+    setSelectedCourier(courier);
     setTransitioning(true);
     router.push(`/confirmacion?id=${id}&courier=${courier}`);
   }
@@ -90,6 +159,9 @@ export default function EnvioClient() {
       if (data.estado === "Creado ") { router.push(`/final?id=${id}`); return; }
       setEnvio(data);
       setLoading(false);
+      if (data.cotizaciones && Object.keys(data.cotizaciones).length > 0) {
+        setCardsVisible(true);
+      }
     }
     fetchEnvio();
   }, [id, router]);
@@ -116,6 +188,7 @@ export default function EnvioClient() {
     }
     setErrorCotizar("");
     setCotizando(true);
+    setCardsVisible(false);
     try {
       const res = await fetch("/api/cotizar-envio", {
         method: "POST",
@@ -155,6 +228,9 @@ export default function EnvioClient() {
           number: formCliente.numero.trim(),
         },
       } : prev);
+
+      // Pequeño delay para que el fade-in sea visible
+      setTimeout(() => setCardsVisible(true), 50);
     } catch {
       setErrorCotizar("No pudimos cotizar los couriers. Intenta de nuevo.");
     } finally {
@@ -192,7 +268,8 @@ export default function EnvioClient() {
 
       <div className="max-w-md mx-auto px-4 py-6 pb-16">
 
-        {mostrarFormulario ? (
+        {/* FORMULARIO */}
+        {mostrarFormulario && !cotizando && (
           <>
             <div className="bg-white rounded-2xl shadow-sm border border-[#E8E8E3] overflow-hidden">
               <div className="px-6 pt-6 pb-2">
@@ -279,21 +356,12 @@ export default function EnvioClient() {
                   disabled={cotizando}
                   className="w-full bg-[#E8553D] text-white font-bold py-4 rounded-xl text-[15px] transition-all shadow-[0_4px_16px_rgba(232,85,61,0.3)] hover:shadow-[0_6px_20px_rgba(232,85,61,0.4)] hover:-translate-y-0.5 active:translate-y-0 disabled:bg-[#D1D1CC] disabled:shadow-none disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {cotizando ? (
-                    <>
-                      <div className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full" />
-                      Cotizando mejores precios…
-                    </>
-                  ) : (
-                    "Ver opciones de envío →"
-                  )}
+                  Ver opciones de envío →
                 </button>
 
-                {!cotizando && (
-                  <p className="text-center text-xs text-[#9C9C95]">
-                    Completa los campos marcados con <span className="text-[#E8553D]">*</span> para continuar
-                  </p>
-                )}
+                <p className="text-center text-xs text-[#9C9C95]">
+                  Completa los campos marcados con <span className="text-[#E8553D]">*</span> para continuar
+                </p>
               </div>
             </div>
 
@@ -302,7 +370,27 @@ export default function EnvioClient() {
               <span className="text-xs">Tus datos están protegidos</span>
             </div>
           </>
-        ) : (
+        )}
+
+        {/* SKELETONS — mientras cotiza */}
+        {cotizando && (
+          <>
+            <div className="mb-5">
+              <p className="text-xs font-semibold text-[#9C9C95] uppercase tracking-wider px-1 mb-1">
+                Buscando opciones de envío…
+              </p>
+              <p className="text-xs text-[#9C9C95] px-1 mb-4">Consultando couriers disponibles</p>
+              <div className="flex flex-col gap-3">
+                <SkeletonCard />
+                <SkeletonCard />
+                <SkeletonCard />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* CARDS COURIER */}
+        {!mostrarFormulario && !cotizando && (
           <>
             {/* Destino confirmado */}
             <div className="bg-white rounded-2xl border border-[#E8E8E3] shadow-sm p-4 mb-5 flex items-start gap-3">
@@ -317,7 +405,11 @@ export default function EnvioClient() {
                 </p>
               </div>
               <button
-                onClick={() => setEnvio((prev) => prev ? { ...prev, cotizaciones: undefined } : prev)}
+                onClick={() => {
+                  setEnvio((prev) => prev ? { ...prev, cotizaciones: undefined } : prev);
+                  setCardsVisible(false);
+                  setSelectedCourier(null);
+                }}
                 className="flex-shrink-0 text-[#9C9C95] hover:text-[#1A1A18] transition-colors p-1"
                 title="Editar dirección"
               >
@@ -325,47 +417,94 @@ export default function EnvioClient() {
               </button>
             </div>
 
-            {/* Cards courier */}
-            <div>
-              <p className="text-xs font-semibold text-[#9C9C95] uppercase tracking-wider px-1 mb-3">
-                Elige tu courier
-              </p>
-              <div className="flex flex-col gap-3">
-                {(["starken", "chilexpress", "blueexpress"] as const).map((key) => {
-                  const cot = cotizaciones[key];
-                  if (!cot) return null;
-                  const style = COURIER_STYLES[key];
-                  const isCheapest = key === cheapestKey;
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => elegir(key)}
-                      className={`w-full bg-white border border-[#E8E8E3] border-l-4 ${style.border} rounded-2xl p-4 flex justify-between items-center shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all text-left`}
+            {/* Título sección */}
+            <div className="px-1 mb-4">
+              <h2 className="text-base font-bold text-[#1A1A18]">Elige cómo deseas recibir tu pedido</h2>
+              <p className="text-xs text-[#9C9C95] mt-0.5">Opciones verificadas y aseguradas</p>
+            </div>
+
+            {/* Cards */}
+            <div className="flex flex-col gap-3">
+              {(["starken", "chilexpress", "blueexpress"] as const).map((key) => {
+                const cot = cotizaciones[key];
+                if (!cot) return null;
+                const cfg = COURIER_CONFIG[key];
+                const isCheapest = key === cheapestKey;
+                const isSelected = selectedCourier === key;
+                const isDisabled = selectedCourier !== null && !isSelected;
+
+                return (
+                  <div
+                    key={key}
+                    className={`transition-all duration-500 ${
+                      cardsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+                    } ${isDisabled ? "opacity-40 pointer-events-none" : ""}`}
+                    style={{ transitionDelay: cardsVisible ? `${["starken","chilexpress","blueexpress"].indexOf(key) * 80}ms` : "0ms" }}
+                  >
+                    <div
+                      className={`w-full bg-white border-2 rounded-2xl overflow-hidden shadow-sm transition-all ${
+                        isSelected
+                          ? `${cfg.borderAccent} shadow-md`
+                          : "border-[#E8E8E3] hover:shadow-md hover:-translate-y-0.5"
+                      }`}
                     >
-                      <div>
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className={`font-bold text-lg ${style.color}`}>{style.label}</span>
-                          {isCheapest && (
-                            <span className="text-[10px] font-bold text-[#2D8A56] bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
-                              Mejor precio
-                            </span>
-                          )}
+                      {/* Cabecera de la card */}
+                      <div className={`px-4 pt-4 pb-3 flex items-start gap-3`}>
+                        {/* Ícono de marca */}
+                        <div className={`flex-shrink-0 w-12 h-12 rounded-xl ${cfg.iconBg} flex items-center justify-center shadow-sm`}>
+                          <span className={`font-extrabold text-sm tracking-tight ${cfg.iconText}`}>{cfg.initials}</span>
                         </div>
-                        <p className="text-[#5C5C57] text-sm">{cot.tipo}</p>
-                      </div>
-                      <div className="text-right ml-4 flex-shrink-0">
-                        <p className="font-bold text-[#1A1A18] text-xl">
-                          ${cot.price.toLocaleString("es-CL")}
-                        </p>
-                        <div className="flex items-center gap-1 text-[#9C9C95] text-xs justify-end mt-0.5">
-                          <ClockIcon className="w-3.5 h-3.5" />
-                          <span>{cot.tiempo}</span>
+
+                        {/* Info courier */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`font-bold text-base ${cfg.textAccent}`}>{cfg.label}</span>
+                            {isCheapest && (
+                              <span className="text-[10px] font-bold text-[#2D8A56] bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+                                Mejor precio
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <CheckBadgeIcon className="w-3.5 h-3.5 text-[#9C9C95]" />
+                            <span className="text-[11px] text-[#9C9C95]">Empresa verificada · {cfg.deliveries}</span>
+                          </div>
+                        </div>
+
+                        {/* Precio */}
+                        <div className="text-right flex-shrink-0">
+                          <p className={`font-extrabold text-2xl ${cfg.textAccent}`}>
+                            ${cot.price.toLocaleString("es-CL")}
+                          </p>
+                          <p className="text-[11px] text-[#9C9C95]">CLP</p>
                         </div>
                       </div>
-                    </button>
-                  );
-                })}
-              </div>
+
+                      {/* Detalles */}
+                      <div className={`px-4 pb-3 pt-2 border-t border-[#F0F0EB] flex items-center justify-between gap-2`}>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1.5 text-[#5C5C57]">
+                            <ClockIcon className="w-3.5 h-3.5 text-[#9C9C95] flex-shrink-0" />
+                            <span className="text-xs">{cot.tiempo}</span>
+                          </div>
+                          <p className="text-[11px] text-[#9C9C95]">{cfg.tagline}</p>
+                        </div>
+                        <button
+                          onClick={() => elegir(key)}
+                          disabled={isDisabled || transitioning}
+                          className={`flex-shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                            isSelected
+                              ? `${cfg.iconBg} ${cfg.iconText} shadow-sm`
+                              : "bg-[#1A1A18] text-white hover:bg-[#2A2A22] active:scale-95"
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {isSelected ? "Seleccionado ✓" : "Seleccionar"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="flex items-center justify-center gap-1.5 mt-6 text-[#9C9C95]">

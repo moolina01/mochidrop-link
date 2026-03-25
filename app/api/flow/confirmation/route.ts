@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 import { buildFlowFormData } from "@/utils/flow";
 import { createClient } from "@supabase/supabase-js";
 
-// Se ejecuta DESPUÉS de responder 200 a Flow
 async function procesarPago(token: string, baseUrl: string) {
   const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,12 +25,14 @@ async function procesarPago(token: string, baseUrl: string) {
     console.log(`[confirmation] payment status=${payment.status}, order=${payment.commerceOrder}`);
 
     if (payment.status !== 2) {
-      console.log(`[confirmation] Pago no completado, ignorando.`);
+      console.log(`[confirmation] Pago no completado (status=${payment.status}), ignorando.`);
       return;
     }
 
     const envioId = String(payment.commerceOrder).replace("LINKDROP-", "");
-    const courier = payment.optional ?? "";
+    const courier = String(payment.optional ?? "");
+
+    console.log(`[confirmation] Pago OK — envioId=${envioId}, courier=${courier}`);
 
     // 2. Guardar en Supabase
     const { error: dbError } = await supabaseAdmin
@@ -46,11 +48,11 @@ async function procesarPago(token: string, baseUrl: string) {
     if (dbError) {
       console.error(`[confirmation] Supabase error:`, dbError);
     } else {
-      console.log(`[confirmation] Supabase actualizado OK, envioId=${envioId}`);
+      console.log(`[confirmation] Supabase actualizado OK`);
     }
 
     // 3. Llamar N8N para generar guía
-    console.log(`[confirmation] Llamando generar-guia para envioId=${envioId}, courier=${courier}`);
+    console.log(`[confirmation] Llamando generar-guia — envioId=${envioId}, courier=${courier}`);
     const guiaRes = await fetch(`${baseUrl}/api/generar-guia`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
@@ -59,9 +61,9 @@ async function procesarPago(token: string, baseUrl: string) {
     const guiaData = await guiaRes.json().catch(() => ({}));
 
     if (!guiaRes.ok) {
-      console.error(`[confirmation] generar-guia falló:`, guiaData);
+      console.error(`[confirmation] generar-guia falló status=${guiaRes.status}:`, guiaData);
     } else {
-      console.log(`[confirmation] generar-guia OK`);
+      console.log(`[confirmation] generar-guia OK:`, guiaData);
     }
   } catch (err) {
     console.error("[confirmation] Error en procesarPago:", err);
@@ -75,7 +77,6 @@ export async function POST(req: NextRequest) {
     const token = params.get("token");
 
     if (!token) {
-      // Flow aún necesita 200
       console.error("[confirmation] Token faltante en el body");
       return new NextResponse("OK", { status: 200 });
     }
@@ -85,8 +86,10 @@ export async function POST(req: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
       ?? (origin?.startsWith("http") ? origin : `${proto}://${origin}`);
 
-    // Disparar procesamiento en background — NO bloqueamos la respuesta
-    void procesarPago(token, baseUrl);
+    console.log(`[confirmation] Token recibido, baseUrl=${baseUrl}`);
+
+    // waitUntil mantiene la función viva en Vercel hasta que procesarPago termine
+    waitUntil(procesarPago(token, baseUrl));
 
     // Responder 200 a Flow INMEDIATAMENTE
     return new NextResponse("OK", { status: 200 });

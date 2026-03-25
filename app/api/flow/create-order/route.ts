@@ -43,7 +43,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: data.url, token: data.token, flowOrder: data.flowOrder });
   } catch (err) {
-    console.error("create-order error:", err);
-    return NextResponse.json({ error: "Error interno" }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("create-order error:", msg);
+    // Detectar variables faltantes
+    if (!process.env.FLOW_API_KEY)    console.error("MISSING ENV: FLOW_API_KEY");
+    if (!process.env.FLOW_SECRET_KEY) console.error("MISSING ENV: FLOW_SECRET_KEY");
+    if (!process.env.FLOW_API_URL)    console.error("MISSING ENV: FLOW_API_URL");
+    if (!process.env.NEXT_PUBLIC_BASE_URL) console.error("MISSING ENV: NEXT_PUBLIC_BASE_URL");
+    return NextResponse.json({ error: msg || "Error interno" }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildFlowFormData } from "@/utils/flow";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,6 +10,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Faltan parámetros" }, { status: 400 });
     }
 
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     // Auto-detectar base URL desde el request si la variable no está configurada
     const origin = req.headers.get("origin") ?? req.headers.get("x-forwarded-host");
     const proto  = req.headers.get("x-forwarded-proto") ?? "https";
@@ -17,9 +23,7 @@ export async function POST(req: NextRequest) {
 
     const urlConfirmation = `${baseUrl}/api/flow/confirmation`;
     const urlReturn       = `${baseUrl}/api/flow/return?envioId=${envioId}&courier=${courier}`;
-    console.log("[create-order] baseUrl:", baseUrl);
     console.log("[create-order] urlConfirmation:", urlConfirmation);
-    console.log("[create-order] urlReturn:", urlReturn);
 
     const params: Record<string, string | number> = {
       apiKey:          process.env.FLOW_API_KEY!,
@@ -30,7 +34,7 @@ export async function POST(req: NextRequest) {
       urlConfirmation,
       urlReturn,
       paymentMethod:   9,
-      optional:        courier,  // se devuelve en getStatus para usarlo en confirmation
+      optional:        courier,
     };
 
     const formData = buildFlowFormData(params);
@@ -44,22 +48,39 @@ export async function POST(req: NextRequest) {
     const data = await res.json();
 
     if (!res.ok || data.code) {
-      console.error("Flow error:", data);
+      console.error("[create-order] Flow error:", data);
       return NextResponse.json(
         { error: data.message ?? "Error creando orden en Flow" },
         { status: 500 }
       );
     }
 
+    // Guardar courier en Supabase apenas se crea la orden
+    const { error: dbError } = await supabaseAdmin
+      .from("envios")
+      .update({
+        courier,
+        flow_token:  data.token,
+        flow_order:  String(data.flowOrder ?? ""),
+        pago_status: "procesando",
+      })
+      .eq("id", Number(envioId));
+
+    if (dbError) {
+      console.error("[create-order] Supabase error:", dbError.message);
+    } else {
+      console.log(`[create-order] Supabase OK — envioId=${envioId} courier=${courier}`);
+    }
+
     return NextResponse.json({ url: data.url, token: data.token, flowOrder: data.flowOrder });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("create-order error:", msg);
-    // Detectar variables faltantes
-    if (!process.env.FLOW_API_KEY)    console.error("MISSING ENV: FLOW_API_KEY");
-    if (!process.env.FLOW_SECRET_KEY) console.error("MISSING ENV: FLOW_SECRET_KEY");
-    if (!process.env.FLOW_API_URL)    console.error("MISSING ENV: FLOW_API_URL");
+    console.error("[create-order] Error:", msg);
+    if (!process.env.FLOW_API_KEY)         console.error("MISSING ENV: FLOW_API_KEY");
+    if (!process.env.FLOW_SECRET_KEY)      console.error("MISSING ENV: FLOW_SECRET_KEY");
+    if (!process.env.FLOW_API_URL)         console.error("MISSING ENV: FLOW_API_URL");
     if (!process.env.NEXT_PUBLIC_BASE_URL) console.error("MISSING ENV: NEXT_PUBLIC_BASE_URL");
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) console.error("MISSING ENV: SUPABASE_SERVICE_ROLE_KEY");
     return NextResponse.json({ error: msg || "Error interno" }, { status: 500 });
   }
 }

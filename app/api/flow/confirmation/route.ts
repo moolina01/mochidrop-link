@@ -43,7 +43,14 @@ export async function POST(req: NextRequest) {
     }
 
     const envioId = String(payment.commerceOrder ?? "").replace("LINKDROP-", "");
-    const courier = String(payment.optional ?? "");
+
+    // Leer courier desde Supabase (más confiable que payment.optional)
+    const { data: envioData } = await supabaseAdmin
+      .from("envios")
+      .select("courier")
+      .eq("id", Number(envioId))
+      .single();
+    const courier = envioData?.courier ?? String(payment.optional ?? "");
 
     console.log(`[confirmation] Pago OK — envioId=${envioId} courier=${courier}`);
 

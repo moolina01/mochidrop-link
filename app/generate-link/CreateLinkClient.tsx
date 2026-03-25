@@ -6,8 +6,7 @@ import type { User } from "@supabase/supabase-js";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
-const N8N_CREATE_LINK =
-  "https://mochidrop-n8n.utdxt3.easypanel.host/webhook/crear-envio";
+const N8N_CREATE_LINK = "/api/crear-envio";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -406,14 +405,14 @@ export default function CreateLinkClient() {
         body: JSON.stringify(payload),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        throw new Error(errBody?.message ?? `HTTP ${res.status}`);
+        throw new Error(data?.error ?? `Error ${res.status}`);
       }
 
-      const data = await res.json();
       const id = data?.id;
-      if (!id) throw new Error("no_id");
+      if (!id) throw new Error("N8N respondió OK pero no devolvió el ID del envío. Revisa el workflow en N8N.");
 
       // 4. Incrementar contador
       const newCount = (pymeData?.links_creados ?? 0) + 1;
@@ -426,12 +425,8 @@ export default function CreateLinkClient() {
       const baseUrl = window.location.origin;
       setGeneratedUrl(`${baseUrl}/envio?id=${id}`);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "";
-      setError(
-        msg && msg !== "no_id"
-          ? `Error: ${msg}`
-          : "No pudimos generar el link. Verifica los datos y vuelve a intentar."
-      );
+      const msg = err instanceof Error ? err.message : "Error desconocido";
+      setError(msg);
     } finally {
       setLoading(false);
     }

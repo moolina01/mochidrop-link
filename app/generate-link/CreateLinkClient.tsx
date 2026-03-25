@@ -386,6 +386,7 @@ export default function CreateLinkClient() {
         nombre_pyme: form.nombrePyme.trim(),
         logo_pyme: logoUrl,
         pyme_id: currentUser.id,
+        email: currentUser.email,
         origen: {
           comuna: form.origenComuna.trim(),
           direccion: form.origenDireccion.trim(),

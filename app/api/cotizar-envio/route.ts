@@ -12,13 +12,25 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(body),
     });
 
-    const data = await res.json();
+    const text = await res.text();
 
     if (!res.ok) {
-      return NextResponse.json(data, { status: res.status });
+      return NextResponse.json(
+        { error: text || `Error ${res.status}` },
+        { status: res.status }
+      );
     }
 
-    return NextResponse.json(data);
+    // N8N puede devolver cuerpo vacío en éxito
+    if (!text) {
+      return NextResponse.json({ ok: true });
+    }
+
+    try {
+      return NextResponse.json(JSON.parse(text));
+    } catch {
+      return NextResponse.json({ ok: true, raw: text });
+    }
   } catch (err) {
     console.error("cotizar-envio proxy error:", err);
     return NextResponse.json({ error: "Error conectando con el servidor" }, { status: 500 });

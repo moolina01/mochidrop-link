@@ -132,10 +132,21 @@ export default function EnvioClient() {
         }),
       });
       if (!res.ok) throw new Error("Error al cotizar");
-      const data = await res.json();
+
+      // N8N actualiza la DB — leer cotizaciones directo de Supabase
+      const { data: updated } = await supabase
+        .from("envios")
+        .select("cotizaciones")
+        .eq("id", Number(id))
+        .single();
+
+      if (!updated?.cotizaciones || Object.keys(updated.cotizaciones).length === 0) {
+        throw new Error("No se recibieron cotizaciones");
+      }
+
       setEnvio((prev) => prev ? {
         ...prev,
-        cotizaciones: data.cotizaciones,
+        cotizaciones: updated.cotizaciones,
         datos_destino: {
           nombre: formCliente.nombre.trim(),
           telefono: formCliente.telefono.trim(),

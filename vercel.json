@@ -1,0 +1,13 @@
+{
+  "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/api/flow/confirmation/",
+      "destination": "/api/flow/confirmation"
+    },
+    {
+      "source": "/api/flow/return/",
+      "destination": "/api/flow/return"
+    }
+  ]
+}

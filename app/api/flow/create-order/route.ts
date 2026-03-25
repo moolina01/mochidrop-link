@@ -15,14 +15,20 @@ export async function POST(req: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
       ?? (origin?.startsWith("http") ? origin : `${proto}://${origin}`);
 
+    const urlConfirmation = `${baseUrl}/api/flow/confirmation`;
+    const urlReturn       = `${baseUrl}/api/flow/return?envioId=${envioId}&courier=${courier}`;
+    console.log("[create-order] baseUrl:", baseUrl);
+    console.log("[create-order] urlConfirmation:", urlConfirmation);
+    console.log("[create-order] urlReturn:", urlReturn);
+
     const params: Record<string, string | number> = {
       apiKey:          process.env.FLOW_API_KEY!,
       commerceOrder:   `LINKDROP-${envioId}`,
       subject:         `Envío courier - LinkDrop`,
       amount:          Math.round(Number(amount)),
       email:           email,
-      urlConfirmation: `${baseUrl}/api/flow/confirmation`,
-      urlReturn:       `${baseUrl}/api/flow/return?envioId=${envioId}&courier=${courier}`,
+      urlConfirmation,
+      urlReturn,
       paymentMethod:   9,
       optional:        courier,  // se devuelve en getStatus para usarlo en confirmation
     };

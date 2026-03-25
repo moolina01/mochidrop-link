@@ -357,7 +357,7 @@ export default function CreateLinkClient() {
       // 1. Verificar límite
       const { data: pymeData } = await supabase
         .from("pymes")
-        .select("links_creados, limite_links")
+        .select("links_creados, limite_links, email")
         .eq("auth_id", currentUser.id)
         .single();
 
@@ -386,7 +386,7 @@ export default function CreateLinkClient() {
         nombre_pyme: form.nombrePyme.trim(),
         logo_pyme: logoUrl,
         pyme_id: currentUser.id,
-        email: currentUser.email,
+        email: pymeData?.email ?? currentUser.email ?? "",
         origen: {
           comuna: form.origenComuna.trim(),
           direccion: form.origenDireccion.trim(),

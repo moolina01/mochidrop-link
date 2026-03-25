@@ -80,7 +80,10 @@ export async function POST(req: NextRequest) {
       return new NextResponse("OK", { status: 200 });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL!;
+    const origin  = req.headers.get("origin") ?? req.headers.get("x-forwarded-host");
+    const proto   = req.headers.get("x-forwarded-proto") ?? "https";
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+      ?? (origin?.startsWith("http") ? origin : `${proto}://${origin}`);
 
     // Disparar procesamiento en background — NO bloqueamos la respuesta
     void procesarPago(token, baseUrl);

@@ -9,7 +9,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Faltan parámetros" }, { status: 400 });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL!;
+    // Auto-detectar base URL desde el request si la variable no está configurada
+    const origin = req.headers.get("origin") ?? req.headers.get("x-forwarded-host");
+    const proto  = req.headers.get("x-forwarded-proto") ?? "https";
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+      ?? (origin?.startsWith("http") ? origin : `${proto}://${origin}`);
 
     const params: Record<string, string | number> = {
       apiKey:          process.env.FLOW_API_KEY!,

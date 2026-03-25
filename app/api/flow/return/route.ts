@@ -5,7 +5,10 @@ async function handleReturn(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const envioId = searchParams.get("envioId");
   const courier = searchParams.get("courier");
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL!;
+  const origin  = req.headers.get("origin") ?? req.headers.get("x-forwarded-host");
+  const proto   = req.headers.get("x-forwarded-proto") ?? "https";
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+    ?? (origin?.startsWith("http") ? origin : `${proto}://${origin}`);
 
   try {
     // Flow puede enviar el token como query param (GET) o form data (POST)

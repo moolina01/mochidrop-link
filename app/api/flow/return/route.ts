@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildFlowFormData } from "@/utils/flow";
 
+function clientRedirect(url: string) {
+  return new NextResponse(
+    `<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0;url=${url}"><script>window.location.href="${url}"</script></head><body></body></html>`,
+    {
+      status: 200,
+      headers: { "Content-Type": "text/html" },
+    }
+  );
+}
+
 async function handleReturn(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const envioId = searchParams.get("envioId");
@@ -21,9 +31,7 @@ async function handleReturn(req: NextRequest) {
     }
 
     if (!token || !envioId) {
-      return NextResponse.redirect(
-        `${baseUrl}/pago?id=${envioId}&courier=${courier}&error=missing_token`
-      );
+      return clientRedirect(`${baseUrl}/pago?id=${envioId}&courier=${courier}&error=missing_token`);
     }
 
     // Verificar estado con Flow
@@ -40,17 +48,13 @@ async function handleReturn(req: NextRequest) {
 
     // status 2 = pagado
     if (payment.status === 2) {
-      return NextResponse.redirect(`${baseUrl}/final?id=${envioId}&courier=${courier}`);
+      return clientRedirect(`${baseUrl}/final?id=${envioId}&courier=${courier}`);
     }
 
-    return NextResponse.redirect(
-      `${baseUrl}/pago?id=${envioId}&courier=${courier}&error=rejected`
-    );
+    return clientRedirect(`${baseUrl}/pago?id=${envioId}&courier=${courier}&error=rejected`);
   } catch (err) {
     console.error("return error:", err);
-    return NextResponse.redirect(
-      `${baseUrl}/pago?id=${envioId}&courier=${courier}&error=unknown`
-    );
+    return clientRedirect(`${baseUrl}/pago?id=${envioId}&courier=${courier}&error=unknown`);
   }
 }
 

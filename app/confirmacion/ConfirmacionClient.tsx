@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
-import { MapPinIcon, ClockIcon, LockClosedIcon, ShieldCheckIcon } from "@heroicons/react/24/solid";
+import { MapPinIcon, LockClosedIcon, ShieldCheckIcon } from "@heroicons/react/24/solid";
 
 type EnvioType = {
   nombre_pyme: string;
@@ -23,17 +23,34 @@ type EnvioType = {
   };
 };
 
-const COURIER_STYLES: Record<string, { color: string; label: string }> = {
-  starken:     { color: "text-green-700", label: "Starken"      },
-  chilexpress: { color: "text-red-600",   label: "Chilexpress"  },
-  blueexpress: { color: "text-blue-700",  label: "Blue Express" },
+const COURIER_CONFIG: Record<string, { color: string; colorLight: string; label: string }> = {
+  starken: {
+    color: "#00A651",
+    colorLight: "#E8F8EE",
+    label: "Starken",
+  },
+  chilexpress: {
+    color: "#FFC600",
+    colorLight: "#FFFBE8",
+    label: "Chilexpress",
+  },
+  blueexpress: {
+    color: "#0055B8",
+    colorLight: "#E8F0FA",
+    label: "Blue Express",
+  },
 };
 
-const COURIER_LOGOS: Record<string, string> = {
-  starken:     "/unnamed.jpg",
-  chilexpress: "/images-3.png",
-  blueexpress: "/images-4.png",
-};
+function TruckIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9 1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"
+        fill="white"
+      />
+    </svg>
+  );
+}
 
 function LoadingFallback() {
   return (
@@ -78,7 +95,7 @@ export default function ConfirmacionClient() {
   const info = envio.cotizaciones[courier as "starken" | "chilexpress" | "blueexpress"];
   if (!info) return <div className="p-10 text-center text-[#5C5C57]">Courier no válido.</div>;
 
-  const style = COURIER_STYLES[courier] ?? { color: "text-[#1A1A18]", label: courier };
+  const cfg = COURIER_CONFIG[courier] ?? { color: "#1A1A18", colorLight: "#F5F5F5", label: courier };
 
   return (
     <div className="min-h-screen bg-[#FAFAF7]">
@@ -104,51 +121,61 @@ export default function ConfirmacionClient() {
 
       <div className="max-w-md mx-auto px-4 py-6 pb-16 flex flex-col gap-4">
 
-        {/* Título */}
-        <div className="text-center pt-2 pb-1">
-          <p className="text-xs font-semibold text-[#9C9C95] uppercase tracking-wider">Revisa los datos antes de pagar</p>
-        </div>
-
-        {/* Card courier */}
+        {/* Card única de confirmación */}
         <div className="bg-white rounded-2xl border border-[#E8E8E3] shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#E8E8E3] flex justify-between items-start">
-            <div>
-              <p className="text-xs font-semibold text-[#9C9C95] uppercase tracking-wider mb-1">Courier seleccionado</p>
-              <p className={`font-bold text-xl ${style.color}`}>{style.label}</p>
-              <p className="text-[#5C5C57] text-sm mt-0.5">{info.tipo}</p>
-              <div className="flex items-center gap-1 text-[#9C9C95] text-sm mt-1.5">
-                <ClockIcon className="w-4 h-4" />
-                <span>Llega en {info.tiempo}</span>
+
+          {/* Sección 1 — Courier */}
+          <div className="px-5 py-5 border-b border-[#E8E8E3]">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#9C9C95] mb-3">
+              Resumen de envío
+            </p>
+            <div className="flex items-center gap-3">
+              {/* Ícono camión con color de marca */}
+              <div
+                className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
+                style={{ backgroundColor: cfg.color }}
+              >
+                <TruckIcon />
               </div>
-            </div>
-            <div className="text-right flex flex-col items-end gap-2">
-              <p className="font-bold text-[#1A1A18] text-2xl">${info.price.toLocaleString("es-CL")}</p>
-              {COURIER_LOGOS[courier] && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={COURIER_LOGOS[courier]} className="w-14 h-auto object-contain opacity-80" alt={style.label} />
-              )}
+              {/* Info courier */}
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-base text-[#1A1A18]">{cfg.label}</p>
+                <p className="text-sm text-[#5C5C57]">Llega en {info.tiempo}</p>
+              </div>
+              {/* Precio */}
+              <p className="font-bold text-2xl text-[#1A1A18] flex-shrink-0">
+                ${info.price.toLocaleString("es-CL")}
+              </p>
             </div>
           </div>
 
-          {/* Destinatario */}
-          <div className="px-5 py-4">
+          {/* Sección 2 — Destinatario */}
+          <div className="px-5 py-4 border-b border-[#E8E8E3]">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#9C9C95] mb-3">
+              Destinatario
+            </p>
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#FAFAF7] border border-[#E8E8E3] flex items-center justify-center mt-0.5">
                 <MapPinIcon className="w-4 h-4 text-[#E8553D]" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-[#9C9C95] uppercase tracking-wider mb-1">Destinatario</p>
-                <p className="font-semibold text-[#1A1A18] text-sm">{envio.datos_destino.nombre}</p>
-                <p className="text-[#5C5C57] text-sm leading-snug">
+                <p className="font-semibold text-sm text-[#1A1A18]">{envio.datos_destino.nombre}</p>
+                <p className="text-sm text-[#5C5C57] leading-snug">
                   {envio.datos_destino.direccion}
                   {envio.datos_destino.number ? `, ${envio.datos_destino.number}` : ""}
                   {", "}{envio.datos_destino.comuna}
                 </p>
                 {envio.datos_destino.telefono && (
-                  <p className="text-[#9C9C95] text-sm mt-0.5">{envio.datos_destino.telefono}</p>
+                  <p className="text-sm text-[#9C9C95] mt-0.5">{envio.datos_destino.telefono}</p>
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Sección 3 — Total */}
+          <div className="px-5 py-4 bg-[#FAFAF7] flex items-center justify-between">
+            <p className="text-sm text-[#5C5C57]">Total a pagar</p>
+            <p className="font-bold text-xl text-[#1A1A18]">${info.price.toLocaleString("es-CL")}</p>
           </div>
         </div>
 

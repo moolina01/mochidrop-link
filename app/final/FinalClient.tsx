@@ -102,7 +102,7 @@ export default function FinalClient() {
       if (data) {
         setEnvio(data);
 
-        const key = (data.courier ?? courierParam)?.toLowerCase() as "starken" | "chilexpress" | "blueexpress";
+        const key = (data.courier || courierParam || "").toLowerCase() as "starken" | "chilexpress" | "blueexpress";
         const cotizacion = key ? data.cotizaciones?.[key] : null;
 
         if (cotizacion) {
@@ -158,7 +158,7 @@ export default function FinalClient() {
           const newData = payload.new as EnvioType;
           setEnvio(newData);
 
-          const key = (newData.courier ?? courierParam)?.toLowerCase() as "starken" | "chilexpress" | "blueexpress";
+          const key = (newData.courier || courierParam || "").toLowerCase() as "starken" | "chilexpress" | "blueexpress";
           const cotizacion = key ? newData.cotizaciones?.[key] : null;
           if (cotizacion) {
             setGenerating(false);
@@ -215,7 +215,7 @@ export default function FinalClient() {
     return <div className="p-10 text-center text-[#5C5C57]">No se pudo cargar la información del envío.</div>;
   }
 
-  const courierKey = (envio.courier ?? courierParam)?.toLowerCase() as "starken" | "chilexpress" | "blueexpress";
+  const courierKey = (envio.courier || courierParam || "").toLowerCase() as "starken" | "chilexpress" | "blueexpress";
   const info = courierKey ? envio.cotizaciones[courierKey] : null;
 
   if (!info) {

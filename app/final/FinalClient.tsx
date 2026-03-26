@@ -106,10 +106,13 @@ export default function FinalClient() {
         const cotizacion = key ? data.cotizaciones?.[key] : null;
 
         if (cotizacion) {
+          // Datos suficientes para mostrar la UI principal
           setGenerating(false);
-          setLoading(false);
+        }
+
+        // Solo dejar de hacer polling cuando tracking_url esté disponible
+        if (data.tracking_url) {
           if (pollInterval) clearInterval(pollInterval);
-          return;
         }
       }
 

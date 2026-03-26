@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase";
 import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
-import { MapPinIcon, LockClosedIcon, ShieldCheckIcon } from "@heroicons/react/24/solid";
+import { MapPinIcon, LockClosedIcon, ShieldCheckIcon, CreditCardIcon } from "@heroicons/react/24/solid";
 
 type EnvioType = {
   nombre_pyme: string;
@@ -62,18 +62,56 @@ function LoadingFallback() {
 
 export default function ConfirmacionClient() {
   const searchParams = useSearchParams();
-  const id = searchParams.get("id");
+  const id      = searchParams.get("id");
   const courier = searchParams.get("courier");
+  const error   = searchParams.get("error");
 
-  const [envio, setEnvio] = useState<EnvioType | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [paying, setPaying] = useState(false);
+  const [envio,    setEnvio]    = useState<EnvioType | null>(null);
+  const [loading,  setLoading]  = useState(true);
+  const [email,    setEmail]    = useState("");
+  const [paying,   setPaying]   = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
 
   const router = useRouter();
 
-  async function confirmarEnvio() {
+  async function handlePagar() {
+    if (!email.trim()) {
+      setPayError("Ingresa tu email para continuar.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setPayError("Ingresa un email válido.");
+      return;
+    }
+
     setPaying(true);
-    router.push(`/pago?id=${id}&courier=${courier}`);
+    setPayError(null);
+
+    try {
+      const res = await fetch("/api/flow/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          envioId: id,
+          amount:  info!.price,
+          email:   email.trim(),
+          courier,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        setPayError(data.error ?? "Error al crear la orden de pago.");
+        setPaying(false);
+        return;
+      }
+
+      window.location.href = `${data.url}?token=${data.token}`;
+    } catch {
+      setPayError("Error de conexión. Intenta de nuevo.");
+      setPaying(false);
+    }
   }
 
   useEffect(() => {
@@ -84,12 +122,15 @@ export default function ConfirmacionClient() {
       setEnvio(data);
       setLoading(false);
       if (data?.estado === "Creado ") router.push(`/final?id=${id}`);
+      if (error === "rejected") {
+        setPayError("El pago fue rechazado. Intenta de nuevo.");
+      }
     }
     load();
-  }, [id, router]);
+  }, [id, error, router]);
 
   if (loading) return <LoadingFallback />;
-  if (!envio) return <div className="p-10 text-center text-[#5C5C57]">Envío no encontrado.</div>;
+  if (!envio)  return <div className="p-10 text-center text-[#5C5C57]">Envío no encontrado.</div>;
   if (!courier) return <div className="p-10 text-center text-[#5C5C57]">No se seleccionó courier.</div>;
 
   const info = envio.cotizaciones[courier as "starken" | "chilexpress" | "blueexpress"];
@@ -116,7 +157,7 @@ export default function ConfirmacionClient() {
           </div>
         )}
         <h1 className="text-2xl font-bold text-[#1A1A18]">{envio.nombre_pyme}</h1>
-        <p className="text-sm text-[#9C9C95] mt-1">Confirma tu envío</p>
+        <p className="text-sm text-[#9C9C95] mt-1">Confirma y paga tu envío</p>
       </div>
 
       <div className="max-w-md mx-auto px-4 py-6 pb-16 flex flex-col gap-4">
@@ -130,19 +171,16 @@ export default function ConfirmacionClient() {
               Resumen de envío
             </p>
             <div className="flex items-center gap-3">
-              {/* Ícono camión con color de marca */}
               <div
                 className="flex-shrink-0 w-11 h-11 rounded-xl flex items-center justify-center"
                 style={{ backgroundColor: cfg.color }}
               >
                 <TruckIcon />
               </div>
-              {/* Info courier */}
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-base text-[#1A1A18]">{cfg.label}</p>
                 <p className="text-sm text-[#5C5C57]">Llega en {info.tiempo}</p>
               </div>
-              {/* Precio */}
               <p className="font-bold text-2xl text-[#1A1A18] flex-shrink-0">
                 ${info.price.toLocaleString("es-CL")}
               </p>
@@ -179,20 +217,45 @@ export default function ConfirmacionClient() {
           </div>
         </div>
 
+        {/* Email para comprobante */}
+        <div className="bg-white rounded-2xl border border-[#E8E8E3] shadow-sm px-5 py-4">
+          <label className="block text-xs font-semibold text-[#9C9C95] uppercase tracking-wider mb-2">
+            Tu email <span className="text-[#E8553D]">*</span>
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); setPayError(null); }}
+            placeholder="nombre@ejemplo.com"
+            className="w-full rounded-xl border border-[#E8E8E3] px-4 py-3 text-sm text-[#1A1A18] bg-[#FAFAF7] placeholder:text-[#9C9C95] focus:outline-none focus:border-[#E8553D] focus:ring-2 focus:ring-[#E8553D]/10 transition-all"
+          />
+          <p className="text-[11px] text-[#9C9C95] mt-1.5">Para enviarte el comprobante de pago</p>
+        </div>
+
+        {/* Error de pago */}
+        {payError && (
+          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-center font-medium">
+            {payError}
+          </p>
+        )}
+
         {/* Botón de pago */}
         <div className="flex flex-col gap-3 mt-2">
           <button
-            onClick={confirmarEnvio}
+            onClick={handlePagar}
             disabled={paying}
-            className="w-full bg-[#E8553D] text-white font-bold py-4 rounded-xl text-base transition-all shadow-[0_4px_16px_rgba(232,85,61,0.35)] hover:shadow-[0_6px_20px_rgba(232,85,61,0.45)] hover:-translate-y-0.5 active:translate-y-0 disabled:bg-[#D1D1CC] disabled:shadow-none flex items-center justify-center gap-2"
+            className="w-full bg-[#E8553D] text-white font-bold py-4 rounded-xl text-base transition-all shadow-[0_4px_16px_rgba(232,85,61,0.35)] hover:shadow-[0_6px_20px_rgba(232,85,61,0.45)] hover:-translate-y-0.5 active:translate-y-0 disabled:bg-[#D1D1CC] disabled:shadow-none disabled:translate-y-0 flex items-center justify-center gap-2"
           >
             {paying ? (
               <>
                 <div className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full" />
-                Redirigiendo al pago…
+                Procesando pago…
               </>
             ) : (
-              `Pagar $${info.price.toLocaleString("es-CL")} →`
+              <>
+                <CreditCardIcon className="w-5 h-5" />
+                {`Pagar $${info.price.toLocaleString("es-CL")} con tarjeta →`}
+              </>
             )}
           </button>
 

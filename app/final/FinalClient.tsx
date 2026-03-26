@@ -82,26 +82,61 @@ export default function FinalClient() {
   const [copied, setCopied] = useState(false);
 
   // ===========================================================
-  // CARGA INICIAL
+  // CARGA INICIAL + POLLING
   // ===========================================================
   useEffect(() => {
     if (!id) return;
 
-    async function load() {
+    let pollInterval: NodeJS.Timeout | null = null;
+    let mounted = true;
+
+    async function fetchEnvio() {
       const { data } = await supabase
         .from("envios")
         .select("*")
         .eq("id", Number(id))
         .single();
 
-      setEnvio(data ?? null);
-      setLoading(false);
+      if (!mounted) return;
 
-      setTimeout(() => setGenerating(false), 1500);
+      if (data) {
+        setEnvio(data);
+
+        const key = (data.courier ?? courierParam)?.toLowerCase() as "starken" | "chilexpress" | "blueexpress";
+        const cotizacion = key ? data.cotizaciones?.[key] : null;
+
+        if (cotizacion) {
+          setGenerating(false);
+          setLoading(false);
+          if (pollInterval) clearInterval(pollInterval);
+          return;
+        }
+      }
+
+      setLoading(false);
     }
 
-    load();
-  }, [id]);
+    // Primera carga
+    fetchEnvio();
+
+    // Polling cada 2 segundos hasta que los datos estén completos
+    pollInterval = setInterval(fetchEnvio, 2000);
+
+    // Timeout máximo de 30 segundos
+    const maxTimeout = setTimeout(() => {
+      if (mounted) {
+        setGenerating(false);
+        setLoading(false);
+        if (pollInterval) clearInterval(pollInterval);
+      }
+    }, 30000);
+
+    return () => {
+      mounted = false;
+      if (pollInterval) clearInterval(pollInterval);
+      clearTimeout(maxTimeout);
+    };
+  }, [id, courierParam]);
 
   // ===========================================================
   // REALTIME
@@ -120,7 +155,14 @@ export default function FinalClient() {
           filter: `id=eq.${id}`,
         },
         (payload) => {
-          setEnvio(payload.new as EnvioType);
+          const newData = payload.new as EnvioType;
+          setEnvio(newData);
+
+          const key = (newData.courier ?? courierParam)?.toLowerCase() as "starken" | "chilexpress" | "blueexpress";
+          const cotizacion = key ? newData.cotizaciones?.[key] : null;
+          if (cotizacion) {
+            setGenerating(false);
+          }
         }
       )
       .subscribe();
@@ -128,7 +170,7 @@ export default function FinalClient() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [id]);
+  }, [id, courierParam]);
 
   // ===========================================================
   // LOADING
@@ -136,7 +178,7 @@ export default function FinalClient() {
   if (loading) return <LoadingFallback />;
 
   // ===========================================================
-  // ANIMACIÓN PROFESIONAL
+  // ANIMACIÓN PROCESANDO
   // ===========================================================
   if (generating) {
     return (
@@ -176,7 +218,26 @@ export default function FinalClient() {
   const courierKey = (envio.courier ?? courierParam)?.toLowerCase() as "starken" | "chilexpress" | "blueexpress";
   const info = courierKey ? envio.cotizaciones[courierKey] : null;
 
-  if (!info) return <LoadingFallback />;
+  if (!info) {
+    return (
+      <div className="min-h-screen bg-[#FAFAF7]">
+        <StoreHeader nombre={envio.nombre_pyme} logo={envio.logo_pyme} />
+        <div className="max-w-md mx-auto px-4 py-10 text-center">
+          <div className="w-16 h-16 rounded-full bg-[#E8553D]/10 flex items-center justify-center mx-auto mb-4">
+            <div className="animate-spin h-8 w-8 border-4 border-[#E8E8E3] border-t-[#E8553D] rounded-full" />
+          </div>
+          <p className="text-[#1A1A18] font-bold text-lg">Procesando tu envío…</p>
+          <p className="text-[#9C9C95] text-sm mt-2">Estamos generando tu guía de despacho. Esto puede tomar unos segundos.</p>
+          <p className="text-[#9C9C95] text-xs mt-6">
+            Si la página no se actualiza,{" "}
+            <button onClick={() => window.location.reload()} className="text-[#E8553D] underline">
+              recarga aquí
+            </button>.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const style = COURIER_STYLES[courierKey] ?? { color: "text-[#1A1A18]", label: envio.courier ?? "" };
 
@@ -257,7 +318,6 @@ export default function FinalClient() {
             </p>
 
             {envio.tracking_url ? (
-              /* Tracking disponible */
               <div className="flex flex-col gap-3">
                 {envio.tracking && (
                   <div className="flex items-center justify-between bg-[#FAFAF7] rounded-xl px-4 py-2.5 border border-[#E8E8E3]">
@@ -292,7 +352,6 @@ export default function FinalClient() {
                 </a>
               </div>
             ) : (
-              /* Esperando que N8N genere la guía */
               <div className="animate-pulse flex flex-col gap-3">
                 <div className="flex items-center gap-3 bg-[#FAFAF7] rounded-xl px-4 py-3 border border-[#E8E8E3]">
                   <div className="w-4 h-4 rounded-full bg-[#E8E8E3]" />

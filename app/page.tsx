@@ -2,11 +2,9 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/utils/supabase";
 
 const WA_LINK =
   "https://wa.me/56994284520?text=Hola,%20quiero%20probar%20LinkDrop%20gratis";
-const ID_ENVIO = 3719603;
 
 // ─── Logo Components ──────────────────────────────────────────────────────────
 function LinkDropLogo({ dark = false }: { dark?: boolean }) {
@@ -1582,234 +1580,218 @@ function Integrations() {
   );
 }
 
-// ─── Generate Form ────────────────────────────────────────────────────────────
-interface GenerateFormProps {
-  onSubmit: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
-  loading: boolean;
-  modalOpen: boolean;
-  onCloseModal: () => void;
-  idEnvio: number;
-}
+// ─── FAQ ──────────────────────────────────────────────────────────────────────
+const FAQ_ITEMS = [
+  {
+    q: "¿Qué es LinkDrop y para quién es?",
+    a: "LinkDrop es una herramienta para tiendas chilenas que venden por Instagram, WhatsApp o redes sociales. Genera un link personalizado con tu marca donde el cliente elige el courier, paga con tarjeta y recibe el tracking — sin que tengas que instalar nada ni cobrar tú mismo el envío.",
+  },
+  {
+    q: "¿Cómo funciona exactamente?",
+    a: "Tú creas un link desde tu panel, lo compartes con tu cliente (por chat o pedido), y el cliente entra, ve las opciones de envío con precios reales, elige y paga. LinkDrop se encarga del resto: genera la guía con el courier elegido y le envía el tracking al cliente.",
+  },
+  {
+    q: "¿Qué couriers están disponibles?",
+    a: "Actualmente integramos Starken, Chilexpress y Blue Express. Los precios se calculan en tiempo real según el destino del cliente, así que siempre ven la tarifa actual.",
+  },
+  {
+    q: "¿Cuánto cuesta usar LinkDrop?",
+    a: "El plan gratuito incluye hasta 20 envíos al mes, para siempre. Para volúmenes mayores tenemos planes de pago. Escríbenos por WhatsApp y te contamos las opciones.",
+  },
+  {
+    q: "¿Cómo recibo el dinero del envío?",
+    a: "El cliente paga directamente a través de FLOW (plataforma de pagos certificada en Chile). El monto queda disponible en tu cuenta según los plazos de FLOW, típicamente 2 días hábiles.",
+  },
+  {
+    q: "¿Necesito integrarme con mi tienda o sistema?",
+    a: "No. LinkDrop funciona de forma completamente independiente. Solo compartes el link por donde ya hablas con tus clientes — sin plugins, sin APIs, sin configuraciones técnicas.",
+  },
+  {
+    q: "¿El link lleva mi marca o la de LinkDrop?",
+    a: "El link lleva tu marca: tu logo, tu nombre de tienda y los colores que elijas. Para el cliente, es como si fuera tu propio sistema de despacho.",
+  },
+  {
+    q: "¿Qué pasa si el pago falla o el cliente no completa el pago?",
+    a: "Si el pago es rechazado, el cliente ve un mensaje claro y puede intentarlo de nuevo. Tú no recibes ningún cargo y el envío no se genera hasta que el pago sea exitoso.",
+  },
+  {
+    q: "¿Es seguro para mis clientes pagar por este link?",
+    a: "Sí. El pago lo procesa FLOW, una empresa regulada y certificada en Chile que usa tecnología de encriptación bancaria. LinkDrop nunca almacena datos de tarjetas.",
+  },
+  {
+    q: "¿Cómo empiezo?",
+    a: "Escríbenos por WhatsApp y en menos de 5 minutos tienes tu cuenta activa. No necesitas tarjeta de crédito para empezar.",
+  },
+];
 
-function GenerateForm({
-  onSubmit,
-  loading,
-  modalOpen,
-  onCloseModal,
-  idEnvio,
-}: GenerateFormProps) {
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    border: "1.5px solid #E8E8E3",
-    borderRadius: 10,
-    padding: "12px 16px",
-    fontSize: 14,
-    color: "#1A1A18",
-    background: "#FAFAF7",
-    outline: "none",
-    fontFamily: "inherit",
-    boxSizing: "border-box",
-  };
-  const labelStyle: React.CSSProperties = {
-    display: "block",
-    fontWeight: 500,
-    fontSize: 14,
-    color: "#1A1A18",
-    marginBottom: 8,
-  };
+function FAQ() {
+  const [open, setOpen] = useState<number | null>(null);
 
   return (
-    <section
-      id="generar"
-      style={{ background: "#fff", padding: "96px 24px" }}
-    >
-      <div style={{ maxWidth: 600, margin: "0 auto" }}>
+    <section id="faq" style={{ background: "#FAFAF7", padding: "96px 24px" }}>
+      <div style={{ maxWidth: 720, margin: "0 auto" }}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          style={{ textAlign: "center", marginBottom: 40 }}
+          style={{ textAlign: "center", marginBottom: 56 }}
         >
           <h2
             style={{
               fontSize: "clamp(26px, 3.5vw, 36px)",
               fontWeight: 700,
               color: "#1A1A18",
+              letterSpacing: "-0.02em",
               marginBottom: 12,
             }}
           >
-            Pruébalo ahora con tu propia marca
+            Preguntas frecuentes
           </h2>
-          <p style={{ color: "#5C5C57", fontSize: 15, margin: 0 }}>
-            En 30 segundos vas a ver exactamente lo que verá tu próximo cliente.
+          <p style={{ color: "#5C5C57", fontSize: 16, margin: 0 }}>
+            Todo lo que necesitas saber antes de empezar.
           </p>
         </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, delay: 0.1 }}
-          style={{
-            background: "#fff",
-            border: "1.5px solid #E8E8E3",
-            borderRadius: 20,
-            padding: 40,
-            boxShadow: "0 12px 40px rgba(0,0,0,0.08)",
-          }}
-        >
-          <form
-            onSubmit={onSubmit}
-            style={{ display: "flex", flexDirection: "column", gap: 20 }}
-          >
-            <div>
-              <label style={labelStyle}>Nombre de tu PyME</label>
-              <input
-                name="nombre"
-                type="text"
-                placeholder="Ej: Moments joyas"
-                style={inputStyle}
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>Sube tu logo</label>
-              <input
-                name="logo"
-                type="file"
-                accept="image/*"
-                style={{ ...inputStyle, cursor: "pointer" }}
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>Tu correo</label>
-              <input
-                name="email"
-                type="email"
-                placeholder="nombre@empresa.cl"
-                style={inputStyle}
-              />
-            </div>
-            <motion.button
-              type="submit"
-              disabled={loading}
-              whileHover={loading ? {} : { y: -2 }}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {FAQ_ITEMS.map((item, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.04 }}
               style={{
-                width: "100%",
-                padding: "14px",
-                borderRadius: 100,
-                fontWeight: 600,
-                fontSize: 15,
-                border: "none",
-                cursor: loading ? "not-allowed" : "pointer",
-                background: loading ? "#9C9C95" : "#E8553D",
-                color: "#fff",
-                boxShadow: loading
-                  ? "none"
-                  : "0 4px 20px rgba(232,85,61,0.3)",
-                fontFamily: "inherit",
+                background: "#fff",
+                border: "1.5px solid",
+                borderColor: open === i ? "#E8553D" : "#E8E8E3",
+                borderRadius: 16,
+                overflow: "hidden",
+                transition: "border-color 0.2s",
               }}
             >
-              {loading ? "Creando link…" : "Crear mi link de prueba"}
-            </motion.button>
-          </form>
-        </motion.div>
-      </div>
+              <button
+                onClick={() => setOpen(open === i ? null : i)}
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 16,
+                  padding: "20px 24px",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  fontFamily: "inherit",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 600,
+                    color: "#1A1A18",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {item.q}
+                </span>
+                <span
+                  style={{
+                    flexShrink: 0,
+                    width: 28,
+                    height: 28,
+                    borderRadius: "50%",
+                    background: open === i ? "#E8553D" : "#F5F5F0",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "background 0.2s",
+                  }}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 14 14"
+                    fill="none"
+                    style={{
+                      transform: open === i ? "rotate(45deg)" : "rotate(0deg)",
+                      transition: "transform 0.25s",
+                    }}
+                  >
+                    <path
+                      d="M7 1v12M1 7h12"
+                      stroke={open === i ? "#fff" : "#5C5C57"}
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </span>
+              </button>
 
-      {/* Modal */}
-      {modalOpen && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            backdropFilter: "blur(4px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 50,
-            padding: 24,
-          }}
+              <AnimatePresence initial={false}>
+                {open === i && (
+                  <motion.div
+                    key="answer"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: "easeInOut" }}
+                    style={{ overflow: "hidden" }}
+                  >
+                    <p
+                      style={{
+                        margin: 0,
+                        padding: "0 24px 20px",
+                        fontSize: 14,
+                        color: "#5C5C57",
+                        lineHeight: 1.7,
+                      }}
+                    >
+                      {item.a}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          style={{ textAlign: "center", marginTop: 48 }}
         >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3 }}
+          <p style={{ color: "#9C9C95", fontSize: 14, marginBottom: 16 }}>
+            ¿Tienes otra pregunta?
+          </p>
+          <a
+            href={WA_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
-              background: "#fff",
-              borderRadius: 20,
-              padding: 40,
-              maxWidth: 440,
-              width: "100%",
-              textAlign: "center",
-              boxShadow: "0 12px 40px rgba(0,0,0,0.15)",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              background: "#25D366",
+              color: "#fff",
+              padding: "12px 24px",
+              borderRadius: 100,
+              fontWeight: 600,
+              fontSize: 14,
+              textDecoration: "none",
+              boxShadow: "0 4px 16px rgba(37,211,102,0.35)",
             }}
           >
-            <h2
-              style={{
-                fontWeight: 700,
-                fontSize: 24,
-                color: "#1A1A18",
-                marginBottom: 12,
-              }}
-            >
-              Tu link de prueba está listo 🎉
-            </h2>
-            <p
-              style={{ color: "#5C5C57", fontSize: 14, marginBottom: 24 }}
-            >
-              Este es un link de demostración para que veas la experiencia que tendrán tus clientes.
-            </p>
-            <div
-              style={{
-                background: "#FAFAF7",
-                border: "1.5px solid #E8E8E3",
-                borderRadius: 10,
-                padding: "12px 16px",
-                fontSize: 13,
-                color: "#5C5C57",
-                wordBreak: "break-all",
-                marginBottom: 24,
-              }}
-            >
-              https://www.mochidrop.cl/envio?id={idEnvio}
-            </div>
-            <a
-              href={`https://www.mochidrop.cl/envio?id=${idEnvio}`}
-              target="_blank"
-              style={{
-                display: "inline-block",
-                background: "#E8553D",
-                color: "#fff",
-                padding: "12px 28px",
-                borderRadius: 100,
-                fontWeight: 600,
-                fontSize: 15,
-                textDecoration: "none",
-                boxShadow: "0 4px 20px rgba(232,85,61,0.3)",
-              }}
-            >
-              Abrir link
-            </a>
-            <br />
-            <button
-              onClick={onCloseModal}
-              style={{
-                marginTop: 16,
-                fontSize: 13,
-                color: "#9C9C95",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                textDecoration: "underline",
-                fontFamily: "inherit",
-              }}
-            >
-              Cerrar
-            </button>
-          </motion.div>
-        </div>
-      )}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
+            </svg>
+            Escríbenos por WhatsApp
+          </a>
+        </motion.div>
+      </div>
     </section>
   );
 }
@@ -2112,72 +2094,6 @@ function Footer() {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function Home() {
-  const [loading, setLoading] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const nombre = (
-      form.elements.namedItem("nombre") as HTMLInputElement
-    ).value.trim();
-    const email = (
-      form.elements.namedItem("email") as HTMLInputElement
-    ).value.trim();
-    const logoInput = form.elements.namedItem("logo") as HTMLInputElement;
-    const logoFile = logoInput.files?.[0] || null;
-
-    if (!nombre || !email) {
-      alert("Por favor completa todos los campos obligatorios.");
-      return;
-    }
-
-    setLoading(true);
-    let logoUrl = "";
-
-    try {
-      if (logoFile) {
-        try {
-          const ext = logoFile.name.split(".").pop();
-          const fileName = `logos/${Date.now()}.${ext}`;
-          const { error: uploadErr } = await supabase.storage
-            .from("mochidrop")
-            .upload(fileName, logoFile);
-          if (!uploadErr) {
-            const { data: urlData } = supabase.storage
-              .from("mochidrop")
-              .getPublicUrl(fileName);
-            logoUrl = urlData.publicUrl;
-          }
-        } catch {
-          // Si falla el upload del logo, continúa sin él
-        }
-      }
-
-      const res = await fetch("/api/demo-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id_envio: ID_ENVIO,
-          nombre_pyme: nombre,
-          email,
-          logo_url: logoUrl,
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err?.error ?? `HTTP ${res.status}`);
-      }
-      setModalOpen(true);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error(err);
-      alert(`Error: ${msg}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div
       style={{
@@ -2198,13 +2114,7 @@ export default function Home() {
         <Comparison />
         <Calculator />
         <Integrations />
-        <GenerateForm
-          onSubmit={handleSubmit}
-          loading={loading}
-          modalOpen={modalOpen}
-          onCloseModal={() => setModalOpen(false)}
-          idEnvio={ID_ENVIO}
-        />
+        <FAQ />
         <FinalCTA />
       </main>
       <Footer />

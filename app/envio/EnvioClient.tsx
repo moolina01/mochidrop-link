@@ -15,10 +15,14 @@ type EnvioType = {
   logo_pyme: string;
   datos_destino?: {
     nombre: string;
-    direccion: string;
+    calle: string;
+    numero: string;
+    depto?: string;
     comuna: string;
     telefono?: string;
-    number: string;
+    // Retrocompatibilidad
+    direccion?: string;
+    number?: string;
   };
   cotizaciones?: {
     starken?: { price: number; tipo: string; tiempo: string };
@@ -111,7 +115,7 @@ export default function EnvioClient() {
   const [selectedCourier, setSelectedCourier] = useState<string | null>(null);
 
   const [formCliente, setFormCliente] = useState({
-    nombre: "", telefono: "", comuna: "", direccion: "", numero: "",
+    nombre: "", telefono: "", comuna: "", calle: "", numero: "", depto: "",
   });
   const [cotizando, setCotizando] = useState(false);
   const [errorCotizar, setErrorCotizar] = useState("");
@@ -155,7 +159,7 @@ export default function EnvioClient() {
   }, [id, router]);
 
   async function cotizarEnvio() {
-    if (!formCliente.nombre.trim() || !formCliente.comuna.trim() || !formCliente.direccion.trim()) {
+    if (!formCliente.nombre.trim() || !formCliente.comuna.trim() || !formCliente.calle.trim() || !formCliente.numero.trim()) {
       setErrorCotizar("Completa los campos obligatorios (*).");
       return;
     }
@@ -172,8 +176,9 @@ export default function EnvioClient() {
             nombre: formCliente.nombre.trim(),
             telefono: formCliente.telefono.trim(),
             comuna: formCliente.comuna.trim(),
-            direccion: formCliente.direccion.trim(),
-            number: formCliente.numero.trim(),
+            calle: formCliente.calle.trim(),
+            numero: formCliente.numero.trim(),
+            depto: formCliente.depto.trim(),
           },
         }),
       });
@@ -196,8 +201,9 @@ export default function EnvioClient() {
           nombre: formCliente.nombre.trim(),
           telefono: formCliente.telefono.trim(),
           comuna: formCliente.comuna.trim(),
-          direccion: formCliente.direccion.trim(),
-          number: formCliente.numero.trim(),
+          calle: formCliente.calle.trim(),
+          numero: formCliente.numero.trim(),
+          depto: formCliente.depto.trim(),
         },
       } : prev);
 
@@ -294,28 +300,42 @@ export default function EnvioClient() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-[#1A1A18] mb-1.5">Número / Depto</label>
+                    <label className="block text-sm font-semibold text-[#1A1A18] mb-1.5">
+                      Calle <span className="text-[#E8553D]">*</span>
+                    </label>
                     <input
                       type="text"
-                      value={formCliente.numero}
-                      onChange={(e) => setFormCliente((s) => ({ ...s, numero: e.target.value }))}
-                      placeholder="Ej: 1234"
+                      value={formCliente.calle}
+                      onChange={(e) => setFormCliente((s) => ({ ...s, calle: e.target.value }))}
+                      placeholder="Ej: Blanco Viel"
                       className="w-full border border-[#E8E8E3] rounded-xl px-4 py-3 text-sm text-[#1A1A18] bg-[#FAFAF7] outline-none transition-all focus:border-[#E8553D] focus:ring-2 focus:ring-[#E8553D]/10 placeholder:text-[#9C9C95]"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-[#1A1A18] mb-1.5">
-                    Dirección <span className="text-[#E8553D]">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formCliente.direccion}
-                    onChange={(e) => setFormCliente((s) => ({ ...s, direccion: e.target.value }))}
-                    placeholder="Ej: Av. Providencia 1234"
-                    className="w-full border border-[#E8E8E3] rounded-xl px-4 py-3 text-sm text-[#1A1A18] bg-[#FAFAF7] outline-none transition-all focus:border-[#E8553D] focus:ring-2 focus:ring-[#E8553D]/10 placeholder:text-[#9C9C95]"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-semibold text-[#1A1A18] mb-1.5">
+                      Número <span className="text-[#E8553D]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formCliente.numero}
+                      onChange={(e) => setFormCliente((s) => ({ ...s, numero: e.target.value }))}
+                      placeholder="Ej: 1377"
+                      className="w-full border border-[#E8E8E3] rounded-xl px-4 py-3 text-sm text-[#1A1A18] bg-[#FAFAF7] outline-none transition-all focus:border-[#E8553D] focus:ring-2 focus:ring-[#E8553D]/10 placeholder:text-[#9C9C95]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-[#1A1A18] mb-1.5">Depto / Oficina</label>
+                    <input
+                      type="text"
+                      value={formCliente.depto}
+                      onChange={(e) => setFormCliente((s) => ({ ...s, depto: e.target.value }))}
+                      placeholder="Ej: 1007"
+                      className="w-full border border-[#E8E8E3] rounded-xl px-4 py-3 text-sm text-[#1A1A18] bg-[#FAFAF7] outline-none transition-all focus:border-[#E8553D] focus:ring-2 focus:ring-[#E8553D]/10 placeholder:text-[#9C9C95]"
+                    />
+                  </div>
                 </div>
 
                 {errorCotizar && (
@@ -372,7 +392,7 @@ export default function EnvioClient() {
                 <p className="text-xs font-semibold text-[#9C9C95] uppercase tracking-wider mb-0.5">Destino</p>
                 <p className="font-semibold text-[#1A1A18] text-sm">{envio.datos_destino?.nombre}</p>
                 <p className="text-[#5C5C57] text-sm leading-snug">
-                  {envio.datos_destino?.direccion}{envio.datos_destino?.number ? ` ${envio.datos_destino.number}` : ""}, {envio.datos_destino?.comuna}
+                  {envio.datos_destino?.calle || envio.datos_destino?.direccion} {envio.datos_destino?.numero || envio.datos_destino?.number}{envio.datos_destino?.depto ? `, Depto ${envio.datos_destino.depto}` : ""}, {envio.datos_destino?.comuna}
                 </p>
               </div>
               <button

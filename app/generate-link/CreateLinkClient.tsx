@@ -15,8 +15,9 @@ type FormState = {
   logoFile: File | null;
   logoPreview: string;
   origenComuna: string;
-  origenDireccion: string;
+  origenCalle: string;
   origenNumero: string;
+  origenDepto: string;
   largo: string;
   alto: string;
   ancho: string;
@@ -28,8 +29,9 @@ const DEFAULT: FormState = {
   logoFile: null,
   logoPreview: "",
   origenComuna: "",
-  origenDireccion: "",
+  origenCalle: "",
   origenNumero: "",
+  origenDepto: "",
   largo: "",
   alto: "",
   ancho: "",
@@ -40,7 +42,8 @@ function isComplete(s: FormState) {
   return (
     s.nombrePyme.trim() !== "" &&
     s.origenComuna.trim() !== "" &&
-    s.origenDireccion.trim() !== "" &&
+    s.origenCalle.trim() !== "" &&
+    s.origenNumero.trim() !== "" &&
     Number(s.largo) > 0 &&
     Number(s.alto) > 0 &&
     Number(s.ancho) > 0 &&
@@ -389,8 +392,9 @@ export default function CreateLinkClient() {
         email: pymeData?.email ?? currentUser.email ?? "",
         origen: {
           comuna: form.origenComuna.trim(),
-          direccion: form.origenDireccion.trim(),
+          calle: form.origenCalle.trim(),
           numero: form.origenNumero.trim(),
+          depto: form.origenDepto.trim(),
         },
         paquete: {
           largo: Number(form.largo),
@@ -603,20 +607,27 @@ export default function CreateLinkClient() {
                     placeholder="Ej: Las Condes"
                   />
                 </Field>
-                <Field label="Dirección *">
+                <Field label="Calle *">
                   <TextInput
-                    value={form.origenDireccion}
-                    onChange={(v) => set("origenDireccion", v)}
-                    placeholder="Ej: Av. El Bosque 500"
+                    value={form.origenCalle}
+                    onChange={(v) => set("origenCalle", v)}
+                    placeholder="Ej: Av. El Bosque"
                   />
                 </Field>
               </div>
-              <div style={{ marginTop: 12 }}>
-                <Field label="Número/Depto">
+              <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <Field label="Número *">
                   <TextInput
                     value={form.origenNumero}
                     onChange={(v) => set("origenNumero", v)}
-                    placeholder="Ej: 1234, Of. 5"
+                    placeholder="Ej: 500"
+                  />
+                </Field>
+                <Field label="Depto / Oficina">
+                  <TextInput
+                    value={form.origenDepto}
+                    onChange={(v) => set("origenDepto", v)}
+                    placeholder="Ej: Of. 301"
                   />
                 </Field>
               </div>

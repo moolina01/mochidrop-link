@@ -11,10 +11,14 @@ type EnvioType = {
   logo_pyme: string;
   datos_destino: {
     nombre: string;
-    direccion: string;
+    calle: string;
+    numero: string;
+    depto?: string;
     comuna: string;
     telefono?: string;
-    number: string;
+    // Retrocompatibilidad
+    direccion?: string;
+    number?: string;
   };
   cotizaciones: {
     starken?: { price: number; tipo: string; tiempo: string };
@@ -199,9 +203,7 @@ export default function ConfirmacionClient() {
               <div>
                 <p className="font-semibold text-sm text-[#1A1A18]">{envio.datos_destino.nombre}</p>
                 <p className="text-sm text-[#5C5C57] leading-snug">
-                  {envio.datos_destino.direccion}
-                  {envio.datos_destino.number ? `, ${envio.datos_destino.number}` : ""}
-                  {", "}{envio.datos_destino.comuna}
+                  {envio.datos_destino.calle || envio.datos_destino.direccion} {envio.datos_destino.numero || envio.datos_destino.number}{envio.datos_destino.depto ? `, Depto ${envio.datos_destino.depto}` : ""}, {envio.datos_destino.comuna}
                 </p>
                 {envio.datos_destino.telefono && (
                   <p className="text-sm text-[#9C9C95] mt-0.5">{envio.datos_destino.telefono}</p>

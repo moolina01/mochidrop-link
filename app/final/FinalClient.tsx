@@ -17,10 +17,14 @@ type EnvioType = {
   logo_pyme: string;
   datos_destino: {
     nombre: string;
-    direccion: string;
+    calle: string;
+    numero: string;
+    depto?: string;
     comuna: string;
-    number: string;
     telefono?: string;
+    // Retrocompatibilidad
+    direccion?: string;
+    number?: string;
   };
   cotizaciones: {
     starken?: { price: number; tipo: string; tiempo: string };
@@ -379,9 +383,7 @@ export default function FinalClient() {
                 <p className="text-xs font-semibold text-[#9C9C95] uppercase tracking-wider mb-1">Destinatario</p>
                 <p className="font-semibold text-[#1A1A18] text-sm">{envio.datos_destino.nombre}</p>
                 <p className="text-[#5C5C57] text-sm leading-snug">
-                  {envio.datos_destino.direccion}
-                  {envio.datos_destino.number ? `, ${envio.datos_destino.number}` : ""}
-                  {", "}{envio.datos_destino.comuna}
+                  {envio.datos_destino.calle || envio.datos_destino.direccion} {envio.datos_destino.numero || envio.datos_destino.number}{envio.datos_destino.depto ? `, Depto ${envio.datos_destino.depto}` : ""}, {envio.datos_destino.comuna}
                 </p>
                 {envio.datos_destino.telefono && (
                   <p className="text-[#9C9C95] text-sm mt-0.5">{envio.datos_destino.telefono}</p>

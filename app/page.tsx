@@ -1583,7 +1583,7 @@ function Integrations() {
 // ─── FAQ ──────────────────────────────────────────────────────────────────────
 const FAQ_ITEMS = [
   {
-    q: "¿Qué es LinkDrop y para quién es?",
+    q: "¿Qué es LinkDrop?",
     a: "LinkDrop es una herramienta para tiendas chilenas que venden por Instagram, WhatsApp o redes sociales. Genera un link personalizado con tu marca donde el cliente elige el courier, paga con tarjeta y recibe el tracking — sin que tengas que instalar nada ni cobrar tú mismo el envío.",
   },
   {
@@ -1596,34 +1596,18 @@ const FAQ_ITEMS = [
   },
   {
     q: "¿Cuánto cuesta usar LinkDrop?",
-    a: "El plan gratuito incluye hasta 20 envíos al mes, para siempre. Para volúmenes mayores tenemos planes de pago. Escríbenos por WhatsApp y te contamos las opciones.",
+    a: "El plan gratuito incluye 5 links de envíos gratis al mes, Para volúmenes mayores tenemos planes de pago, Escríbenos por WhatsApp y te contamos las opciones.",
   },
-  {
-    q: "¿Cómo recibo el dinero del envío?",
-    a: "El cliente paga directamente a través de FLOW (plataforma de pagos certificada en Chile). El monto queda disponible en tu cuenta según los plazos de FLOW, típicamente 2 días hábiles.",
-  },
-  {
-    q: "¿Necesito integrarme con mi tienda o sistema?",
-    a: "No. LinkDrop funciona de forma completamente independiente. Solo compartes el link por donde ya hablas con tus clientes — sin plugins, sin APIs, sin configuraciones técnicas.",
-  },
+  
   {
     q: "¿El link lleva mi marca o la de LinkDrop?",
-    a: "El link lleva tu marca: tu logo, tu nombre de tienda y los colores que elijas. Para el cliente, es como si fuera tu propio sistema de despacho.",
-  },
-  {
-    q: "¿Qué pasa si el pago falla o el cliente no completa el pago?",
-    a: "Si el pago es rechazado, el cliente ve un mensaje claro y puede intentarlo de nuevo. Tú no recibes ningún cargo y el envío no se genera hasta que el pago sea exitoso.",
-  },
-  {
-    q: "¿Es seguro para mis clientes pagar por este link?",
-    a: "Sí. El pago lo procesa FLOW, una empresa regulada y certificada en Chile que usa tecnología de encriptación bancaria. LinkDrop nunca almacena datos de tarjetas.",
+    a: "El link lleva tu marca: tu logo, tu nombre de tienda y los colores que elijas, Para el cliente, es como si fuera tu propio sistema de despacho.",
   },
   {
     q: "¿Cómo empiezo?",
-    a: "Escríbenos por WhatsApp y en menos de 5 minutos tienes tu cuenta activa. No necesitas tarjeta de crédito para empezar.",
+    a: "Haz clic en Probar gratis, crea tu cuenta en segundos y ya puedes generar tus primeros 5 links de envío gratis cada mes",
   },
 ];
-
 function FAQ() {
   const [open, setOpen] = useState<number | null>(null);
 
@@ -1861,7 +1845,7 @@ function FinalCTA() {
             Prueba el link ahora y ve exactamente lo que verá tu próximo cliente.
           </p>
           <motion.a
-            href="https://www.mochidrop.cl/envio?id=3719603"
+            href="https://www.linkdrop.cl/generate-link"
             target="_blank"
             rel="noopener noreferrer"
             whileHover={{ y: -2 }}
@@ -1879,7 +1863,7 @@ function FinalCTA() {
               marginBottom: 20,
             }}
           >
-            Ver link de demo →
+            Probar gratis →
           </motion.a>
           <div>
             <span

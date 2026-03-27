@@ -1858,10 +1858,12 @@ function FinalCTA() {
               lineHeight: 1.65,
             }}
           >
-            Crea tu primer link ahora. Sin tarjeta, sin compromiso, sin letra chica.
+            Prueba el link ahora y ve exactamente lo que verá tu próximo cliente.
           </p>
           <motion.a
-            href={WA_LINK}
+            href="https://www.mochidrop.cl/envio?id=3719603"
+            target="_blank"
+            rel="noopener noreferrer"
             whileHover={{ y: -2 }}
             transition={{ type: "spring", stiffness: 300 }}
             style={{
@@ -1877,7 +1879,7 @@ function FinalCTA() {
               marginBottom: 20,
             }}
           >
-            Empezar gratis por WhatsApp →
+            Ver link de demo →
           </motion.a>
           <div>
             <span
@@ -1893,7 +1895,7 @@ function FinalCTA() {
                 color: "#2D8A56",
               }}
             >
-              ✓ 20 envíos gratis al mes — para siempre
+              ✓ Sin registrarte — abre en segundos
             </span>
           </div>
         </motion.div>

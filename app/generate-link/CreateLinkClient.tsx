@@ -274,7 +274,7 @@ function AuthModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () 
 
 const PLANES = [
   {
-    nombre: "Starter",
+    nombre: "Emprende",
     precio: "$4.990",
     periodo: "/ mes",
     links: "40 links",
@@ -648,7 +648,21 @@ export default function CreateLinkClient() {
       : null;
 
   return (
-    <div>
+    <div style={{ overflowX: "hidden" }}>
+      <style>{`
+        .gen-body { padding: 40px 24px 100px; }
+        .gen-grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .gen-grid-4col { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+        .gen-header-email { display: inline; }
+        .gen-links-count { display: inline; }
+        @media (max-width: 640px) {
+          .gen-body { padding: 24px 16px 80px; }
+          .gen-grid-2col { grid-template-columns: 1fr; }
+          .gen-grid-4col { grid-template-columns: 1fr 1fr; }
+          .gen-header-email { display: none; }
+          .gen-links-count { font-size: 11px; }
+        }
+      `}</style>
       {/* Modales */}
       {showSettingsModal && (
         <SettingsModal
@@ -700,14 +714,14 @@ export default function CreateLinkClient() {
             {user && (
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 {linksCount && (
-                  <span style={{ fontSize: 12, color: "#5C5C57", fontWeight: 500 }}>
+                  <span className="gen-links-count" style={{ fontSize: 12, color: "#5C5C57", fontWeight: 500 }}>
                     <span style={{ fontWeight: 700, color: linksCount.used >= linksCount.limit ? "#C23E28" : "#1A1A18" }}>
                       {linksCount.used}
                     </span>
-                    <span style={{ color: "#9C9C95" }}> / {linksCount.limit} links usados</span>
+                    <span style={{ color: "#9C9C95" }}> / {linksCount.limit} links</span>
                   </span>
                 )}
-                <span style={{ fontSize: 12, color: "#9C9C95" }}>{user.email}</span>
+                <span className="gen-header-email" style={{ fontSize: 12, color: "#9C9C95" }}>{user.email}</span>
                 <button
                   onClick={() => setShowSettingsModal(true)}
                   title="Configuración"
@@ -736,7 +750,7 @@ export default function CreateLinkClient() {
       </header>
 
       {/* ── Body ────────────────────────────────────────────────────────────── */}
-      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "40px 24px 100px" }}>
+      <div style={{ maxWidth: 1000, margin: "0 auto" }} className="gen-body">
 
         {/* Page header */}
         <div style={{ marginBottom: 32, textAlign: "center" }}>
@@ -809,7 +823,7 @@ export default function CreateLinkClient() {
               <p style={{ margin: "0 0 16px", fontSize: 13, color: "#5C5C57" }}>
                 Dirección de retiro del paquete. Los couriers calculan el precio desde aquí.
               </p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="gen-grid-2col">
                 <Field label="Comuna de origen *">
                   <TextInput
                     value={form.origenComuna}
@@ -825,7 +839,7 @@ export default function CreateLinkClient() {
                   />
                 </Field>
               </div>
-              <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div style={{ marginTop: 12 }} className="gen-grid-2col">
                 <Field label="Número *">
                   <TextInput
                     value={form.origenNumero}
@@ -849,7 +863,7 @@ export default function CreateLinkClient() {
               <p style={{ margin: "0 0 16px", fontSize: 13, color: "#5C5C57" }}>
                 Necesario para cotizar el precio real del envío con cada courier.
               </p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
+              <div className="gen-grid-4col">
                 <Field label="Largo (cm) *">
                   <TextInput value={form.largo} onChange={(v) => set("largo", v.replace(/[^\d.]/g, ""))} placeholder="30" type="number" />
                 </Field>

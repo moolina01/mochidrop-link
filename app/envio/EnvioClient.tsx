@@ -33,6 +33,7 @@ type EnvioType = {
   courier?: string;
   tracking?: string;
   tracking_url?: string;
+  ask_instagram?: boolean;
 };
 
 const COURIER_CONFIG: Record<
@@ -104,6 +105,49 @@ function SkeletonCard() {
   );
 }
 
+function InstagramField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  return (
+    <div>
+      <label className="block text-sm font-semibold text-[#1A1A18] mb-1.5 flex items-center gap-1.5">
+        Instagram <span className="text-[#E8553D]">*</span>
+        <button
+          type="button"
+          onClick={() => setShowTooltip((s) => !s)}
+          className="w-4 h-4 rounded-full bg-[#E8E8E3] text-[#9C9C95] flex items-center justify-center text-[10px] font-bold leading-none hover:bg-[#D1D1CC] transition-colors flex-shrink-0"
+        >
+          ?
+        </button>
+      </label>
+
+      {showTooltip && (
+        <div className="mb-2 bg-[#1A1A18] text-white text-xs rounded-xl px-4 py-3 leading-relaxed relative">
+          <button
+            type="button"
+            onClick={() => setShowTooltip(false)}
+            className="absolute top-2 right-3 text-white/50 hover:text-white text-sm leading-none"
+          >
+            ✕
+          </button>
+          La tienda usa tu Instagram para llevar un registro de a qué cliente corresponde cada guía de despacho. No se publica ni comparte.
+        </div>
+      )}
+
+      <div className="relative">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-[#9C9C95] font-medium pointer-events-none">@</span>
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value.replace(/^@/, ""))}
+          placeholder="usuario"
+          className="w-full border border-[#E8E8E3] rounded-xl pl-8 pr-4 py-3 text-sm text-[#1A1A18] bg-[#FAFAF7] outline-none transition-all focus:border-[#E8553D] focus:ring-2 focus:ring-[#E8553D]/10 placeholder:text-[#9C9C95]"
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function EnvioClient() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
@@ -115,7 +159,7 @@ export default function EnvioClient() {
   const [selectedCourier, setSelectedCourier] = useState<string | null>(null);
 
   const [formCliente, setFormCliente] = useState({
-    nombre: "", telefono: "", comuna: "", calle: "", numero: "", depto: "",
+    nombre: "", telefono: "", comuna: "", calle: "", numero: "", depto: "", instagram: "",
   });
   const [cotizando, setCotizando] = useState(false);
   const [errorCotizar, setErrorCotizar] = useState("");
@@ -163,6 +207,10 @@ export default function EnvioClient() {
       setErrorCotizar("Completa los campos obligatorios (*).");
       return;
     }
+    if (envio?.ask_instagram && !formCliente.instagram.trim()) {
+      setErrorCotizar("Ingresa tu usuario de Instagram para continuar.");
+      return;
+    }
     setErrorCotizar("");
     setCotizando(true);
     setCardsVisible(false);
@@ -179,6 +227,7 @@ export default function EnvioClient() {
             calle: formCliente.calle.trim(),
             numero: formCliente.numero.trim(),
             depto: formCliente.depto.trim(),
+            instagram: formCliente.instagram.trim(),
           },
         }),
       });
@@ -204,6 +253,7 @@ export default function EnvioClient() {
           calle: formCliente.calle.trim(),
           numero: formCliente.numero.trim(),
           depto: formCliente.depto.trim(),
+          instagram: formCliente.instagram.trim(),
         },
       } : prev);
 
@@ -285,6 +335,13 @@ export default function EnvioClient() {
                     className="w-full border border-[#E8E8E3] rounded-xl px-4 py-3 text-sm text-[#1A1A18] bg-[#FAFAF7] outline-none transition-all focus:border-[#E8553D] focus:ring-2 focus:ring-[#E8553D]/10 placeholder:text-[#9C9C95]"
                   />
                 </div>
+
+                {envio.ask_instagram && (
+                  <InstagramField
+                    value={formCliente.instagram}
+                    onChange={(v) => setFormCliente((s) => ({ ...s, instagram: v }))}
+                  />
+                )}
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>

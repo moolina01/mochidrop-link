@@ -302,6 +302,96 @@ function LimitModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ─── SettingsModal ────────────────────────────────────────────────────────────
+
+function SettingsModal({
+  askInstagram,
+  onToggle,
+  onClose,
+}: {
+  askInstagram: boolean;
+  onToggle: (val: boolean) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+
+  async function handleToggle() {
+    setSaving(true);
+    await onToggle(!askInstagram);
+    setSaving(false);
+  }
+
+  return (
+    <ModalOverlay>
+      <div style={{
+        background: "#fff", borderRadius: 20, padding: "32px",
+        width: "100%", maxWidth: 400, boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+        position: "relative",
+      }}>
+        {/* Close */}
+        <button
+          onClick={onClose}
+          style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "#9C9C95", fontFamily: "inherit", lineHeight: 1 }}
+        >
+          ✕
+        </button>
+
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: "#F5F5F0", border: "1px solid #E8E8E3", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5C5C57" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </div>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1A1A18" }}>Configuración</h2>
+            <p style={{ margin: 0, fontSize: 13, color: "#9C9C95" }}>Opciones para tus links de envío</p>
+          </div>
+        </div>
+
+        {/* Toggle row */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          border: "1px solid", borderColor: askInstagram ? "#E8553D" : "#E8E8E3",
+          borderRadius: 12, padding: "14px 16px", transition: "border-color 0.2s",
+        }}>
+          <div>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1A1A18" }}>
+              Pedir Instagram al cliente
+            </p>
+            <p style={{ margin: "3px 0 0", fontSize: 12, color: "#9C9C95" }}>
+              El cliente ingresa su @usuario al llenar el formulario
+            </p>
+          </div>
+          <button
+            onClick={handleToggle}
+            disabled={saving}
+            style={{
+              flexShrink: 0, width: 44, height: 24, borderRadius: 100,
+              background: askInstagram ? "#E8553D" : "#D1D1CC",
+              border: "none", cursor: saving ? "not-allowed" : "pointer",
+              position: "relative", transition: "background 0.2s", marginLeft: 16,
+            }}
+          >
+            <div style={{
+              position: "absolute", top: 3, width: 18, height: 18, borderRadius: "50%",
+              background: "#fff", transition: "left 0.2s",
+              left: askInstagram ? 23 : 3,
+              boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+            }} />
+          </button>
+        </div>
+
+        {/* Status */}
+        <p style={{ margin: "12px 0 0", fontSize: 12, color: "#9C9C95", textAlign: "center" }}>
+          {saving ? "Guardando…" : askInstagram ? "✓ Activo — tus nuevos links pedirán Instagram" : "Desactivado — el campo no aparece"}
+        </p>
+      </div>
+    </ModalOverlay>
+  );
+}
+
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function CreateLinkClient() {
@@ -315,7 +405,9 @@ export default function CreateLinkClient() {
   const [user, setUser] = useState<User | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [linksCount, setLinksCount] = useState<{ used: number; limit: number } | null>(null);
+  const [askInstagram, setAskInstagram] = useState(false);
 
   const canSubmit = useMemo(() => isComplete(form), [form]);
 
@@ -328,16 +420,19 @@ export default function CreateLinkClient() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Cargar contador de links cuando hay usuario
+  // Cargar datos de pyme cuando hay usuario
   useEffect(() => {
-    if (!user) { setLinksCount(null); return; }
+    if (!user) { setLinksCount(null); setAskInstagram(false); return; }
     supabase
       .from("pymes")
-      .select("links_creados, limite_links")
+      .select("links_creados, limite_links, ask_instagram")
       .eq("auth_id", user.id)
       .single()
       .then(({ data }) => {
-        if (data) setLinksCount({ used: data.links_creados, limit: data.limite_links });
+        if (data) {
+          setLinksCount({ used: data.links_creados, limit: data.limite_links });
+          setAskInstagram(data.ask_instagram ?? false);
+        }
       });
   }, [user]);
 
@@ -360,7 +455,7 @@ export default function CreateLinkClient() {
       // 1. Verificar límite
       const { data: pymeData } = await supabase
         .from("pymes")
-        .select("links_creados, limite_links, email")
+        .select("links_creados, limite_links, email, ask_instagram")
         .eq("auth_id", currentUser.id)
         .single();
 
@@ -402,6 +497,7 @@ export default function CreateLinkClient() {
           ancho: Number(form.ancho),
           peso: Number(form.peso),
         },
+        ask_instagram: askInstagram,
       };
 
       const res = await fetch(N8N_CREATE_LINK, {
@@ -462,6 +558,18 @@ export default function CreateLinkClient() {
   return (
     <div>
       {/* Modales */}
+      {showSettingsModal && (
+        <SettingsModal
+          askInstagram={askInstagram}
+          onToggle={async (val) => {
+            setAskInstagram(val);
+            if (user) {
+              await supabase.from("pymes").update({ ask_instagram: val }).eq("auth_id", user.id);
+            }
+          }}
+          onClose={() => setShowSettingsModal(false)}
+        />
+      )}
       {showAuthModal && (
         <AuthModal
           onClose={() => setShowAuthModal(false)}
@@ -508,6 +616,16 @@ export default function CreateLinkClient() {
                   </span>
                 )}
                 <span style={{ fontSize: 12, color: "#9C9C95" }}>{user.email}</span>
+                <button
+                  onClick={() => setShowSettingsModal(true)}
+                  title="Configuración"
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, background: "none", border: "1px solid #E8E8E3", borderRadius: 8, cursor: "pointer", color: "#5C5C57", flexShrink: 0 }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                  </svg>
+                </button>
                 <button
                   onClick={() => supabase.auth.signOut()}
                   style={{ fontSize: 12, color: "#5C5C57", background: "none", border: "1px solid #E8E8E3", borderRadius: 8, padding: "5px 10px", cursor: "pointer", fontFamily: "inherit" }}

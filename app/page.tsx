@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
+import { usePostHog } from "posthog-js/react";
 
 const WA_LINK =
   "https://wa.me/56994284520?text=Hola,%20quiero%20probar%20LinkDrop%20gratis";
@@ -120,6 +121,7 @@ function GrainOverlay() {
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 function Navbar() {
+  const posthog = usePostHog();
   return (
     <header
       style={{
@@ -147,6 +149,7 @@ function Navbar() {
         <LinkDropLogo />
         <motion.a
           href="/generate-link"
+          onClick={() => posthog.capture("cta_click", { location: "navbar" })}
           whileHover={{ y: -1 }}
           transition={{ duration: 0.18 }}
           style={{
@@ -409,6 +412,7 @@ function PhoneMockup() {
 
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 function Hero() {
+  const posthog = usePostHog();
   return (
     <section
       style={{
@@ -520,6 +524,7 @@ function Hero() {
           >
             <motion.a
               href="/generate-link"
+              onClick={() => posthog.capture("cta_click", { location: "hero" })}
               whileHover={{ y: -2 }}
               transition={{ type: "spring", stiffness: 300 }}
               style={{
@@ -1521,6 +1526,7 @@ function Calculator() {
 
 // ─── For Who ──────────────────────────────────────────────────────────────────
 function ForWho() {
+  const posthog = usePostHog();
   const checks = [
     "Vendes por Instagram, TikTok o WhatsApp",
     "Cobras el envío por transferencia",
@@ -1590,6 +1596,7 @@ function ForWho() {
         {/* CTA inline */}
         <motion.a
           href="/generate-link"
+          onClick={() => posthog.capture("cta_click", { location: "forwho" })}
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -2099,6 +2106,7 @@ function FAQ() {
 
 // ─── Final CTA ────────────────────────────────────────────────────────────────
 function FinalCTA() {
+  const posthog = usePostHog();
   return (
     <section
       style={{
@@ -2165,6 +2173,7 @@ function FinalCTA() {
             href="https://www.linkdrop.cl/generate-link"
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => posthog.capture("cta_click", { location: "final_cta" })}
             whileHover={{ y: -2 }}
             transition={{ type: "spring", stiffness: 300 }}
             style={{

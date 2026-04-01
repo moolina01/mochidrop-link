@@ -28,6 +28,7 @@ type EnvioType = {
     starken?: { price: number; tipo: string; tiempo: string };
     chilexpress?: { price: number; tipo: string; tiempo: string };
     blueexpress?: { price: number; tipo: string; tiempo: string };
+    noventa9Minutos?: { price: number; tipo: string; tiempo: string };
   };
   estado?: string;
   courier?: string;
@@ -58,6 +59,11 @@ const COURIER_CONFIG: Record<
     color: "#0055B8",
     colorLight: "#E8F0FA",
     label: "Blue Express",
+  },
+  noventa9Minutos: {
+    color: "#FF3B30",
+    colorLight: "#FFF0EE",
+    label: "99 Minutos",
   },
 };
 
@@ -289,7 +295,7 @@ export default function EnvioClient() {
     ? entries.reduce((min, curr) => curr[1].price < min[1].price ? curr : min)[0]
     : null;
 
-  const courierKeys = (["starken", "chilexpress", "blueexpress"] as const).filter(k => cotizaciones[k]);
+  const courierKeys = (["starken", "chilexpress", "blueexpress", "noventa9Minutos"] as const).filter(k => cotizaciones[k]);
 
   return (
     <div className="min-h-screen bg-[#FAFAF7]">
@@ -521,6 +527,16 @@ export default function EnvioClient() {
                         {isCheapest && (
                           <span className="text-[10px] font-bold text-[#2D8A56] bg-green-50 border border-green-200 px-1.5 py-0.5 rounded-full">
                             Mejor precio
+                          </span>
+                        )}
+                        {key === "noventa9Minutos" && (
+                          <span className="text-[10px] font-bold text-[#FF3B30] bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-full">
+                            ⚡ Más rápido
+                          </span>
+                        )}
+                        {key === "blueexpress" && cot.tipo && (
+                          <span className="text-[10px] font-bold text-[#0055B8] bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full">
+                            {cot.tipo}
                           </span>
                         )}
                       </div>

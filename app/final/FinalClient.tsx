@@ -30,6 +30,7 @@ type EnvioType = {
     starken?: { price: number; tipo: string; tiempo: string };
     chilexpress?: { price: number; tipo: string; tiempo: string };
     blueexpress?: { price: number; tipo: string; tiempo: string };
+    noventa9Minutos?: { price: number; tipo: string; tiempo: string };
   };
   estado?: string;
   courier?: string;
@@ -39,9 +40,10 @@ type EnvioType = {
 };
 
 const COURIER_STYLES: Record<string, { color: string; label: string }> = {
-  starken:     { color: "text-green-700", label: "Starken"      },
-  chilexpress: { color: "text-red-600",   label: "Chilexpress"  },
-  blueexpress: { color: "text-blue-700",  label: "Blue Express" },
+  starken:          { color: "text-green-700", label: "Starken"      },
+  chilexpress:      { color: "text-red-600",   label: "Chilexpress"  },
+  blueexpress:      { color: "text-blue-700",  label: "Blue Express" },
+  noventa9Minutos:  { color: "text-red-500",   label: "99 Minutos"   },
 };
 
 function LoadingFallback() {
@@ -106,7 +108,7 @@ export default function FinalClient() {
       if (data) {
         setEnvio(data);
 
-        const key = (data.courier || courierParam || "").toLowerCase() as "starken" | "chilexpress" | "blueexpress";
+        const key = (data.courier || courierParam || "").toLowerCase() as "starken" | "chilexpress" | "blueexpress" | "noventa9Minutos";
         const cotizacion = key ? data.cotizaciones?.[key] : null;
 
         if (cotizacion) {
@@ -165,7 +167,7 @@ export default function FinalClient() {
           const newData = payload.new as EnvioType;
           setEnvio(newData);
 
-          const key = (newData.courier || courierParam || "").toLowerCase() as "starken" | "chilexpress" | "blueexpress";
+          const key = (newData.courier || courierParam || "").toLowerCase() as "starken" | "chilexpress" | "blueexpress" | "noventa9Minutos";
           const cotizacion = key ? newData.cotizaciones?.[key] : null;
           if (cotizacion) {
             setGenerating(false);
@@ -222,7 +224,7 @@ export default function FinalClient() {
     return <div className="p-10 text-center text-[#5C5C57]">No se pudo cargar la información del envío.</div>;
   }
 
-  const courierKey = (envio.courier || courierParam || "").toLowerCase() as "starken" | "chilexpress" | "blueexpress";
+  const courierKey = (envio.courier || courierParam || "").toLowerCase() as "starken" | "chilexpress" | "blueexpress" | "noventa9Minutos";
   const info = courierKey ? envio.cotizaciones[courierKey] : null;
 
   if (!info) {

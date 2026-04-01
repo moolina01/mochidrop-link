@@ -24,6 +24,7 @@ type EnvioType = {
     starken?: { price: number; tipo: string; tiempo: string };
     chilexpress?: { price: number; tipo: string; tiempo: string };
     blueexpress?: { price: number; tipo: string; tiempo: string };
+    noventa9Minutos?: { price: number; tipo: string; tiempo: string };
   };
 };
 
@@ -42,6 +43,11 @@ const COURIER_CONFIG: Record<string, { color: string; colorLight: string; label:
     color: "#0055B8",
     colorLight: "#E8F0FA",
     label: "Blue Express",
+  },
+  noventa9Minutos: {
+    color: "#FF3B30",
+    colorLight: "#FFF0EE",
+    label: "99 Minutos",
   },
 };
 
@@ -137,7 +143,7 @@ export default function ConfirmacionClient() {
   if (!envio)  return <div className="p-10 text-center text-[#5C5C57]">Envío no encontrado.</div>;
   if (!courier) return <div className="p-10 text-center text-[#5C5C57]">No se seleccionó courier.</div>;
 
-  const info = envio.cotizaciones[courier as "starken" | "chilexpress" | "blueexpress"];
+  const info = envio.cotizaciones[courier as "starken" | "chilexpress" | "blueexpress" | "noventa9Minutos"];
   if (!info) return <div className="p-10 text-center text-[#5C5C57]">Courier no válido.</div>;
 
   const cfg = COURIER_CONFIG[courier] ?? { color: "#1A1A18", colorLight: "#F5F5F5", label: courier };

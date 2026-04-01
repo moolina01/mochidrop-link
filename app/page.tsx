@@ -475,7 +475,7 @@ function Hero() {
               }}
             />
             <span style={{ fontSize: 13, color: "#5C5C57", fontWeight: 500 }}>
-              Para tiendas que venden por Instagram y WhatsApp
+              Manda un link y listo.
             </span>
           </motion.div>
 
@@ -492,9 +492,9 @@ function Hero() {
               marginBottom: 20,
             }}
           >
-            Tú vendes.
+            Crea un link de envío y deja de coordinar
             <br />
-            <span style={{ color: "#E8553D" }}>El envío que se resuelva solo.</span>
+            <span style={{ color: "#E8553D" }}>despachos por WhatsApp.</span>
           </motion.h1>
 
           <motion.p
@@ -509,7 +509,7 @@ function Hero() {
               lineHeight: 1.65,
             }}
           >
-            LinkDrop genera un link que le mandas a tu cliente por WhatsApp. Ahí elige courier, paga con tarjeta y recibe su tracking. Tú no tocas nada.
+            Tu cliente paga el envío, elige courier y recibe tracking automáticamente.
           </motion.p>
 
           <motion.div
@@ -534,7 +534,7 @@ function Hero() {
                 display: "inline-block",
               }}
             >
-              Crear mi primer link gratis →
+              Crear mi primer link de envío →
             </motion.a>
             <motion.a
               href="#como-funciona"
@@ -555,6 +555,16 @@ function Hero() {
               Ver cómo funciona ↓
             </motion.a>
           </motion.div>
+
+          {/* Micro-hook */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.7, delay: 0.4 }}
+            style={{ fontSize: 14, color: "#9C9C95", marginTop: 20, lineHeight: 1.6 }}
+          >
+            ¿Cansado de cotizar envíos, pedir direcciones y coordinar pagos por WhatsApp?
+          </motion.p>
         </div>
 
         {/* Right column — phone mockup */}
@@ -809,22 +819,22 @@ function HowItWorks() {
       num: "1",
       color: "#E8553D",
       shadow: "rgba(232,85,61,0.28)",
-      title: "Creas el link en segundos",
-      desc: "Nombre del cliente y dirección. LinkDrop arma un link personalizado con tu marca al instante.",
+      title: "Creas un link en segundos",
+      desc: "Ingresas el nombre y dirección del cliente. LinkDrop genera el link al instante.",
     },
     {
       num: "2",
       color: "#6C5CE7",
       shadow: "rgba(108,92,231,0.28)",
-      title: "Tu cliente hace todo solo",
-      desc: "Abre el link, ve precios reales de distintos couriers, elige el que prefiere y paga con su tarjeta. Sin que tú intervengas.",
+      title: "Se lo mandas por WhatsApp o Instagram",
+      desc: "Tu cliente abre el link, elige el courier que prefiere y paga con tarjeta. Tú no intervienes.",
     },
     {
       num: "3",
       color: "#2D8A56",
       shadow: "rgba(45,138,86,0.28)",
-      title: "Listo. No tocas nada más.",
-      desc: "La guía llega a tu correo lista para imprimir. Tu cliente recibe el tracking automático. Tú te dedicas a vender.",
+      title: "El envío y tracking se gestionan solos",
+      desc: "La guía llega a tu correo. El tracking llega al cliente. Tú no haces nada más.",
     },
   ];
 
@@ -888,10 +898,10 @@ function HowItWorks() {
               margin: 0,
             }}
           >
-            Un link. Todo resuelto.
+            Así funciona LinkDrop
           </h2>
           <p style={{ fontSize: 16, color: "#5C5C57", marginTop: 12, margin: "12px 0 0" }}>
-            Lo que antes te tomaba 15 minutos ahora pasa en 30 segundos.
+            Manda un link y listo. Lo que antes tomaba 15 minutos ahora pasa en 30 segundos.
           </p>
         </motion.div>
 
@@ -969,6 +979,71 @@ function HowItWorks() {
               </motion.div>
             ))}
           </div>
+        </div>
+
+        {/* Closing line */}
+        <motion.p
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          style={{ textAlign: "center", fontSize: 18, fontWeight: 700, color: "#E8553D", marginTop: 52 }}
+        >
+          Manda un link y listo.
+        </motion.p>
+      </div>
+    </section>
+  );
+}
+
+// ─── Benefits ─────────────────────────────────────────────────────────────────
+function Benefits() {
+  const items = [
+    { icon: "⚡", text: "Ahorras tiempo en cada envío" },
+    { icon: "💰", text: "Evitas perder ventas por fricción" },
+    { icon: "📦", text: "Menos errores en direcciones" },
+    { icon: "📲", text: "Funciona directo desde WhatsApp" },
+  ];
+
+  return (
+    <section style={{ backgroundColor: "#1A1A18", padding: "96px 24px" }}>
+      <div style={{ maxWidth: 680, margin: "0 auto" }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          style={{ textAlign: "center", marginBottom: 48 }}
+        >
+          <h2 style={{
+            fontSize: "clamp(26px, 3.5vw, 36px)", fontWeight: 700,
+            color: "#fff", letterSpacing: "-0.02em", marginBottom: 12,
+          }}>
+            Más simple para ti.{" "}
+            <span style={{ color: "#E8553D" }}>Más fácil para tu cliente.</span>
+          </h2>
+        </motion.div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {items.map((item, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -16 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: i * 0.08 }}
+              style={{
+                display: "flex", alignItems: "center", gap: 16,
+                background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
+                borderRadius: 14, padding: "18px 22px",
+              }}
+            >
+              <span style={{ fontSize: 22, flexShrink: 0 }}>{item.icon}</span>
+              <span style={{ fontSize: 16, fontWeight: 500, color: "rgba(255,255,255,0.85)" }}>
+                {item.text}
+              </span>
+            </motion.div>
+          ))}
         </div>
       </div>
     </section>
@@ -1528,7 +1603,7 @@ function ForWho() {
             boxShadow: "0 4px 20px rgba(232,85,61,0.35)",
           }}
         >
-          Probar gratis →
+          Crear mi primer link de envío →
         </motion.a>
         <p style={{ marginTop: 12, fontSize: 12, color: "#9C9C95" }}>
           Sin tarjeta · 5 links gratis · Listo en 2 minutos
@@ -1762,21 +1837,21 @@ function Integrations() {
         >
           <p style={{
             fontSize: 12, fontWeight: 600, textTransform: "uppercase",
-            letterSpacing: "0.12em", color: "#9C9C95", marginBottom: 16,
+            letterSpacing: "0.12em", color: "#E8553D", marginBottom: 16,
           }}>
-            Couriers y medios de pago integrados
+            Sin coordinación manual
           </p>
           <h2 style={{
             fontSize: "clamp(22px, 3vw, 32px)", fontWeight: 700,
             color: "#1A1A18", letterSpacing: "-0.02em", marginBottom: 12,
           }}>
-            Tu cliente elige entre los couriers que ya conoce
+            El link cotiza, cobra y genera la guía 
           </h2>
           <p style={{
             fontSize: 15, color: "#5C5C57", maxWidth: 480,
             margin: "0 auto", lineHeight: 1.7,
           }}>
-            Cada link muestra precios reales de Starken, Chilexpress, Blue Express y 99 Minutos — calculados al instante según el destino. El cliente paga con tarjeta a través de FLOW.
+            Tu cliente abre el link y ve precios reales de los couriers más usados en Chile, Elige, paga con tarjeta y recibe el tracking, Tú no haces nada.
           </p>
         </motion.div>
 
@@ -1815,7 +1890,7 @@ function Integrations() {
 
       <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 24px" }}>
         <p style={{ textAlign: "center", fontSize: 13, color: "#9C9C95" }}>
-          Los precios de cada courier se calculan en tiempo real según el destino — tu cliente siempre ve la tarifa actual.
+          Precios en tiempo real según el destino · Pago con tarjeta vía FLOW · Tracking automático
         </p>
       </div>
     </section>
@@ -2073,7 +2148,7 @@ function FinalCTA() {
               marginBottom: 16,
             }}
           >
-            Tu próximo envío puede tomar 30 segundos.
+            Empieza gratis y crea tu primer link en menos de 1 minuto.
           </h2>
           <p
             style={{
@@ -2084,7 +2159,7 @@ function FinalCTA() {
               lineHeight: 1.65,
             }}
           >
-            Prueba el link ahora y ve exactamente lo que verá tu próximo cliente.
+            Manda un link y listo. Sin instalaciones, sin contratos, sin tarjeta.
           </p>
           <motion.a
             href="https://www.linkdrop.cl/generate-link"
@@ -2105,7 +2180,7 @@ function FinalCTA() {
               marginBottom: 20,
             }}
           >
-            Probar gratis →
+            Crear mi link ahora →
           </motion.a>
           <div>
             <span
@@ -2341,6 +2416,7 @@ export default function Home() {
         <PainChat />
         <ForWho />
         <HowItWorks />
+        <Benefits />
         <Pricing />
         <FAQ />
         <FinalCTA />

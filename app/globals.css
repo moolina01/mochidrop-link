@@ -38,3 +38,35 @@ body {
 .pulse-dot {
   animation: pulse-dot 2s ease-in-out infinite;
 }
+
+@keyframes ld-marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-33.333%); }
+}
+
+.ld-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: ld-marquee 22s linear infinite;
+}
+
+.ld-marquee-track:hover {
+  animation-play-state: paused;
+}
+
+.forwho-row {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 640px) {
+  .forwho-row {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  .forwho-solution {
+    border-left: none !important;
+    border-top: 1px solid rgba(255,255,255,0.15) !important;
+    padding-left: 0 !important;
+    padding-top: 16px !important;
+  }
+}

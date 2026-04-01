@@ -756,6 +756,17 @@ function PainChat() {
         >
           <p
             style={{
+              fontSize: 14,
+              color: "#9C9C95",
+              marginBottom: 12,
+              fontStyle: "italic",
+              lineHeight: 1.6,
+            }}
+          >
+            ¿Te suena familiar? Cada envío te roba 20 minutos que podrías dedicar a vender.
+          </p>
+          <p
+            style={{
               fontSize: "clamp(20px, 2.5vw, 26px)",
               fontWeight: 700,
               color: "#1A1A18",
@@ -1433,18 +1444,314 @@ function Calculator() {
   );
 }
 
-// ─── Integrations ─────────────────────────────────────────────────────────────
-function Integrations() {
-  const couriers = [
-    { name: "Starken", color: "#E8553D", bg: "#FFF0ED", border: "#F5C4BB" },
-    { name: "Chilexpress", color: "#C8372D", bg: "#FDF3F2", border: "#F0CECA" },
-    { name: "Blue Express", color: "#1A6BC4", bg: "#EFF5FF", border: "#C2D9F5" },
+// ─── For Who ──────────────────────────────────────────────────────────────────
+function ForWho() {
+  const checks = [
+    "Vendes por Instagram, TikTok o WhatsApp",
+    "Cobras el envío por transferencia",
+    "Le dices al cliente el precio del courier tú mismo",
+    "Generas las guías a mano una por una",
+    "El cliente dice \"ya te transfiero\" y desaparece",
   ];
 
   return (
     <section style={{ background: "#FAFAF7", padding: "96px 24px" }}>
-      <div style={{ maxWidth: 860, margin: "0 auto" }}>
+      <div style={{ maxWidth: 620, margin: "0 auto", textAlign: "center" }}>
 
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          <p style={{
+            fontSize: 12, fontWeight: 600, textTransform: "uppercase",
+            letterSpacing: "0.12em", color: "#E8553D", marginBottom: 16,
+          }}>
+            ¿Es para mí?
+          </p>
+          <h2 style={{
+            fontSize: "clamp(26px, 3.5vw, 38px)", fontWeight: 800,
+            color: "#1A1A18", letterSpacing: "-0.03em", lineHeight: 1.15,
+            marginBottom: 48,
+          }}>
+            Si alguna de estas te suena,<br />
+            <span style={{ color: "#E8553D" }}>LinkDrop es para ti.</span>
+          </h2>
+        </motion.div>
+
+        {/* Checklist */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 48 }}>
+          {checks.map((text, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -16 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: i * 0.08 }}
+              style={{
+                display: "flex", alignItems: "center", gap: 14,
+                background: "#fff", border: "1.5px solid #E8E8E3",
+                borderRadius: 14, padding: "16px 20px",
+                textAlign: "left",
+              }}
+            >
+              <div style={{
+                width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                background: "#E8553D",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <polyline points="2,6 5,9 10,3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <span style={{ fontSize: 15, fontWeight: 500, color: "#1A1A18" }}>
+                {text}
+              </span>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* CTA inline */}
+        <motion.a
+          href="/generate-link"
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+          whileHover={{ y: -2 }}
+          style={{
+            display: "inline-block",
+            background: "#E8553D", color: "#fff",
+            padding: "14px 32px", borderRadius: 100,
+            fontWeight: 700, fontSize: 15, textDecoration: "none",
+            boxShadow: "0 4px 20px rgba(232,85,61,0.35)",
+          }}
+        >
+          Probar gratis →
+        </motion.a>
+        <p style={{ marginTop: 12, fontSize: 12, color: "#9C9C95" }}>
+          Sin tarjeta · 5 links gratis · Listo en 2 minutos
+        </p>
+
+      </div>
+    </section>
+  );
+}
+
+// ─── Pricing ──────────────────────────────────────────────────────────────────
+const WA_UPGRADE_PRICING = "https://wa.me/56994284520?text=Hola,%20quiero%20subir%20mi%20plan%20en%20LinkDrop";
+
+function Pricing() {
+  const plans = [
+    {
+      name: "Gratis",
+      price: "$0",
+      period: "",
+      desc: "Para probar sin compromiso",
+      links: "5 links de envío",
+      features: ["Todos los couriers", "Pago con tarjeta (FLOW)", "Tracking automático"],
+      cta: "Comenzar gratis",
+      ctaHref: "/generate-link",
+      highlight: false,
+    },
+    {
+      name: "Emprende",
+      price: "$4.990",
+      period: "/ mes",
+      desc: "Para pymes que despachan seguido",
+      links: "40 links al mes",
+      features: ["Todo lo del plan gratis", "Soporte prioritario", "40 links mensuales"],
+      cta: "Subir a Emprende",
+      ctaHref: WA_UPGRADE_PRICING,
+      highlight: true,
+    },
+    {
+      name: "Pro",
+      price: "$12.990",
+      period: "/ mes",
+      desc: "Para volumen sin límites",
+      links: "Links ilimitados",
+      features: ["Todo lo de Emprende", "Links ilimitados", "Atención personalizada"],
+      cta: "Subir a Pro",
+      ctaHref: WA_UPGRADE_PRICING,
+      highlight: false,
+    },
+  ];
+
+  return (
+    <section id="precios" style={{ background: "#FAFAF7", padding: "96px 24px" }}>
+      <div style={{ maxWidth: 900, margin: "0 auto" }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          style={{ textAlign: "center", marginBottom: 52 }}
+        >
+          <p style={{
+            fontSize: 12, fontWeight: 600, textTransform: "uppercase",
+            letterSpacing: "0.12em", color: "#E8553D", marginBottom: 12,
+          }}>
+            Precios
+          </p>
+          <h2 style={{
+            fontSize: "clamp(26px, 3.5vw, 38px)", fontWeight: 700,
+            color: "#1A1A18", letterSpacing: "-0.02em", marginBottom: 14,
+          }}>
+            Empieza gratis, crece cuando quieras
+          </h2>
+          <p style={{ fontSize: 16, color: "#5C5C57", maxWidth: 400, margin: "0 auto", lineHeight: 1.7 }}>
+            Sin contratos, sin permanencia. Cancela o cambia de plan cuando quieras.
+          </p>
+        </motion.div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, alignItems: "start" }}>
+          {plans.map((plan, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.1 }}
+              style={{
+                background: plan.highlight ? "#1A1A18" : "#fff",
+                border: plan.highlight ? "none" : "1.5px solid #E8E8E3",
+                borderRadius: 20,
+                padding: "32px 28px",
+                position: "relative",
+                boxShadow: plan.highlight ? "0 16px 48px rgba(0,0,0,0.18)" : "0 2px 12px rgba(0,0,0,0.04)",
+              }}
+            >
+              {plan.highlight && (
+                <div style={{
+                  position: "absolute", top: -12, left: "50%", transform: "translateX(-50%)",
+                  background: "#E8553D", color: "#fff",
+                  fontSize: 11, fontWeight: 700, padding: "4px 14px", borderRadius: 100,
+                  whiteSpace: "nowrap", letterSpacing: "0.06em",
+                }}>
+                  MÁS POPULAR
+                </div>
+              )}
+
+              <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 600, color: plan.highlight ? "rgba(255,255,255,0.5)" : "#9C9C95" }}>
+                {plan.name}
+              </p>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginBottom: 4 }}>
+                <span style={{ fontSize: 36, fontWeight: 800, color: plan.highlight ? "#fff" : "#1A1A18", lineHeight: 1 }}>
+                  {plan.price}
+                </span>
+                {plan.period && (
+                  <span style={{ fontSize: 13, color: plan.highlight ? "rgba(255,255,255,0.4)" : "#9C9C95" }}>
+                    {plan.period}
+                  </span>
+                )}
+              </div>
+              <p style={{ margin: "0 0 20px", fontSize: 13, color: plan.highlight ? "rgba(255,255,255,0.5)" : "#9C9C95" }}>
+                {plan.desc}
+              </p>
+
+              <div style={{
+                background: plan.highlight ? "rgba(255,255,255,0.08)" : "#FAFAF7",
+                borderRadius: 10, padding: "10px 14px", marginBottom: 20,
+              }}>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: plan.highlight ? "#fff" : "#1A1A18" }}>
+                  {plan.links}
+                </p>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 28 }}>
+                {plan.features.map((f, j) => (
+                  <div key={j} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{
+                      width: 18, height: 18, borderRadius: "50%", flexShrink: 0,
+                      background: plan.highlight ? "rgba(232,85,61,0.3)" : "#F0FBF4",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                        <polyline points="2,6 5,9 10,3" stroke={plan.highlight ? "#E8553D" : "#2D8A56"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                    <span style={{ fontSize: 13, color: plan.highlight ? "rgba(255,255,255,0.75)" : "#5C5C57" }}>{f}</span>
+                  </div>
+                ))}
+              </div>
+
+              <a
+                href={plan.ctaHref}
+                target={plan.ctaHref.startsWith("http") ? "_blank" : undefined}
+                rel={plan.ctaHref.startsWith("http") ? "noopener noreferrer" : undefined}
+                style={{
+                  display: "block", textAlign: "center",
+                  padding: "13px", borderRadius: 12,
+                  fontSize: 14, fontWeight: 700, textDecoration: "none",
+                  background: plan.highlight ? "#E8553D" : "#1A1A18",
+                  color: "#fff",
+                  boxShadow: plan.highlight ? "0 4px 16px rgba(232,85,61,0.4)" : "none",
+                }}
+              >
+                {plan.cta} →
+              </a>
+            </motion.div>
+          ))}
+        </div>
+
+        <p style={{ textAlign: "center", fontSize: 12, color: "#9C9C95", marginTop: 24 }}>
+          Los planes de pago se activan por WhatsApp en minutos. Sin formularios, sin esperas.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+// ─── Integrations ─────────────────────────────────────────────────────────────
+
+const PARTNER_LOGOS: { name: string; logo: React.ReactNode }[] = [
+  {
+    name: "Chilexpress",
+    logo: (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src="/chilexpress.png" alt="Chilexpress" style={{ height: 36, width: "auto", objectFit: "contain", display: "block" }} />
+    ),
+  },
+  {
+    name: "Blue Express",
+    logo: (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src="/bluexpress.png" alt="Blue Express" style={{ height: 36, width: "auto", objectFit: "contain", display: "block" }} />
+    ),
+  },
+  {
+    name: "99 Minutos",
+    logo: (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src="/99minutos.png" alt="99 Minutos" style={{ height: 36, width: "auto", objectFit: "contain", display: "block" }} />
+    ),
+  },
+  {
+    name: "FLOW",
+    logo: (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src="/flow.png" alt="FLOW" style={{ height: 36, width: "auto", objectFit: "contain", display: "block" }} />
+    ),
+  },
+  {
+    name: "Starken",
+    logo: (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src="/starken_2014.jpg.webp" alt="Starken" style={{ height: 36, width: "auto", objectFit: "contain", display: "block" }} />
+    ),
+  },
+];
+
+function Integrations() {
+  // Triplica para que el loop sea siempre suave sin importar el ancho
+  const track = [...PARTNER_LOGOS, ...PARTNER_LOGOS, ...PARTNER_LOGOS];
+
+  return (
+    <section style={{ backgroundColor: "#FAFAF7", padding: "64px 0 72px" }}>
+
+      <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 24px" }}>
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -1455,126 +1762,61 @@ function Integrations() {
         >
           <p style={{
             fontSize: 12, fontWeight: 600, textTransform: "uppercase",
-            letterSpacing: "0.12em", color: "#E8553D", marginBottom: 12,
+            letterSpacing: "0.12em", color: "#9C9C95", marginBottom: 16,
           }}>
-            Integraciones
+            Couriers y medios de pago integrados
           </p>
           <h2 style={{
-            fontSize: "clamp(26px, 3.5vw, 38px)", fontWeight: 700,
-            color: "#1A1A18", letterSpacing: "-0.02em", marginBottom: 14,
+            fontSize: "clamp(22px, 3vw, 32px)", fontWeight: 700,
+            color: "#1A1A18", letterSpacing: "-0.02em", marginBottom: 12,
           }}>
-            Un link, cuatro servicios trabajando por ti
+            Tu cliente elige entre los couriers que ya conoce
           </h2>
           <p style={{
-            fontSize: 16, color: "#5C5C57", maxWidth: 460,
+            fontSize: 15, color: "#5C5C57", maxWidth: 480,
             margin: "0 auto", lineHeight: 1.7,
           }}>
-            LinkDrop conecta couriers y pagos para que tu cliente haga todo solo desde un link.
+            Cada link muestra precios reales de Starken, Chilexpress, Blue Express y 99 Minutos — calculados al instante según el destino. El cliente paga con tarjeta a través de FLOW.
           </p>
         </motion.div>
 
-        {/* FLOW — hero card */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, delay: 0.1 }}
-          style={{
-            background: "#1A1A18",
-            borderRadius: 20,
-            padding: "36px 40px",
-            marginBottom: 16,
-            display: "flex",
-            alignItems: "center",
-            gap: 28,
-            flexWrap: "wrap",
-          }}
-        >
-          <div style={{
-            width: 56, height: 56, borderRadius: 16,
-            background: "#6C5CE7",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 26, flexShrink: 0,
-          }}>
-            💳
-          </div>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-              <p style={{ fontWeight: 700, fontSize: 20, color: "#fff", margin: 0 }}>
-                Pago con FLOW
-              </p>
-              <span style={{
-                background: "#6C5CE7", color: "#fff",
-                fontSize: 11, fontWeight: 600,
-                padding: "3px 10px", borderRadius: 100,
-              }}>
-                Recomendado
-              </span>
-            </div>
-            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", margin: 0, lineHeight: 1.6 }}>
-              Tu cliente paga con tarjeta de crédito o débito — sin transferencias, sin mensajes de "ya te mandé el comprobante". El cobro es seguro, instantáneo y confirmado.
-            </p>
-          </div>
-          <div style={{
-            display: "flex", flexDirection: "column", gap: 8, flexShrink: 0,
-          }}>
-            {["Webpay Plus", "Tarjeta de crédito", "Tarjeta de débito"].map((m, i) => (
-              <span key={i} style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                background: "rgba(108,92,231,0.2)",
-                border: "1px solid rgba(108,92,231,0.35)",
-                borderRadius: 100, padding: "5px 12px",
-                fontSize: 12, fontWeight: 500, color: "#C4BCFF",
-              }}>
-                ✓ {m}
-              </span>
-            ))}
-          </div>
-        </motion.div>
+      </div>
 
-        {/* Couriers — 3 simple pills */}
-        <div className="grid md:grid-cols-3 grid-cols-1 gap-3">
-          {couriers.map((c, i) => (
-            <motion.div
+      {/* Marquee — full width */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.7, delay: 0.2 }}
+        style={{
+          overflow: "hidden", marginBottom: 20, position: "relative",
+          maskImage: "linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)",
+          WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)",
+        }}
+      >
+        <div className="ld-marquee-track">
+          {track.map((p, i) => (
+            <div
               key={i}
-              initial={{ opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.2 + i * 0.07 }}
               style={{
-                background: "#fff",
-                border: "1.5px solid #E8E8E3",
-                borderRadius: 14,
-                padding: "16px 20px",
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
+                display: "inline-flex", alignItems: "center",
+                background: "#fff", border: "1px solid #E8E8E3",
+                borderRadius: 12, padding: "14px 20px",
+                margin: "0 10px", flexShrink: 0,
+                boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+                transition: "box-shadow 0.2s",
               }}
             >
-              <div style={{
-                width: 10, height: 10, borderRadius: "50%",
-                background: c.color, flexShrink: 0,
-              }} />
-              <p style={{ fontWeight: 600, fontSize: 15, color: "#1A1A18", margin: 0 }}>
-                {c.name}
-              </p>
-            </motion.div>
+              {p.logo}
+            </div>
           ))}
         </div>
+      </motion.div>
 
-        {/* Footer note */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, delay: 0.4 }}
-          style={{
-            textAlign: "center", fontSize: 13,
-            color: "#9C9C95", marginTop: 20,
-          }}
-        >
-          Los couriers se muestran con precios reales al momento de la compra — tu cliente elige el que prefiere.
-        </motion.p>
+      <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 24px" }}>
+        <p style={{ textAlign: "center", fontSize: 13, color: "#9C9C95" }}>
+          Los precios de cada courier se calculan en tiempo real según el destino — tu cliente siempre ve la tarifa actual.
+        </p>
       </div>
     </section>
   );
@@ -1592,7 +1834,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "¿Qué couriers están disponibles?",
-    a: "Actualmente integramos Starken, Chilexpress y Blue Express. Los precios se calculan en tiempo real según el destino del cliente, así que siempre ven la tarifa actual.",
+    a: "Actualmente integramos Starken, Chilexpress, Blue Express y 99 Minutos. Los precios se calculan en tiempo real según el destino del cliente, así que siempre ven la tarifa actual.",
   },
   {
     q: "¿Cuánto cuesta usar LinkDrop?",
@@ -2095,11 +2337,11 @@ export default function Home() {
       <Navbar />
       <main>
         <Hero />
-        <PainChat />
-        <HowItWorks />
-        <Comparison />
-        <Calculator />
         <Integrations />
+        <PainChat />
+        <ForWho />
+        <HowItWorks />
+        <Pricing />
         <FAQ />
         <FinalCTA />
       </main>

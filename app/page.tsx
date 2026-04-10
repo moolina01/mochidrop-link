@@ -831,14 +831,21 @@ function HowItWorks() {
       num: "2",
       color: "#6C5CE7",
       shadow: "rgba(108,92,231,0.28)",
-      title: "Se lo mandas por WhatsApp o Instagram",
-      desc: "Tu cliente abre el link, elige el courier que prefiere y paga con tarjeta. Tú no intervienes.",
+      title: "Se lo mandas a tu cliente por WhatsApp o Instagram",
+      desc: "Copia el link y mándalo por el canal que usas. No necesitas explicar nada.",
     },
     {
       num: "3",
+      color: "#2D7DD2",
+      shadow: "rgba(45,125,210,0.28)",
+      title: "Tu cliente paga y elige el courier",
+      desc: "Abre el link, ve los precios reales de los couriers, elige y paga con tarjeta. Sin transferencias.",
+    },
+    {
+      num: "4",
       color: "#2D8A56",
       shadow: "rgba(45,138,86,0.28)",
-      title: "El envío y tracking se gestionan solos",
+      title: "El envío y tracking se gestionan automáticamente",
       desc: "La guía llega a tu correo. El tracking llega al cliente. Tú no haces nada más.",
     },
   ];
@@ -994,7 +1001,7 @@ function HowItWorks() {
           transition={{ duration: 0.6, delay: 0.3 }}
           style={{ textAlign: "center", fontSize: 18, fontWeight: 700, color: "#E8553D", marginTop: 52 }}
         >
-          Manda un link y listo.
+          Tú no haces nada más.
         </motion.p>
       </div>
     </section>
@@ -1847,7 +1854,7 @@ function Integrations() {
             letterSpacing: "0.12em", color: "#E8553D", marginBottom: 16,
           }}>
             Sin coordinación manual
-          </p>
+          </p>  
           <h2 style={{
             fontSize: "clamp(22px, 3vw, 32px)", fontWeight: 700,
             color: "#1A1A18", letterSpacing: "-0.02em", marginBottom: 12,

@@ -10,44 +10,59 @@ const N8N_CREATE_LINK = "/api/crear-envio";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
-type FormState = {
+type ProfileState = {
   nombrePyme: string;
   logoFile: File | null;
   logoPreview: string;
+  logoUrl: string;
   origenComuna: string;
   origenCalle: string;
   origenNumero: string;
   origenDepto: string;
+};
+
+type PackageState = {
   largo: string;
   alto: string;
   ancho: string;
   peso: string;
 };
 
-const DEFAULT: FormState = {
+type ActiveTab = "tienda" | "crear";
+
+const DEFAULT_PROFILE: ProfileState = {
   nombrePyme: "",
   logoFile: null,
   logoPreview: "",
+  logoUrl: "",
   origenComuna: "",
   origenCalle: "",
   origenNumero: "",
   origenDepto: "",
+};
+
+const DEFAULT_PACKAGE: PackageState = {
   largo: "",
   alto: "",
   ancho: "",
   peso: "",
 };
 
-function isComplete(s: FormState) {
+function isProfileComplete(p: ProfileState) {
   return (
-    s.nombrePyme.trim() !== "" &&
-    s.origenComuna.trim() !== "" &&
-    s.origenCalle.trim() !== "" &&
-    s.origenNumero.trim() !== "" &&
-    Number(s.largo) > 0 &&
-    Number(s.alto) > 0 &&
-    Number(s.ancho) > 0 &&
-    Number(s.peso) > 0
+    p.nombrePyme.trim() !== "" &&
+    p.origenComuna.trim() !== "" &&
+    p.origenCalle.trim() !== "" &&
+    p.origenNumero.trim() !== ""
+  );
+}
+
+function isPackageComplete(pkg: PackageState) {
+  return (
+    Number(pkg.largo) > 0 &&
+    Number(pkg.alto) > 0 &&
+    Number(pkg.ancho) > 0 &&
+    Number(pkg.peso) > 0
   );
 }
 
@@ -150,11 +165,9 @@ function AuthModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () 
         const { data, error: signUpErr } = await supabase.auth.signUp({ email: email.trim(), password });
         if (signUpErr) throw signUpErr;
         if (data.user && data.session) {
-          // Sesión activa inmediatamente — crear fila en pymes
           await supabase.from("pymes").insert({ auth_id: data.user.id, email: email.trim() });
           onSuccess();
         } else {
-          // Email confirmation required
           setConfirmMsg("Revisa tu correo y confirma tu cuenta para continuar.");
         }
       } else {
@@ -186,14 +199,12 @@ function AuthModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () 
         width: "100%", maxWidth: 420, boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
         position: "relative",
       }}>
-        {/* Close */}
         <button onClick={onClose} style={{
           position: "absolute", top: 16, right: 16,
           background: "none", border: "none", cursor: "pointer",
           fontSize: 20, color: "#9C9C95", fontFamily: "inherit", lineHeight: 1,
         }}>✕</button>
 
-        {/* Header */}
         <div style={{ marginBottom: 24 }}>
           <h2 style={{ margin: "0 0 6px", fontSize: 22, fontWeight: 700, color: "#1A1A18" }}>
             {mode === "register" ? "Crea tu cuenta gratis" : "Inicia sesión"}
@@ -205,29 +216,18 @@ function AuthModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () 
           </p>
         </div>
 
-        {/* Form */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <p style={{ margin: "0 0 5px", fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Email</p>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="tu@email.com"
-              style={inputStyle}
-              onKeyDown={(e) => e.key === "Enter" && handleAuth()}
-            />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+              placeholder="tu@email.com" style={inputStyle}
+              onKeyDown={(e) => e.key === "Enter" && handleAuth()} />
           </div>
           <div>
             <p style={{ margin: "0 0 5px", fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Contraseña</p>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
-              style={inputStyle}
-              onKeyDown={(e) => e.key === "Enter" && handleAuth()}
-            />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+              placeholder="Mínimo 6 caracteres" style={inputStyle}
+              onKeyDown={(e) => e.key === "Enter" && handleAuth()} />
           </div>
 
           {error && (
@@ -241,17 +241,12 @@ function AuthModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () 
             </p>
           )}
 
-          <button
-            onClick={handleAuth}
-            disabled={loading}
-            style={{
-              width: "100%", padding: "14px", borderRadius: 12, border: "none",
-              fontSize: 15, fontWeight: 700, color: "#fff", fontFamily: "inherit",
-              background: loading ? "#D1D1CC" : "#E8553D",
-              cursor: loading ? "not-allowed" : "pointer",
-              marginTop: 4,
-            }}
-          >
+          <button onClick={handleAuth} disabled={loading} style={{
+            width: "100%", padding: "14px", borderRadius: 12, border: "none",
+            fontSize: 15, fontWeight: 700, color: "#fff", fontFamily: "inherit",
+            background: loading ? "#D1D1CC" : "#E8553D",
+            cursor: loading ? "not-allowed" : "pointer", marginTop: 4,
+          }}>
             {loading ? "Procesando…" : mode === "register" ? "Crear cuenta →" : "Iniciar sesión →"}
           </button>
 
@@ -273,20 +268,8 @@ function AuthModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () 
 // ─── LimitModal ───────────────────────────────────────────────────────────────
 
 const PLANES = [
-  {
-    nombre: "Emprende",
-    precio: "$4.990",
-    periodo: "/ mes",
-    links: "40 links",
-    destacado: true,
-  },
-  {
-    nombre: "Pro",
-    precio: "$12.990",
-    periodo: "/ mes",
-    links: "Links ilimitados",
-    destacado: false,
-  },
+  { nombre: "Emprende", precio: "$4.990", periodo: "/ mes", links: "40 links", destacado: true },
+  { nombre: "Pro", precio: "$12.990", periodo: "/ mes", links: "Links ilimitados", destacado: false },
 ];
 
 const WA_UPGRADE = "https://wa.me/56994284520?text=Hola,%20quiero%20subir%20mi%20plan%20en%20LinkDrop";
@@ -299,22 +282,14 @@ function LimitModal({ onClose }: { onClose: () => void }) {
         width: "100%", maxWidth: 440, boxShadow: "0 24px 64px rgba(0,0,0,0.18)",
         position: "relative",
       }}>
-        {/* Close */}
-        <button
-          onClick={onClose}
-          style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "#9C9C95", fontFamily: "inherit", lineHeight: 1 }}
-        >
-          ✕
-        </button>
+        <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "#9C9C95", fontFamily: "inherit", lineHeight: 1 }}>✕</button>
 
-        {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 24 }}>
           <div style={{
             width: 52, height: 52, borderRadius: "50%",
             background: "linear-gradient(135deg, #E8553D, #c93d27)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 16px",
-            boxShadow: "0 8px 24px rgba(232,85,61,0.3)",
+            margin: "0 auto 16px", boxShadow: "0 8px 24px rgba(232,85,61,0.3)",
           }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
@@ -328,58 +303,38 @@ function LimitModal({ onClose }: { onClose: () => void }) {
           </p>
         </div>
 
-        {/* Planes */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
           {PLANES.map((plan) => (
-            <div
-              key={plan.nombre}
-              style={{
-                border: "1.5px solid",
-                borderColor: plan.destacado ? "#E8553D" : "#E8E8E3",
-                borderRadius: 14,
-                padding: "16px 14px",
-                position: "relative",
-                background: plan.destacado ? "#FFF8F6" : "#FAFAF7",
-              }}
-            >
+            <div key={plan.nombre} style={{
+              border: "1.5px solid", borderColor: plan.destacado ? "#E8553D" : "#E8E8E3",
+              borderRadius: 14, padding: "16px 14px", position: "relative",
+              background: plan.destacado ? "#FFF8F6" : "#FAFAF7",
+            }}>
               {plan.destacado && (
                 <div style={{
                   position: "absolute", top: -10, left: "50%", transform: "translateX(-50%)",
                   background: "#E8553D", color: "#fff",
                   fontSize: 10, fontWeight: 700, padding: "3px 10px", borderRadius: 100,
                   whiteSpace: "nowrap", letterSpacing: "0.05em",
-                }}>
-                  MÁS POPULAR
-                </div>
+                }}>MÁS POPULAR</div>
               )}
-              <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 700, color: "#1A1A18" }}>
-                {plan.nombre}
-              </p>
+              <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 700, color: "#1A1A18" }}>{plan.nombre}</p>
               <div style={{ display: "flex", alignItems: "baseline", gap: 2, marginBottom: 6 }}>
                 <span style={{ fontSize: 20, fontWeight: 700, color: "#1A1A18" }}>{plan.precio}</span>
                 <span style={{ fontSize: 11, color: "#9C9C95" }}>{plan.periodo}</span>
               </div>
-              <p style={{ margin: 0, fontSize: 12, color: "#5C5C57", fontWeight: 500 }}>
-                {plan.links}
-              </p>
+              <p style={{ margin: 0, fontSize: 12, color: "#5C5C57", fontWeight: 500 }}>{plan.links}</p>
             </div>
           ))}
         </div>
 
-        {/* CTA */}
-        <a
-          href={WA_UPGRADE}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            width: "100%", padding: "14px", borderRadius: 12, border: "none",
-            fontSize: 15, fontWeight: 700, color: "#fff", fontFamily: "inherit",
-            background: "#25D366", textDecoration: "none",
-            boxShadow: "0 4px 16px rgba(37,211,102,0.35)",
-            boxSizing: "border-box",
-          }}
-        >
+        <a href={WA_UPGRADE} target="_blank" rel="noopener noreferrer" style={{
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          width: "100%", padding: "14px", borderRadius: 12,
+          fontSize: 15, fontWeight: 700, color: "#fff", fontFamily: "inherit",
+          background: "#25D366", textDecoration: "none",
+          boxShadow: "0 4px 16px rgba(37,211,102,0.35)", boxSizing: "border-box",
+        }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
           </svg>
@@ -397,9 +352,7 @@ function LimitModal({ onClose }: { onClose: () => void }) {
 // ─── SettingsModal ────────────────────────────────────────────────────────────
 
 function SettingsModal({
-  askInstagram,
-  onToggle,
-  onClose,
+  askInstagram, onToggle, onClose,
 }: {
   askInstagram: boolean;
   onToggle: (val: boolean) => Promise<void>;
@@ -420,15 +373,8 @@ function SettingsModal({
         width: "100%", maxWidth: 400, boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
         position: "relative",
       }}>
-        {/* Close */}
-        <button
-          onClick={onClose}
-          style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "#9C9C95", fontFamily: "inherit", lineHeight: 1 }}
-        >
-          ✕
-        </button>
+        <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "#9C9C95", fontFamily: "inherit", lineHeight: 1 }}>✕</button>
 
-        {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
           <div style={{ width: 36, height: 36, borderRadius: 10, background: "#F5F5F0", border: "1px solid #E8E8E3", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5C5C57" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -442,40 +388,29 @@ function SettingsModal({
           </div>
         </div>
 
-        {/* Toggle row */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           border: "1px solid", borderColor: askInstagram ? "#E8553D" : "#E8E8E3",
           borderRadius: 12, padding: "14px 16px", transition: "border-color 0.2s",
         }}>
           <div>
-            <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1A1A18" }}>
-              Pedir Instagram al cliente
-            </p>
-            <p style={{ margin: "3px 0 0", fontSize: 12, color: "#9C9C95" }}>
-              El cliente ingresa su @usuario al llenar el formulario
-            </p>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1A1A18" }}>Pedir Instagram al cliente</p>
+            <p style={{ margin: "3px 0 0", fontSize: 12, color: "#9C9C95" }}>El cliente ingresa su @usuario al llenar el formulario</p>
           </div>
-          <button
-            onClick={handleToggle}
-            disabled={saving}
-            style={{
-              flexShrink: 0, width: 44, height: 24, borderRadius: 100,
-              background: askInstagram ? "#E8553D" : "#D1D1CC",
-              border: "none", cursor: saving ? "not-allowed" : "pointer",
-              position: "relative", transition: "background 0.2s", marginLeft: 16,
-            }}
-          >
+          <button onClick={handleToggle} disabled={saving} style={{
+            flexShrink: 0, width: 44, height: 24, borderRadius: 100,
+            background: askInstagram ? "#E8553D" : "#D1D1CC",
+            border: "none", cursor: saving ? "not-allowed" : "pointer",
+            position: "relative", transition: "background 0.2s", marginLeft: 16,
+          }}>
             <div style={{
               position: "absolute", top: 3, width: 18, height: 18, borderRadius: "50%",
               background: "#fff", transition: "left 0.2s",
-              left: askInstagram ? 23 : 3,
-              boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+              left: askInstagram ? 23 : 3, boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
             }} />
           </button>
         </div>
 
-        {/* Status */}
         <p style={{ margin: "12px 0 0", fontSize: 12, color: "#9C9C95", textAlign: "center" }}>
           {saving ? "Guardando…" : askInstagram ? "✓ Activo — tus nuevos links pedirán Instagram" : "Desactivado — el campo no aparece"}
         </p>
@@ -487,7 +422,14 @@ function SettingsModal({
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function CreateLinkClient() {
-  const [form, setForm] = useState<FormState>(DEFAULT);
+  const [activeTab, setActiveTab] = useState<ActiveTab>("tienda");
+  const [profile, setProfile] = useState<ProfileState>(DEFAULT_PROFILE);
+  const [pkg, setPkg] = useState<PackageState>(DEFAULT_PACKAGE);
+
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+  const [profileError, setProfileError] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [generatedUrl, setGeneratedUrl] = useState("");
   const [copied, setCopied] = useState(false);
@@ -495,15 +437,22 @@ export default function CreateLinkClient() {
 
   // Auth
   const [user, setUser] = useState<User | null>(null);
+  const [pendingAction, setPendingAction] = useState<"save" | "generate" | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [linksCount, setLinksCount] = useState<{ used: number; limit: number } | null>(null);
   const [askInstagram, setAskInstagram] = useState(false);
 
-  const canSubmit = useMemo(() => isComplete(form), [form]);
+  const profileComplete = useMemo(() => isProfileComplete(profile), [profile]);
+  const pkgComplete = useMemo(() => isPackageComplete(pkg), [pkg]);
+  const canGenerate = profileComplete && pkgComplete;
 
-  // Verificar auth al cargar
+  const allDims = pkg.largo && pkg.alto && pkg.ancho && pkg.peso
+    ? `${pkg.largo}×${pkg.alto}×${pkg.ancho} cm · ${pkg.peso} kg`
+    : null;
+
+  // Auth listener
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -512,39 +461,112 @@ export default function CreateLinkClient() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Cargar datos de pyme cuando hay usuario
+  // Cargar perfil de pyme cuando hay usuario
   useEffect(() => {
     if (!user) { setLinksCount(null); setAskInstagram(false); return; }
     supabase
       .from("pymes")
-      .select("links_creados, limite_links, ask_instagram")
+      .select("links_creados, limite_links, ask_instagram, nombre_tienda, logo_url, origen_comuna, origen_calle, origen_numero, origen_depto, whatsapp")
       .eq("auth_id", user.id)
       .single()
       .then(({ data }) => {
         if (data) {
           setLinksCount({ used: data.links_creados, limit: data.limite_links });
           setAskInstagram(data.ask_instagram ?? false);
+          const loadedProfile: ProfileState = {
+            nombrePyme: data.nombre_tienda ?? "",
+            logoFile: null,
+            logoPreview: data.logo_url ?? "",
+            logoUrl: data.logo_url ?? "",
+            origenComuna: data.origen_comuna ?? "",
+            origenCalle: data.origen_calle ?? "",
+            origenNumero: data.origen_numero ?? "",
+            origenDepto: data.origen_depto ?? "",
+          };
+          setProfile(loadedProfile);
+          // Si el perfil está completo, abrir directo en "Crear Link"
+          if (
+            data.nombre_tienda &&
+            data.origen_comuna &&
+            data.origen_calle &&
+            data.origen_numero
+          ) {
+            setActiveTab("crear");
+          }
         }
       });
   }, [user]);
 
-  function set<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setForm((s) => ({ ...s, [key]: value }));
+  function setP<K extends keyof ProfileState>(key: K, value: ProfileState[K]) {
+    setProfile((s) => ({ ...s, [key]: value }));
+  }
+
+  function setPkg_<K extends keyof PackageState>(key: K, value: PackageState[K]) {
+    setPkg((s) => ({ ...s, [key]: value }));
   }
 
   async function onPickLogo(file?: File | null) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () =>
-      setForm((s) => ({ ...s, logoFile: file, logoPreview: String(reader.result) }));
+      setProfile((s) => ({ ...s, logoFile: file, logoPreview: String(reader.result) }));
     reader.readAsDataURL(file);
+  }
+
+  async function doSaveProfile(currentUser: User) {
+    setProfileError("");
+    setProfileSaving(true);
+    setProfileSaved(false);
+    try {
+      let logoUrl = profile.logoUrl;
+      if (profile.logoFile) {
+        const ext = profile.logoFile.name.split(".").pop();
+        const path = `logos/${Date.now()}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from("mochidrop")
+          .upload(path, profile.logoFile, { upsert: true });
+        if (uploadErr) throw new Error(`Error al subir el logo: ${uploadErr.message}`);
+        const { data: publicData } = supabase.storage.from("mochidrop").getPublicUrl(path);
+        logoUrl = publicData.publicUrl;
+        setProfile((p) => ({ ...p, logoUrl }));
+      }
+
+      await supabase.from("pymes").update({
+        nombre_tienda: profile.nombrePyme.trim(),
+        logo_url: logoUrl || null,
+        origen_comuna: profile.origenComuna.trim(),
+        origen_calle: profile.origenCalle.trim(),
+        origen_numero: profile.origenNumero.trim(),
+        origen_depto: profile.origenDepto.trim() || null,
+      }).eq("auth_id", currentUser.id);
+
+      setProfileSaved(true);
+      setTimeout(() => {
+        setActiveTab("crear");
+        setProfileSaved(false);
+      }, 900);
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : "Error desconocido");
+    } finally {
+      setProfileSaving(false);
+    }
+  }
+
+  async function handleSaveProfile() {
+    if (!profileComplete) return;
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser) {
+      setPendingAction("save");
+      setShowAuthModal(true);
+      return;
+    }
+    await doSaveProfile(currentUser);
   }
 
   async function doGenerateLink(currentUser: User) {
     setError("");
     setLoading(true);
     try {
-      // 1. Verificar límite
       const { data: pymeData } = await supabase
         .from("pymes")
         .select("links_creados, limite_links, email, ask_instagram")
@@ -556,38 +578,35 @@ export default function CreateLinkClient() {
         return;
       }
 
-      // 2. Subir logo (si hay)
-      let logoUrl = "";
-      if (form.logoFile) {
-        const ext = form.logoFile.name.split(".").pop();
+      // Usar logo ya guardado (profile.logoUrl), o subir si hay uno nuevo sin guardar
+      let logoUrl = profile.logoUrl;
+      if (profile.logoFile && !profile.logoUrl) {
+        const ext = profile.logoFile.name.split(".").pop();
         const path = `logos/${Date.now()}.${ext}`;
         const { error: uploadErr } = await supabase.storage
           .from("mochidrop")
-          .upload(path, form.logoFile, { upsert: true });
-        if (uploadErr) {
-          throw new Error(`Error al subir el logo: ${uploadErr.message}`);
-        }
+          .upload(path, profile.logoFile, { upsert: true });
+        if (uploadErr) throw new Error(`Error al subir el logo: ${uploadErr.message}`);
         const { data: publicData } = supabase.storage.from("mochidrop").getPublicUrl(path);
         logoUrl = publicData.publicUrl;
       }
 
-      // 3. Llamar al webhook de N8N
       const payload = {
-        nombre_pyme: form.nombrePyme.trim(),
+        nombre_pyme: profile.nombrePyme.trim(),
         logo_pyme: logoUrl,
         pyme_id: currentUser.id,
         email: pymeData?.email ?? currentUser.email ?? "",
         origen: {
-          comuna: form.origenComuna.trim(),
-          calle: form.origenCalle.trim(),
-          numero: form.origenNumero.trim(),
-          depto: form.origenDepto.trim(),
+          comuna: profile.origenComuna.trim(),
+          calle: profile.origenCalle.trim(),
+          numero: profile.origenNumero.trim(),
+          depto: profile.origenDepto.trim(),
         },
         paquete: {
-          largo: Number(form.largo),
-          alto: Number(form.alto),
-          ancho: Number(form.ancho),
-          peso: Number(form.peso),
+          largo: Number(pkg.largo),
+          alto: Number(pkg.alto),
+          ancho: Number(pkg.ancho),
+          peso: Number(pkg.peso),
         },
         ask_instagram: askInstagram,
       };
@@ -599,15 +618,11 @@ export default function CreateLinkClient() {
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data?.error ?? `Error ${res.status}`);
-      }
+      if (!res.ok) throw new Error(data?.error ?? `Error ${res.status}`);
 
       const id = data?.id;
       if (!id) throw new Error("N8N respondió OK pero no devolvió el ID del envío. Revisa el workflow en N8N.");
 
-      // 4. Incrementar contador
       const newCount = (pymeData?.links_creados ?? 0) + 1;
       await supabase
         .from("pymes")
@@ -615,20 +630,19 @@ export default function CreateLinkClient() {
         .eq("auth_id", currentUser.id);
       setLinksCount((prev) => prev ? { ...prev, used: newCount } : prev);
 
-      const baseUrl = window.location.origin;
-      setGeneratedUrl(`${baseUrl}/envio?id=${id}`);
+      setGeneratedUrl(`${window.location.origin}/envio?id=${id}`);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Error desconocido";
-      setError(msg);
+      setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleSubmit() {
-    if (!canSubmit) return;
+  async function handleGenerate() {
+    if (!canGenerate) return;
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     if (!currentUser) {
+      setPendingAction("generate");
       setShowAuthModal(true);
       return;
     }
@@ -641,11 +655,6 @@ export default function CreateLinkClient() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
-
-  const allDims =
-    form.largo && form.alto && form.ancho && form.peso
-      ? `${form.largo}×${form.alto}×${form.ancho} cm · ${form.peso} kg`
-      : null;
 
   return (
     <div style={{ overflowX: "hidden" }}>
@@ -663,6 +672,7 @@ export default function CreateLinkClient() {
           .gen-links-count { font-size: 11px; }
         }
       `}</style>
+
       {/* Modales */}
       {showSettingsModal && (
         <SettingsModal
@@ -678,17 +688,21 @@ export default function CreateLinkClient() {
       )}
       {showAuthModal && (
         <AuthModal
-          onClose={() => setShowAuthModal(false)}
+          onClose={() => { setShowAuthModal(false); setPendingAction(null); }}
           onSuccess={async () => {
             setShowAuthModal(false);
             const { data: { user: u } } = await supabase.auth.getUser();
-            if (u) await doGenerateLink(u);
+            if (u) {
+              if (pendingAction === "save") await doSaveProfile(u);
+              else if (pendingAction === "generate") await doGenerateLink(u);
+            }
+            setPendingAction(null);
           }}
         />
       )}
       {showLimitModal && <LimitModal onClose={() => setShowLimitModal(false)} />}
 
-      {/* ── Navbar ──────────────────────────────────────────────────────────── */}
+      {/* ── Navbar ─────────────────────────────────────────────────────────── */}
       <header style={{
         position: "sticky", top: 0, zIndex: 50,
         backdropFilter: "blur(12px)",
@@ -707,7 +721,9 @@ export default function CreateLinkClient() {
               </g>
               <circle cx="14" cy="15" r="1.4" fill="#E8553D" opacity="0.65" />
               <circle cx="16.5" cy="17" r="0.9" fill="#E8553D" opacity="0.35" />
-              <text x="44" y="21" fontFamily="'Instrument Sans', sans-serif" fontSize="15" fontWeight="600"><tspan fill="#1A1A18">link</tspan><tspan fill="#E8553D">drop</tspan></text>
+              <text x="44" y="21" fontFamily="'Instrument Sans', sans-serif" fontSize="15" fontWeight="600">
+                <tspan fill="#1A1A18">link</tspan><tspan fill="#E8553D">drop</tspan>
+              </text>
             </svg>
           </a>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -749,11 +765,11 @@ export default function CreateLinkClient() {
         </div>
       </header>
 
-      {/* ── Body ────────────────────────────────────────────────────────────── */}
+      {/* ── Body ─────────────────────────────────────────────────────────────── */}
       <div style={{ maxWidth: 1000, margin: "0 auto" }} className="gen-body">
 
         {/* Page header */}
-        <div style={{ marginBottom: 32, textAlign: "center" }}>
+        <div style={{ marginBottom: 28, textAlign: "center" }}>
           <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: "#E8553D", textTransform: "uppercase", letterSpacing: "0.08em" }}>
             Crear link de envío
           </p>
@@ -761,200 +777,354 @@ export default function CreateLinkClient() {
             Tu cliente elige courier y paga solo.
           </h1>
           <p style={{ margin: 0, fontSize: 15, color: "#5C5C57" }}>
-            Completa los datos del envío. LinkDrop cotiza los couriers en tiempo real y te genera el link para enviar por WhatsApp.
+            Configura tu tienda una vez, luego crea links en segundos.
           </p>
         </div>
 
-        {/* Two-column grid */}
-        <div style={{ display: "grid", gap: 24, gridTemplateColumns: "1fr" }} className="gen-grid">
-
-          {/* ── LEFT: Form ──────────────────────────────────────────────────── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-            {/* 1 — Tu negocio */}
-            <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "24px", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
-              <SectionTitle n={1} label="Tu negocio" />
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <Field label="Nombre de tu tienda *">
-                  <TextInput
-                    value={form.nombrePyme}
-                    onChange={(v) => set("nombrePyme", v)}
-                    placeholder="Ej: Tienda Luna"
-                  />
-                </Field>
-                <Field label="Logo" hint="Opcional — aparece en el link que ve tu cliente">
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{
-                      width: 44, height: 44, borderRadius: 10,
-                      background: "#F5F5F0", border: "1px solid #E8E8E3",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      overflow: "hidden", flexShrink: 0,
-                    }}>
-                      {form.logoPreview ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={form.logoPreview} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      ) : (
-                        <span style={{ fontSize: 20 }}>🏪</span>
-                      )}
-                    </div>
-                    <label style={{
-                      cursor: "pointer", background: "#F5F5F0",
-                      border: "1px solid #E8E8E3", borderRadius: 8,
-                      padding: "8px 14px", fontSize: 13, fontWeight: 600, color: "#1A1A18",
-                    }}>
-                      {form.logoPreview ? "Cambiar logo" : "Subir logo"}
-                      <input type="file" accept="image/*" style={{ display: "none" }}
-                        onChange={(e) => onPickLogo(e.target.files?.[0])} />
-                    </label>
-                    {form.logoPreview && (
-                      <button type="button" onClick={() => setForm((s) => ({ ...s, logoFile: null, logoPreview: "" }))}
-                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#9C9C95", fontFamily: "inherit" }}>
-                        Quitar
-                      </button>
-                    )}
-                  </div>
-                </Field>
-              </div>
-            </div>
-
-            {/* 2 — Origen */}
-            <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "24px", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
-              <SectionTitle n={2} label="Desde dónde despachas" />
-              <p style={{ margin: "0 0 16px", fontSize: 13, color: "#5C5C57" }}>
-                Dirección de retiro del paquete. Los couriers calculan el precio desde aquí.
-              </p>
-              <div className="gen-grid-2col">
-                <Field label="Comuna de origen *">
-                  <TextInput
-                    value={form.origenComuna}
-                    onChange={(v) => set("origenComuna", v)}
-                    placeholder="Ej: Las Condes"
-                  />
-                </Field>
-                <Field label="Calle *">
-                  <TextInput
-                    value={form.origenCalle}
-                    onChange={(v) => set("origenCalle", v)}
-                    placeholder="Ej: Av. El Bosque"
-                  />
-                </Field>
-              </div>
-              <div style={{ marginTop: 12 }} className="gen-grid-2col">
-                <Field label="Número *">
-                  <TextInput
-                    value={form.origenNumero}
-                    onChange={(v) => set("origenNumero", v)}
-                    placeholder="Ej: 500"
-                  />
-                </Field>
-                <Field label="Depto / Oficina">
-                  <TextInput
-                    value={form.origenDepto}
-                    onChange={(v) => set("origenDepto", v)}
-                    placeholder="Ej: Of. 301"
-                  />
-                </Field>
-              </div>
-            </div>
-
-            {/* 3 — Paquete */}
-            <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "24px", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
-              <SectionTitle n={3} label="Dimensiones del paquete" />
-              <p style={{ margin: "0 0 16px", fontSize: 13, color: "#5C5C57" }}>
-                Necesario para cotizar el precio real del envío con cada courier.
-              </p>
-              <div className="gen-grid-4col">
-                <Field label="Largo (cm) *">
-                  <TextInput value={form.largo} onChange={(v) => set("largo", v.replace(/[^\d.]/g, ""))} placeholder="30" type="number" />
-                </Field>
-                <Field label="Alto (cm) *">
-                  <TextInput value={form.alto} onChange={(v) => set("alto", v.replace(/[^\d.]/g, ""))} placeholder="20" type="number" />
-                </Field>
-                <Field label="Ancho (cm) *">
-                  <TextInput value={form.ancho} onChange={(v) => set("ancho", v.replace(/[^\d.]/g, ""))} placeholder="15" type="number" />
-                </Field>
-                <Field label="Peso (kg) *">
-                  <TextInput value={form.peso} onChange={(v) => set("peso", v.replace(/[^\d.]/g, ""))} placeholder="1.5" type="number" />
-                </Field>
-              </div>
-              <p style={{ margin: "12px 0 0", fontSize: 12, color: "#9C9C95" }}>
-                💡 Si no sabes el peso exacto, estima por exceso. Los couriers cobran por el mayor entre el peso real y el volumétrico.
-              </p>
-            </div>
-
-            {/* Error */}
-            {error && (
-              <div style={{ background: "#FFF0ED", border: "1px solid #E8553D", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#C23E28" }}>
-                {error}
-              </div>
-            )}
-
-            {/* Submit */}
+        {/* ── TabBar ─────────────────────────────────────────────────────────── */}
+        <div style={{
+          display: "flex", gap: 4,
+          background: "#F0F0EB", borderRadius: 14, padding: 4,
+          marginBottom: 28, maxWidth: 400,
+        }}>
+          {([
+            { id: "tienda", label: "Mi Tienda" },
+            { id: "crear", label: "Crear Link" },
+          ] as { id: ActiveTab; label: string }[]).map((tab) => (
             <button
-              onClick={handleSubmit}
-              disabled={!canSubmit || loading}
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
               style={{
-                width: "100%", padding: "16px", borderRadius: 14, border: "none",
-                fontSize: 16, fontWeight: 700, color: "#fff", fontFamily: "inherit",
-                cursor: canSubmit && !loading ? "pointer" : "not-allowed",
-                background: canSubmit && !loading ? "#E8553D" : "#D1D1CC",
-                boxShadow: canSubmit && !loading ? "0 4px 20px rgba(232,85,61,0.3)" : "none",
-                transition: "all 0.2s",
+                flex: 1, padding: "10px 0", borderRadius: 10, border: "none",
+                fontSize: 14, fontWeight: 600, fontFamily: "inherit", cursor: "pointer",
+                transition: "all 0.18s",
+                background: activeTab === tab.id ? "#fff" : "transparent",
+                color: activeTab === tab.id ? "#1A1A18" : "#9C9C95",
+                boxShadow: activeTab === tab.id ? "0 1px 6px rgba(0,0,0,0.1)" : "none",
               }}
             >
-              {loading ? "Generando link…" : "Generar link de envío →"}
+              {tab.label}
+              {tab.id === "tienda" && profileComplete && (
+                <span style={{
+                  display: "inline-block", width: 6, height: 6, borderRadius: "50%",
+                  background: "#2D8A56", marginLeft: 6, verticalAlign: "middle", marginTop: -2,
+                }} />
+              )}
             </button>
+          ))}
+        </div>
 
-            {!canSubmit && !generatedUrl && (
-              <p style={{ textAlign: "center", fontSize: 12, color: "#9C9C95", margin: "-8px 0 0" }}>
-                Completa todos los campos marcados con * para continuar
-              </p>
+        {/* ── Two-column grid ────────────────────────────────────────────────── */}
+        <div style={{ display: "grid", gap: 24, gridTemplateColumns: "1fr" }} className="gen-grid">
+
+          {/* ── LEFT: Form ─────────────────────────────────────────────────── */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+            {/* ════ TAB 1: Mi Tienda ════ */}
+            {activeTab === "tienda" && (
+              <>
+                {/* 1 — Tu negocio */}
+                <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "24px", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
+                  <SectionTitle n={1} label="Tu negocio" />
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    <Field label="Nombre de tu tienda *">
+                      <TextInput
+                        value={profile.nombrePyme}
+                        onChange={(v) => setP("nombrePyme", v)}
+                        placeholder="Ej: Tienda Luna"
+                      />
+                    </Field>
+                    <Field label="Logo" hint="Opcional — aparece en el link que ve tu cliente">
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{
+                          width: 44, height: 44, borderRadius: 10,
+                          background: "#F5F5F0", border: "1px solid #E8E8E3",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          overflow: "hidden", flexShrink: 0,
+                        }}>
+                          {profile.logoPreview ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={profile.logoPreview} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          ) : (
+                            <span style={{ fontSize: 20 }}>🏪</span>
+                          )}
+                        </div>
+                        <label style={{
+                          cursor: "pointer", background: "#F5F5F0",
+                          border: "1px solid #E8E8E3", borderRadius: 8,
+                          padding: "8px 14px", fontSize: 13, fontWeight: 600, color: "#1A1A18",
+                        }}>
+                          {profile.logoPreview ? "Cambiar logo" : "Subir logo"}
+                          <input type="file" accept="image/*" style={{ display: "none" }}
+                            onChange={(e) => onPickLogo(e.target.files?.[0])} />
+                        </label>
+                        {profile.logoPreview && (
+                          <button type="button"
+                            onClick={() => setProfile((s) => ({ ...s, logoFile: null, logoPreview: "", logoUrl: "" }))}
+                            style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#9C9C95", fontFamily: "inherit" }}>
+                            Quitar
+                          </button>
+                        )}
+                      </div>
+                    </Field>
+                  </div>
+                </div>
+
+                {/* 2 — Origen */}
+                <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "24px", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
+                  <SectionTitle n={2} label="Desde dónde despachas" />
+                  <p style={{ margin: "0 0 16px", fontSize: 13, color: "#5C5C57" }}>
+                    Dirección de retiro del paquete. Los couriers calculan el precio desde aquí.
+                  </p>
+                  <div className="gen-grid-2col">
+                    <Field label="Comuna de origen *">
+                      <TextInput
+                        value={profile.origenComuna}
+                        onChange={(v) => setP("origenComuna", v)}
+                        placeholder="Ej: Las Condes"
+                      />
+                    </Field>
+                    <Field label="Calle *">
+                      <TextInput
+                        value={profile.origenCalle}
+                        onChange={(v) => setP("origenCalle", v)}
+                        placeholder="Ej: Av. El Bosque"
+                      />
+                    </Field>
+                  </div>
+                  <div style={{ marginTop: 12 }} className="gen-grid-2col">
+                    <Field label="Número *">
+                      <TextInput
+                        value={profile.origenNumero}
+                        onChange={(v) => setP("origenNumero", v)}
+                        placeholder="Ej: 500"
+                      />
+                    </Field>
+                    <Field label="Depto / Oficina">
+                      <TextInput
+                        value={profile.origenDepto}
+                        onChange={(v) => setP("origenDepto", v)}
+                        placeholder="Ej: Of. 301"
+                      />
+                    </Field>
+                  </div>
+                </div>
+
+                {/* Profile error */}
+                {profileError && (
+                  <div style={{ background: "#FFF0ED", border: "1px solid #E8553D", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#C23E28" }}>
+                    {profileError}
+                  </div>
+                )}
+
+                {/* Save button */}
+                <button
+                  onClick={handleSaveProfile}
+                  disabled={!profileComplete || profileSaving}
+                  style={{
+                    width: "100%", padding: "16px", borderRadius: 14, border: "none",
+                    fontSize: 16, fontWeight: 700, color: "#fff", fontFamily: "inherit",
+                    cursor: profileComplete && !profileSaving ? "pointer" : "not-allowed",
+                    background: profileSaved
+                      ? "#2D8A56"
+                      : profileComplete && !profileSaving ? "#E8553D" : "#D1D1CC",
+                    boxShadow: profileComplete && !profileSaving ? "0 4px 20px rgba(232,85,61,0.3)" : "none",
+                    transition: "all 0.2s",
+                  }}
+                >
+                  {profileSaving
+                    ? "Guardando…"
+                    : profileSaved
+                    ? "✓ Guardado — abriendo Crear Link…"
+                    : "Guardar datos de mi tienda →"}
+                </button>
+
+                {!profileComplete && (
+                  <p style={{ textAlign: "center", fontSize: 12, color: "#9C9C95", margin: "-8px 0 0" }}>
+                    Completa los campos marcados con * para continuar
+                  </p>
+                )}
+              </>
             )}
 
-            {/* Generated URL */}
-            {generatedUrl && (
-              <div style={{ background: "#F5FBF7", border: "1px solid #2D8A56", borderRadius: 14, padding: "20px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            {/* ════ TAB 2: Crear Link ════ */}
+            {activeTab === "crear" && (
+              <>
+                {/* Banner de tienda guardada */}
+                {profileComplete ? (
                   <div style={{
-                    width: 24, height: 24, borderRadius: "50%", background: "#2D8A56",
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                    background: "#F5FBF7", border: "1px solid rgba(45,138,86,0.2)",
+                    borderRadius: 14, padding: "14px 18px",
+                    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
                   }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{
+                        width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                        background: profile.logoPreview ? "transparent" : "#E8553D",
+                        border: "1px solid rgba(0,0,0,0.06)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        overflow: "hidden",
+                      }}>
+                        {profile.logoPreview ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={profile.logoPreview} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : (
+                          <span style={{ fontSize: 18 }}>🏪</span>
+                        )}
+                      </div>
+                      <div>
+                        <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#1A1A18" }}>
+                          {profile.nombrePyme}
+                        </p>
+                        <p style={{ margin: 0, fontSize: 12, color: "#5C5C57" }}>
+                          📍 {profile.origenComuna}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab("tienda")}
+                      style={{
+                        background: "none", border: "1px solid #D1D1CC", borderRadius: 8,
+                        padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "#5C5C57",
+                        cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
+                      }}
+                    >
+                      Editar
+                    </button>
                   </div>
-                  <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#2D8A56" }}>
-                    ¡Link generado! Cópialo y mándalo por WhatsApp.
+                ) : (
+                  <div style={{
+                    background: "#FFF0ED", border: "1px solid rgba(232,85,61,0.2)",
+                    borderRadius: 14, padding: "16px 18px",
+                    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+                  }}>
+                    <p style={{ margin: 0, fontSize: 14, color: "#C23E28", fontWeight: 500 }}>
+                      Primero configura los datos de tu tienda para poder generar links.
+                    </p>
+                    <button
+                      onClick={() => setActiveTab("tienda")}
+                      style={{
+                        background: "#E8553D", border: "none", borderRadius: 8,
+                        padding: "8px 14px", fontSize: 13, fontWeight: 700, color: "#fff",
+                        cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
+                      }}
+                    >
+                      Configurar →
+                    </button>
+                  </div>
+                )}
+
+                {/* Paquete */}
+                <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "24px", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
+                  <SectionTitle n={1} label="Dimensiones del paquete" />
+                  <p style={{ margin: "0 0 16px", fontSize: 13, color: "#5C5C57" }}>
+                    Necesario para cotizar el precio real del envío con cada courier.
+                  </p>
+                  <div className="gen-grid-4col">
+                    <Field label="Largo (cm) *">
+                      <TextInput value={pkg.largo} onChange={(v) => setPkg_("largo", v.replace(/[^\d.]/g, ""))} placeholder="30" type="number" />
+                    </Field>
+                    <Field label="Alto (cm) *">
+                      <TextInput value={pkg.alto} onChange={(v) => setPkg_("alto", v.replace(/[^\d.]/g, ""))} placeholder="20" type="number" />
+                    </Field>
+                    <Field label="Ancho (cm) *">
+                      <TextInput value={pkg.ancho} onChange={(v) => setPkg_("ancho", v.replace(/[^\d.]/g, ""))} placeholder="15" type="number" />
+                    </Field>
+                    <Field label="Peso (kg) *">
+                      <TextInput value={pkg.peso} onChange={(v) => setPkg_("peso", v.replace(/[^\d.]/g, ""))} placeholder="1.5" type="number" />
+                    </Field>
+                  </div>
+                  <p style={{ margin: "12px 0 0", fontSize: 12, color: "#9C9C95" }}>
+                    💡 Si no sabes el peso exacto, estima por exceso. Los couriers cobran por el mayor entre el peso real y el volumétrico.
                   </p>
                 </div>
-                <div style={{ background: "#fff", border: "1px solid #E8E8E3", borderRadius: 10, padding: "10px 14px", marginBottom: 12 }}>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1A1A18", wordBreak: "break-all" }}>{generatedUrl}</p>
-                </div>
-                <p style={{ margin: "0 0 12px", fontSize: 13, color: "#5C5C57" }}>
-                  Tu cliente abre el link, llena sus datos, elige courier y paga. Tú no tocas nada.
-                </p>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={copyUrl} style={{
-                    flex: 1, padding: "11px", borderRadius: 10,
-                    border: "1px solid #E8E8E3", background: "#fff",
-                    fontSize: 14, fontWeight: 700, color: "#1A1A18",
-                    cursor: "pointer", fontFamily: "inherit",
-                  }}>
-                    {copied ? "✓ Copiado" : "📋 Copiar link"}
-                  </button>
-                  <a href={generatedUrl} target="_blank" rel="noreferrer" style={{
-                    flex: 1, padding: "11px", borderRadius: 10,
-                    background: "#1A1A18", fontSize: 14, fontWeight: 700, color: "#fff",
-                    textDecoration: "none", textAlign: "center", display: "block",
-                  }}>
-                    Abrir →
-                  </a>
-                </div>
-              </div>
+
+                {/* Error */}
+                {error && (
+                  <div style={{ background: "#FFF0ED", border: "1px solid #E8553D", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#C23E28" }}>
+                    {error}
+                  </div>
+                )}
+
+                {/* Generate button */}
+                <button
+                  onClick={handleGenerate}
+                  disabled={!canGenerate || loading}
+                  style={{
+                    width: "100%", padding: "16px", borderRadius: 14, border: "none",
+                    fontSize: 16, fontWeight: 700, color: "#fff", fontFamily: "inherit",
+                    cursor: canGenerate && !loading ? "pointer" : "not-allowed",
+                    background: canGenerate && !loading ? "#E8553D" : "#D1D1CC",
+                    boxShadow: canGenerate && !loading ? "0 4px 20px rgba(232,85,61,0.3)" : "none",
+                    transition: "all 0.2s",
+                  }}
+                >
+                  {loading ? "Generando link…" : "Generar link de envío →"}
+                </button>
+
+                {!pkgComplete && profileComplete && !generatedUrl && (
+                  <p style={{ textAlign: "center", fontSize: 12, color: "#9C9C95", margin: "-8px 0 0" }}>
+                    Completa las dimensiones del paquete para continuar
+                  </p>
+                )}
+
+                {/* Generated URL */}
+                {generatedUrl && (
+                  <div style={{ background: "#F5FBF7", border: "1px solid #2D8A56", borderRadius: 14, padding: "20px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                      <div style={{
+                        width: 24, height: 24, borderRadius: "50%", background: "#2D8A56",
+                        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                      }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#2D8A56" }}>
+                        ¡Link generado! Cópialo y mándalo por WhatsApp.
+                      </p>
+                    </div>
+                    <div style={{ background: "#fff", border: "1px solid #E8E8E3", borderRadius: 10, padding: "10px 14px", marginBottom: 12 }}>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1A1A18", wordBreak: "break-all" }}>{generatedUrl}</p>
+                    </div>
+                    <p style={{ margin: "0 0 12px", fontSize: 13, color: "#5C5C57" }}>
+                      Tu cliente abre el link, llena sus datos, elige courier y paga. Tú no tocas nada.
+                    </p>
+                    <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                      <button onClick={copyUrl} style={{
+                        flex: 1, padding: "11px", borderRadius: 10,
+                        border: "1px solid #E8E8E3", background: "#fff",
+                        fontSize: 14, fontWeight: 700, color: "#1A1A18",
+                        cursor: "pointer", fontFamily: "inherit",
+                      }}>
+                        {copied ? "✓ Copiado" : "📋 Copiar link"}
+                      </button>
+                      <a href={generatedUrl} target="_blank" rel="noreferrer" style={{
+                        flex: 1, padding: "11px", borderRadius: 10,
+                        background: "#1A1A18", fontSize: 14, fontWeight: 700, color: "#fff",
+                        textDecoration: "none", textAlign: "center", display: "block",
+                      }}>
+                        Abrir →
+                      </a>
+                    </div>
+                    <button
+                      onClick={() => { setGeneratedUrl(""); setPkg(DEFAULT_PACKAGE); }}
+                      style={{
+                        width: "100%", padding: "11px", borderRadius: 10,
+                        border: "1px solid #E8E8E3", background: "transparent",
+                        fontSize: 13, fontWeight: 600, color: "#5C5C57",
+                        cursor: "pointer", fontFamily: "inherit",
+                      }}
+                    >
+                      Crear otro link →
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
-          {/* ── RIGHT: Preview ───────────────────────────────────────────────── */}
+          {/* ── RIGHT: Preview ──────────────────────────────────────────────── */}
           <div style={{ position: "sticky", top: 76, height: "fit-content" }}>
             <p style={{ margin: "0 0 12px", fontSize: 11, fontWeight: 700, color: "#9C9C95", textTransform: "uppercase", letterSpacing: "0.1em" }}>
               Así lo ve tu cliente
@@ -964,12 +1134,13 @@ export default function CreateLinkClient() {
               {/* Header de la tienda */}
               <div style={{ background: "#FAFAF7", padding: "14px 16px", borderBottom: "1px solid #E8E8E3", display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{
-                  width: 36, height: 36, borderRadius: 10, background: form.logoPreview ? "transparent" : "#E8553D",
+                  width: 36, height: 36, borderRadius: 10,
+                  background: profile.logoPreview ? "transparent" : "#E8553D",
                   display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0,
                 }}>
-                  {form.logoPreview ? (
+                  {profile.logoPreview ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={form.logoPreview} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <img src={profile.logoPreview} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   ) : (
                     <svg width="20" height="20" viewBox="0 0 64 64" fill="none">
                       <g transform="translate(32,32) rotate(-42) scale(0.58)">
@@ -981,7 +1152,7 @@ export default function CreateLinkClient() {
                 </div>
                 <div>
                   <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#1A1A18" }}>
-                    {form.nombrePyme || "Tu Tienda"}
+                    {profile.nombrePyme || "Tu Tienda"}
                   </p>
                   <p style={{ margin: 0, fontSize: 11, color: "#9C9C95" }}>Link de envío seguro</p>
                 </div>

@@ -229,7 +229,7 @@ function SucursalSelector({
             <button
               key={s.branch_code}
               onClick={() => onSelect(s)}
-              className="w-full text-left rounded-xl border-2 px-4 py-3 transition-all"
+              className="w-full text-left text-[#1A1A18] rounded-xl border-2 px-4 py-3 transition-all"
               style={{
                 borderColor: isSelected ? "#00A651" : "#E8E8E3",
                 backgroundColor: isSelected ? "#E8F8EE" : "#fff",

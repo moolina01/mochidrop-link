@@ -16,8 +16,8 @@ type SucursalType = {
   branch_code: number;
   branch_id?: number;
   reference: string;
-  address: string;
-  city: string;
+  address: string | { street?: string; number?: string; city?: string; state?: string; country?: string };
+  city?: string;
   state?: string;
   locality?: string;
   latitude?: number;
@@ -239,15 +239,24 @@ function SucursalSelector({
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <p style={{ color: "#1A1A18", fontSize: 14, fontWeight: 600, lineHeight: "1.3" }}>
-                    {typeof s.address === "object"
-                      ? `${(s.address as any).street ?? ""} ${(s.address as any).number ?? ""}`.trim()
-                      : s.address}
+                    {(() => {
+                      if (typeof s.address === "object" && s.address !== null) {
+                        const a = s.address as any;
+                        const line = `${a.street ?? ""} ${a.number ?? ""}`.trim();
+                        return line || s.reference;
+                      }
+                      return (s.address as string) || s.reference;
+                    })()}
                   </p>
                   <p style={{ color: "#5C5C57", fontSize: 12, marginTop: 2 }}>
-                    {typeof s.address === "object"
-                      ? (s.address as any).city ?? s.city
-                      : s.city}
-                    {s.locality && s.locality !== s.city ? `, ${s.locality}` : ""}
+                    {(() => {
+                      const city = typeof s.address === "object" && s.address !== null
+                        ? (s.address as any).city ?? s.city
+                        : s.city;
+                      const loc = s.locality;
+                      if (city && loc && loc !== city) return `${city}, ${loc}`;
+                      return city ?? loc ?? "";
+                    })()}
                   </p>
                 </div>
                 {isSelected && (

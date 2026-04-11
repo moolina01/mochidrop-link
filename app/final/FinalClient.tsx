@@ -116,32 +116,35 @@ export default function FinalClient() {
     let mounted = true;
 
     async function fetchEnvio() {
-      const { data } = await supabase
-        .from("envios")
-        .select("*")
-        .eq("id", Number(id))
-        .single();
+      try {
+        const { data } = await supabase
+          .from("envios")
+          .select("*")
+          .eq("id", Number(id))
+          .single();
 
-      if (!mounted) return;
+        if (!mounted) return;
 
-      if (data) {
-        setEnvio(data);
+        if (data) {
+          setEnvio(data);
 
-        const key = data.courier || courierParam || "";
-        const cotizacion = key ? data.cotizaciones?.[key] : null;
-        const cotizacionPrice = cotizacion ? getPrice(cotizacion) : null;
+          const key = data.courier || courierParam || "";
+          const cotizacion = key ? (data.cotizaciones?.[key] ?? null) : null;
+          const cotizacionPrice = cotizacion ? getPrice(cotizacion) : null;
 
-        if (cotizacion && cotizacionPrice) {
-          setGenerating(false);
+          if (cotizacion && cotizacionPrice) {
+            setGenerating(false);
+          }
+
+          if (data.tracking_url) {
+            if (pollInterval) clearInterval(pollInterval);
+          }
         }
-
-        // Solo dejar de hacer polling cuando tracking_url esté disponible
-        if (data.tracking_url) {
-          if (pollInterval) clearInterval(pollInterval);
-        }
+      } catch {
+        // silently ignore fetch errors — polling will retry
+      } finally {
+        if (mounted) setLoading(false);
       }
-
-      setLoading(false);
     }
 
     // Primera carga
@@ -187,7 +190,7 @@ export default function FinalClient() {
           setEnvio(newData);
 
           const key = newData.courier || courierParam || "";
-          const cotizacion = key ? newData.cotizaciones?.[key] : null;
+          const cotizacion = key ? (newData.cotizaciones?.[key] ?? null) : null;
           if (cotizacion && getPrice(cotizacion)) {
             setGenerating(false);
           }
@@ -244,7 +247,7 @@ export default function FinalClient() {
   }
 
   const courierKey = envio.courier || courierParam || "";
-  const info = courierKey ? envio.cotizaciones[courierKey] : null;
+  const info = courierKey ? (envio.cotizaciones?.[courierKey] ?? null) : null;
 
   if (!info) {
     return (

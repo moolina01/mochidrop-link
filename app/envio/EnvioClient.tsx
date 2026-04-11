@@ -400,7 +400,7 @@ export default function EnvioClient() {
   const cotizaciones = envio.cotizaciones ?? {};
 
   // Construir lista de couriers disponibles en orden definido
-  const courierKeys = COURIER_ORDER.filter((k) => cotizaciones[k]);
+  const courierKeys = COURIER_ORDER.filter((k) => cotizaciones[k] && cotizaciones[k]!.price != null);
 
   // El más barato (excluyendo sucursales sin selección — precio existe igual)
   const cheapestKey = courierKeys.length > 0
@@ -683,7 +683,7 @@ export default function EnvioClient() {
                         className="font-bold text-base transition-all"
                         style={{ color: isSelected ? cfg.color : "#1A1A18" }}
                       >
-                        ${cot.price.toLocaleString("es-CL")}
+                        ${(cot.price ?? 0).toLocaleString("es-CL")}
                       </span>
                     </div>
                   </button>

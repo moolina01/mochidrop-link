@@ -224,7 +224,7 @@ export default function ConfirmacionClient() {
                 </p>
               </div>
               <p className="font-bold text-2xl text-[#1A1A18] flex-shrink-0">
-                ${info.price.toLocaleString("es-CL")}
+                ${(info.price ?? 0).toLocaleString("es-CL")}
               </p>
             </div>
           </div>
@@ -268,7 +268,7 @@ export default function ConfirmacionClient() {
           {/* Sección 3 — Total */}
           <div className="px-5 py-4 bg-[#FAFAF7] flex items-center justify-between">
             <p className="text-sm text-[#5C5C57]">Total a pagar</p>
-            <p className="font-bold text-xl text-[#1A1A18]">${info.price.toLocaleString("es-CL")}</p>
+            <p className="font-bold text-xl text-[#1A1A18]">${(info.price ?? 0).toLocaleString("es-CL")}</p>
           </div>
         </div>
 
@@ -309,7 +309,7 @@ export default function ConfirmacionClient() {
             ) : (
               <>
                 <CreditCardIcon className="w-5 h-5" />
-                {`Pagar $${info.price.toLocaleString("es-CL")} con tarjeta →`}
+                {`Pagar $${(info.price ?? 0).toLocaleString("es-CL")} con tarjeta →`}
               </>
             )}
           </button>

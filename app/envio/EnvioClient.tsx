@@ -111,7 +111,7 @@ const COURIER_CONFIG: Record<string, { color: string; colorLight: string; label:
 const COURIER_ORDER = [
   "starken_domicilio",
   "starken",
-  "starken_sucursal",
+  // "starken_sucursal", // temporalmente deshabilitado
   "chilexpress",
   "blueexpress",
   "noventa9Minutos",

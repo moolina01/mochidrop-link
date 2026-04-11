@@ -379,8 +379,6 @@ export default function EnvioClient() {
     }
   }
 
-  const mostrarFormulario = !envio?.cotizaciones || Object.keys(envio.cotizaciones).length === 0;
-
   if (loading) {
     return (
       <div className="fixed inset-0 bg-white flex items-center justify-center">
@@ -401,6 +399,9 @@ export default function EnvioClient() {
 
   // Construir lista de couriers disponibles en orden definido
   const courierKeys = COURIER_ORDER.filter((k) => cotizaciones[k] && cotizaciones[k]!.price != null);
+
+  // Si no hay couriers válidos, mostrar el formulario de nuevo
+  const mostrarFormulario = courierKeys.length === 0;
 
   // El más barato (excluyendo sucursales sin selección — precio existe igual)
   const cheapestKey = courierKeys.length > 0

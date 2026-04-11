@@ -10,6 +10,31 @@ import {
 } from "@heroicons/react/24/solid";
 import { useRouter } from "next/navigation";
 
+// ─── Tipos ────────────────────────────────────────────────────────────────────
+
+type SucursalType = {
+  branch_code: number;
+  branch_id?: number;
+  reference: string;
+  address: string;
+  city: string;
+  state?: string;
+  locality?: string;
+  latitude?: number;
+  longitude?: number;
+  hours?: Record<string, string>;
+  admission?: boolean;
+  delivery?: boolean;
+};
+
+type CotizacionItem = {
+  price: number;
+  tipo?: string;
+  tiempo?: string;
+  service?: string;
+  sucursales?: SucursalType[];
+};
+
 type EnvioType = {
   nombre_pyme: string;
   logo_pyme: string;
@@ -20,16 +45,10 @@ type EnvioType = {
     depto?: string;
     comuna: string;
     telefono?: string;
-    // Retrocompatibilidad
     direccion?: string;
     number?: string;
   };
-  cotizaciones?: {
-    starken?: { price: number; tipo: string; tiempo: string };
-    chilexpress?: { price: number; tipo: string; tiempo: string };
-    blueexpress?: { price: number; tipo: string; tiempo: string };
-    noventa9Minutos?: { price: number; tipo: string; tiempo: string };
-  };
+  cotizaciones?: Record<string, CotizacionItem>;
   estado?: string;
   courier?: string;
   tracking?: string;
@@ -37,18 +56,24 @@ type EnvioType = {
   ask_instagram?: boolean;
 };
 
-const COURIER_CONFIG: Record<
-  string,
-  {
-    color: string;
-    colorLight: string;
-    label: string;
-  }
-> = {
+// ─── Config couriers ──────────────────────────────────────────────────────────
+
+const COURIER_CONFIG: Record<string, { color: string; colorLight: string; label: string; tag?: string }> = {
   starken: {
     color: "#00A651",
     colorLight: "#E8F8EE",
     label: "Starken",
+  },
+  starken_domicilio: {
+    color: "#00A651",
+    colorLight: "#E8F8EE",
+    label: "Starken Domicilio",
+  },
+  starken_sucursal: {
+    color: "#00A651",
+    colorLight: "#E8F8EE",
+    label: "Starken Sucursal",
+    tag: "Más económico",
   },
   chilexpress: {
     color: "#FFC600",
@@ -66,6 +91,18 @@ const COURIER_CONFIG: Record<
     label: "99 Minutos",
   },
 };
+
+// Orden de visualización
+const COURIER_ORDER = [
+  "starken_domicilio",
+  "starken",
+  "starken_sucursal",
+  "chilexpress",
+  "blueexpress",
+  "noventa9Minutos",
+];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function StoreHeader({ envio }: { envio: EnvioType }) {
   return (
@@ -154,6 +191,67 @@ function InstagramField({ value, onChange }: { value: string; onChange: (v: stri
   );
 }
 
+// ─── Selector de sucursales ───────────────────────────────────────────────────
+
+function SucursalSelector({
+  sucursales,
+  selected,
+  onSelect,
+}: {
+  sucursales: SucursalType[];
+  selected: SucursalType | null;
+  onSelect: (s: SucursalType) => void;
+}) {
+  return (
+    <div className="mt-3 bg-[#F5FBF7] border border-[#B8E2C8] rounded-2xl p-4">
+      <p className="text-xs font-semibold text-[#2D8A56] uppercase tracking-wider mb-3">
+        🏢 Elige la sucursal de retiro
+      </p>
+      <div className="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1">
+        {sucursales.filter((s) => s.admission !== false).map((s) => {
+          const isSelected = selected?.branch_code === s.branch_code;
+          return (
+            <button
+              key={s.branch_code}
+              onClick={() => onSelect(s)}
+              className="w-full text-left rounded-xl border-2 px-4 py-3 transition-all"
+              style={{
+                borderColor: isSelected ? "#00A651" : "#E8E8E3",
+                backgroundColor: isSelected ? "#E8F8EE" : "#fff",
+              }}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-[#1A1A18] leading-tight">
+                    {s.address}
+                  </p>
+                  <p className="text-xs text-[#5C5C57] mt-0.5">
+                    {s.city}{s.locality && s.locality !== s.city ? `, ${s.locality}` : ""}
+                  </p>
+                </div>
+                {isSelected && (
+                  <div className="flex-shrink-0 w-5 h-5 rounded-full bg-[#00A651] flex items-center justify-center mt-0.5">
+                    <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                      <polyline points="2,6 5,9 10,3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      {!selected && (
+        <p className="text-xs text-[#9C9C95] text-center mt-3">
+          Selecciona una sucursal para continuar
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ─── Componente principal ─────────────────────────────────────────────────────
+
 export default function EnvioClient() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
@@ -163,6 +261,7 @@ export default function EnvioClient() {
   const [transitioning, setTransitioning] = useState(false);
   const [cardsVisible, setCardsVisible] = useState(false);
   const [selectedCourier, setSelectedCourier] = useState<string | null>(null);
+  const [selectedSucursal, setSelectedSucursal] = useState<SucursalType | null>(null);
 
   const [formCliente, setFormCliente] = useState({
     nombre: "", telefono: "", comuna: "", calle: "", numero: "", depto: "", instagram: "",
@@ -174,6 +273,13 @@ export default function EnvioClient() {
 
   async function elegir(courier: string) {
     setTransitioning(true);
+    // Si es sucursal Starken, guardar la sucursal elegida en Supabase
+    if (courier === "starken_sucursal" && selectedSucursal) {
+      await supabase
+        .from("envios")
+        .update({ sucursal_retiro: selectedSucursal })
+        .eq("id", Number(id));
+    }
     router.push(`/confirmacion?id=${id}&courier=${courier}`);
   }
 
@@ -220,6 +326,8 @@ export default function EnvioClient() {
     setErrorCotizar("");
     setCotizando(true);
     setCardsVisible(false);
+    setSelectedCourier(null);
+    setSelectedSucursal(null);
     try {
       const res = await fetch("/api/cotizar-envio", {
         method: "POST",
@@ -290,12 +398,28 @@ export default function EnvioClient() {
   }
 
   const cotizaciones = envio.cotizaciones ?? {};
-  const entries = (Object.entries(cotizaciones) as [string, { price: number; tipo: string; tiempo: string }][]).filter(([, v]) => v);
-  const cheapestKey = entries.length > 0
-    ? entries.reduce((min, curr) => curr[1].price < min[1].price ? curr : min)[0]
+
+  // Construir lista de couriers disponibles en orden definido
+  const courierKeys = COURIER_ORDER.filter((k) => cotizaciones[k]);
+
+  // El más barato (excluyendo sucursales sin selección — precio existe igual)
+  const cheapestKey = courierKeys.length > 0
+    ? courierKeys.reduce((min, curr) => {
+        const currPrice = cotizaciones[curr]?.price ?? Infinity;
+        const minPrice = cotizaciones[min]?.price ?? Infinity;
+        return currPrice < minPrice ? curr : min;
+      })
     : null;
 
-  const courierKeys = (["starken", "chilexpress", "blueexpress", "noventa9Minutos"] as const).filter(k => cotizaciones[k]);
+  // Puede continuar: tiene courier seleccionado, y si es sucursal también tiene sucursal
+  const canContinue =
+    selectedCourier !== null &&
+    (selectedCourier !== "starken_sucursal" || selectedSucursal !== null);
+
+  const sucursalesDisponibles =
+    selectedCourier === "starken_sucursal"
+      ? (cotizaciones["starken_sucursal"]?.sucursales ?? [])
+      : [];
 
   return (
     <div className="min-h-screen bg-[#FAFAF7]">
@@ -428,7 +552,7 @@ export default function EnvioClient() {
           </>
         )}
 
-        {/* SKELETONS — mientras cotiza */}
+        {/* SKELETONS */}
         {cotizando && (
           <div className="mb-5">
             <p className="text-xs font-semibold text-[#9C9C95] uppercase tracking-wider px-1 mb-1">
@@ -455,7 +579,10 @@ export default function EnvioClient() {
                 <p className="text-xs font-semibold text-[#9C9C95] uppercase tracking-wider mb-0.5">Destino</p>
                 <p className="font-semibold text-[#1A1A18] text-sm">{envio.datos_destino?.nombre}</p>
                 <p className="text-[#5C5C57] text-sm leading-snug">
-                  {envio.datos_destino?.calle || envio.datos_destino?.direccion} {envio.datos_destino?.numero || envio.datos_destino?.number}{envio.datos_destino?.depto ? `, Depto ${envio.datos_destino.depto}` : ""}, {envio.datos_destino?.comuna}
+                  {envio.datos_destino?.calle || envio.datos_destino?.direccion}{" "}
+                  {envio.datos_destino?.numero || envio.datos_destino?.number}
+                  {envio.datos_destino?.depto ? `, Depto ${envio.datos_destino.depto}` : ""},{" "}
+                  {envio.datos_destino?.comuna}
                 </p>
               </div>
               <button
@@ -463,6 +590,7 @@ export default function EnvioClient() {
                   setEnvio((prev) => prev ? { ...prev, cotizaciones: undefined } : prev);
                   setCardsVisible(false);
                   setSelectedCourier(null);
+                  setSelectedSucursal(null);
                 }}
                 className="flex-shrink-0 text-[#9C9C95] hover:text-[#1A1A18] transition-colors p-1"
                 title="Editar dirección"
@@ -477,19 +605,23 @@ export default function EnvioClient() {
               <p className="text-xs text-[#9C9C95] mt-0.5">Opciones verificadas y aseguradas</p>
             </div>
 
-            {/* Lista unificada de couriers */}
+            {/* Lista de couriers */}
             <div className="bg-white rounded-2xl border border-[#E8E8E3] shadow-sm overflow-hidden">
               {courierKeys.map((key, index) => {
                 const cot = cotizaciones[key]!;
-                const cfg = COURIER_CONFIG[key];
+                const cfg = COURIER_CONFIG[key] ?? { color: "#1A1A18", colorLight: "#F5F5F5", label: key };
                 const isCheapest = key === cheapestKey;
                 const isSelected = selectedCourier === key;
                 const isLast = index === courierKeys.length - 1;
+                const isSucursal = key === "starken_sucursal";
 
                 return (
                   <button
                     key={key}
-                    onClick={() => setSelectedCourier(key)}
+                    onClick={() => {
+                      setSelectedCourier(key);
+                      if (!isSucursal) setSelectedSucursal(null);
+                    }}
                     className={`w-full text-left flex items-center gap-3 px-4 py-3.5 transition-all duration-500 ${
                       cardsVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
                     } ${!isLast ? "border-b border-[#F0F0EB]" : ""}`}
@@ -498,7 +630,7 @@ export default function EnvioClient() {
                       transitionDelay: cardsVisible ? `${index * 80}ms` : "0ms",
                     }}
                   >
-                    {/* Radio button */}
+                    {/* Radio */}
                     <div
                       className="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
                       style={{
@@ -506,27 +638,27 @@ export default function EnvioClient() {
                         backgroundColor: isSelected ? cfg.color : "transparent",
                       }}
                     >
-                      {isSelected && (
-                        <div className="w-2 h-2 rounded-full bg-white" />
-                      )}
+                      {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
                     </div>
 
-                    {/* Barra vertical de color */}
+                    {/* Barra de color */}
                     <div
                       className="flex-shrink-0 w-1 self-stretch rounded-full transition-all"
-                      style={{
-                        backgroundColor: cfg.color,
-                        opacity: isSelected ? 1 : 0.35,
-                      }}
+                      style={{ backgroundColor: cfg.color, opacity: isSelected ? 1 : 0.35 }}
                     />
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-[15px] text-[#1A1A18]">{cfg.label}</span>
                         {isCheapest && (
                           <span className="text-[10px] font-bold text-[#2D8A56] bg-green-50 border border-green-200 px-1.5 py-0.5 rounded-full">
                             Mejor precio
+                          </span>
+                        )}
+                        {isSucursal && (
+                          <span className="text-[10px] font-bold text-[#00A651] bg-green-50 border border-green-200 px-1.5 py-0.5 rounded-full">
+                            Retiro en sucursal
                           </span>
                         )}
                         {key === "noventa9Minutos" && (
@@ -540,7 +672,9 @@ export default function EnvioClient() {
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-[#888] mt-0.5">{cot.tiempo}</p>
+                      <p className="text-xs text-[#888] mt-0.5">
+                        {isSucursal ? "Retiras en la sucursal que elijas" : cot.tiempo}
+                      </p>
                     </div>
 
                     {/* Precio */}
@@ -557,14 +691,29 @@ export default function EnvioClient() {
               })}
             </div>
 
-            {/* Botón continuar — aparece solo cuando hay selección */}
+            {/* Selector de sucursales — aparece si eligió Starken Sucursal */}
+            {selectedCourier === "starken_sucursal" && sucursalesDisponibles.length > 0 && (
+              <SucursalSelector
+                sucursales={sucursalesDisponibles}
+                selected={selectedSucursal}
+                onSelect={setSelectedSucursal}
+              />
+            )}
+
+            {/* Botón continuar */}
             {selectedCourier && (
               <button
-                onClick={() => elegir(selectedCourier)}
-                disabled={transitioning}
-                className="w-full bg-[#1A1A18] text-white font-bold py-4 rounded-xl text-[15px] mt-4 transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50"
+                onClick={() => canContinue && elegir(selectedCourier)}
+                disabled={!canContinue || transitioning}
+                className="w-full font-bold py-4 rounded-xl text-[15px] mt-4 transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0"
+                style={{
+                  background: canContinue ? "#1A1A18" : "#D1D1CC",
+                  color: "#fff",
+                }}
               >
-                Continuar con {COURIER_CONFIG[selectedCourier].label} →
+                {selectedCourier === "starken_sucursal" && !selectedSucursal
+                  ? "Selecciona una sucursal para continuar"
+                  : `Continuar con ${COURIER_CONFIG[selectedCourier]?.label ?? selectedCourier} →`}
               </button>
             )}
 

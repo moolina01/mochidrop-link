@@ -6,6 +6,23 @@ import { useSearchParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { MapPinIcon, LockClosedIcon, ShieldCheckIcon, CreditCardIcon } from "@heroicons/react/24/solid";
 
+// ─── Tipos ────────────────────────────────────────────────────────────────────
+
+type SucursalType = {
+  branch_code: number;
+  reference: string;
+  address: string;
+  city: string;
+  locality?: string;
+};
+
+type CotizacionItem = {
+  price: number;
+  tipo?: string;
+  tiempo?: string;
+  service?: string;
+};
+
 type EnvioType = {
   nombre_pyme: string;
   logo_pyme: string;
@@ -16,23 +33,30 @@ type EnvioType = {
     depto?: string;
     comuna: string;
     telefono?: string;
-    // Retrocompatibilidad
     direccion?: string;
     number?: string;
   };
-  cotizaciones: {
-    starken?: { price: number; tipo: string; tiempo: string };
-    chilexpress?: { price: number; tipo: string; tiempo: string };
-    blueexpress?: { price: number; tipo: string; tiempo: string };
-    noventa9Minutos?: { price: number; tipo: string; tiempo: string };
-  };
+  cotizaciones: Record<string, CotizacionItem>;
+  sucursal_retiro?: SucursalType | null;
 };
+
+// ─── Config couriers ──────────────────────────────────────────────────────────
 
 const COURIER_CONFIG: Record<string, { color: string; colorLight: string; label: string }> = {
   starken: {
     color: "#00A651",
     colorLight: "#E8F8EE",
     label: "Starken",
+  },
+  starken_domicilio: {
+    color: "#00A651",
+    colorLight: "#E8F8EE",
+    label: "Starken Domicilio",
+  },
+  starken_sucursal: {
+    color: "#00A651",
+    colorLight: "#E8F8EE",
+    label: "Starken Sucursal",
   },
   chilexpress: {
     color: "#FFC600",
@@ -50,6 +74,8 @@ const COURIER_CONFIG: Record<string, { color: string; colorLight: string; label:
     label: "99 Minutos",
   },
 };
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function TruckIcon() {
   return (
@@ -69,6 +95,8 @@ function LoadingFallback() {
     </div>
   );
 }
+
+// ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function ConfirmacionClient() {
   const searchParams = useSearchParams();
@@ -143,10 +171,12 @@ export default function ConfirmacionClient() {
   if (!envio)  return <div className="p-10 text-center text-[#5C5C57]">Envío no encontrado.</div>;
   if (!courier) return <div className="p-10 text-center text-[#5C5C57]">No se seleccionó courier.</div>;
 
-  const info = envio.cotizaciones[courier as "starken" | "chilexpress" | "blueexpress" | "noventa9Minutos"];
+  const info = envio.cotizaciones[courier];
   if (!info) return <div className="p-10 text-center text-[#5C5C57]">Courier no válido.</div>;
 
   const cfg = COURIER_CONFIG[courier] ?? { color: "#1A1A18", colorLight: "#F5F5F5", label: courier };
+  const isSucursal = courier === "starken_sucursal";
+  const sucursal = isSucursal ? envio.sucursal_retiro : null;
 
   return (
     <div className="min-h-screen bg-[#FAFAF7]">
@@ -172,7 +202,7 @@ export default function ConfirmacionClient() {
 
       <div className="max-w-md mx-auto px-4 py-6 pb-16 flex flex-col gap-4">
 
-        {/* Card única de confirmación */}
+        {/* Card de confirmación */}
         <div className="bg-white rounded-2xl border border-[#E8E8E3] shadow-sm overflow-hidden">
 
           {/* Sección 1 — Courier */}
@@ -189,7 +219,9 @@ export default function ConfirmacionClient() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-base text-[#1A1A18]">{cfg.label}</p>
-                <p className="text-sm text-[#5C5C57]">Llega en {info.tiempo}</p>
+                <p className="text-sm text-[#5C5C57]">
+                  {isSucursal ? "Retiro en sucursal" : `Llega en ${info.tiempo}`}
+                </p>
               </div>
               <p className="font-bold text-2xl text-[#1A1A18] flex-shrink-0">
                 ${info.price.toLocaleString("es-CL")}
@@ -197,24 +229,39 @@ export default function ConfirmacionClient() {
             </div>
           </div>
 
-          {/* Sección 2 — Destinatario */}
+          {/* Sección 2 — Destino o Sucursal */}
           <div className="px-5 py-4 border-b border-[#E8E8E3]">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-[#9C9C95] mb-3">
-              Destinatario
+              {isSucursal ? "Sucursal de retiro" : "Destinatario"}
             </p>
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#FAFAF7] border border-[#E8E8E3] flex items-center justify-center mt-0.5">
                 <MapPinIcon className="w-4 h-4 text-[#E8553D]" />
               </div>
-              <div>
-                <p className="font-semibold text-sm text-[#1A1A18]">{envio.datos_destino.nombre}</p>
-                <p className="text-sm text-[#5C5C57] leading-snug">
-                  {envio.datos_destino.calle || envio.datos_destino.direccion} {envio.datos_destino.numero || envio.datos_destino.number}{envio.datos_destino.depto ? `, Depto ${envio.datos_destino.depto}` : ""}, {envio.datos_destino.comuna}
-                </p>
-                {envio.datos_destino.telefono && (
-                  <p className="text-sm text-[#9C9C95] mt-0.5">{envio.datos_destino.telefono}</p>
-                )}
-              </div>
+              {isSucursal && sucursal ? (
+                <div>
+                  <p className="font-semibold text-sm text-[#1A1A18]">Starken — {sucursal.address}</p>
+                  <p className="text-sm text-[#5C5C57] leading-snug">
+                    {sucursal.city}{sucursal.locality && sucursal.locality !== sucursal.city ? `, ${sucursal.locality}` : ""}
+                  </p>
+                  <p className="text-xs text-[#9C9C95] mt-1">
+                    Para ti: {envio.datos_destino.nombre}
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="font-semibold text-sm text-[#1A1A18]">{envio.datos_destino.nombre}</p>
+                  <p className="text-sm text-[#5C5C57] leading-snug">
+                    {envio.datos_destino.calle || envio.datos_destino.direccion}{" "}
+                    {envio.datos_destino.numero || envio.datos_destino.number}
+                    {envio.datos_destino.depto ? `, Depto ${envio.datos_destino.depto}` : ""},{" "}
+                    {envio.datos_destino.comuna}
+                  </p>
+                  {envio.datos_destino.telefono && (
+                    <p className="text-sm text-[#9C9C95] mt-0.5">{envio.datos_destino.telefono}</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -267,7 +314,6 @@ export default function ConfirmacionClient() {
             )}
           </button>
 
-          {/* Trust */}
           <div className="flex items-center justify-center gap-3 text-[#9C9C95]">
             <div className="flex items-center gap-1">
               <LockClosedIcon className="w-3.5 h-3.5" />

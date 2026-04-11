@@ -17,11 +17,24 @@ type SucursalType = {
 };
 
 type CotizacionItem = {
-  price: number;
+  price?: number | null;
   tipo?: string;
   tiempo?: string;
   service?: string;
+  carrier?: string;
+  raw?: {
+    totalPrice?: number | null;
+    deliveryEstimate?: string;
+  };
 };
+
+function getPrice(cot: CotizacionItem): number {
+  return cot.price ?? cot.raw?.totalPrice ?? 0;
+}
+
+function getTiempo(cot: CotizacionItem): string | undefined {
+  return cot.tiempo ?? cot.raw?.deliveryEstimate;
+}
 
 type EnvioType = {
   nombre_pyme: string;
@@ -131,7 +144,7 @@ export default function ConfirmacionClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           envioId: id,
-          amount:  info!.price,
+          amount:  getPrice(info),
           email:   email.trim(),
           courier,
         }),
@@ -220,11 +233,11 @@ export default function ConfirmacionClient() {
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-base text-[#1A1A18]">{cfg.label}</p>
                 <p className="text-sm text-[#5C5C57]">
-                  {isSucursal ? "Retiro en sucursal" : `Llega en ${info.tiempo}`}
+                  {isSucursal ? "Retiro en sucursal" : `Llega en ${getTiempo(info)}`}
                 </p>
               </div>
               <p className="font-bold text-2xl text-[#1A1A18] flex-shrink-0">
-                ${(info.price ?? 0).toLocaleString("es-CL")}
+                ${getPrice(info).toLocaleString("es-CL")}
               </p>
             </div>
           </div>
@@ -268,7 +281,7 @@ export default function ConfirmacionClient() {
           {/* Sección 3 — Total */}
           <div className="px-5 py-4 bg-[#FAFAF7] flex items-center justify-between">
             <p className="text-sm text-[#5C5C57]">Total a pagar</p>
-            <p className="font-bold text-xl text-[#1A1A18]">${(info.price ?? 0).toLocaleString("es-CL")}</p>
+            <p className="font-bold text-xl text-[#1A1A18]">${getPrice(info).toLocaleString("es-CL")}</p>
           </div>
         </div>
 
@@ -309,7 +322,7 @@ export default function ConfirmacionClient() {
             ) : (
               <>
                 <CreditCardIcon className="w-5 h-5" />
-                {`Pagar $${(info.price ?? 0).toLocaleString("es-CL")} con tarjeta →`}
+                {`Pagar $${getPrice(info).toLocaleString("es-CL")} con tarjeta →`}
               </>
             )}
           </button>

@@ -28,11 +28,16 @@ type SucursalType = {
 };
 
 type CotizacionItem = {
-  price: number;
+  price?: number | null;
   tipo?: string;
   tiempo?: string;
   service?: string;
+  carrier?: string;
   sucursales?: SucursalType[];
+  raw?: {
+    totalPrice?: number | null;
+    deliveryEstimate?: string;
+  };
 };
 
 type EnvioType = {
@@ -55,6 +60,16 @@ type EnvioType = {
   tracking_url?: string;
   ask_instagram?: boolean;
 };
+
+// ─── Helpers de cotización ────────────────────────────────────────────────────
+
+function getPrice(cot: CotizacionItem): number | null {
+  return cot.price ?? cot.raw?.totalPrice ?? null;
+}
+
+function getTiempo(cot: CotizacionItem): string | undefined {
+  return cot.tiempo ?? cot.raw?.deliveryEstimate;
+}
 
 // ─── Config couriers ──────────────────────────────────────────────────────────
 
@@ -398,16 +413,16 @@ export default function EnvioClient() {
   const cotizaciones = envio.cotizaciones ?? {};
 
   // Construir lista de couriers disponibles en orden definido
-  const courierKeys = COURIER_ORDER.filter((k) => cotizaciones[k] && cotizaciones[k]!.price != null);
+  const courierKeys = COURIER_ORDER.filter((k) => cotizaciones[k] && getPrice(cotizaciones[k]!) != null);
 
   // Si no hay couriers válidos, mostrar el formulario de nuevo
   const mostrarFormulario = courierKeys.length === 0;
 
-  // El más barato (excluyendo sucursales sin selección — precio existe igual)
+  // El más barato
   const cheapestKey = courierKeys.length > 0
     ? courierKeys.reduce((min, curr) => {
-        const currPrice = cotizaciones[curr]?.price ?? Infinity;
-        const minPrice = cotizaciones[min]?.price ?? Infinity;
+        const currPrice = getPrice(cotizaciones[curr]!) ?? Infinity;
+        const minPrice = getPrice(cotizaciones[min]!) ?? Infinity;
         return currPrice < minPrice ? curr : min;
       })
     : null;
@@ -674,7 +689,7 @@ export default function EnvioClient() {
                         )}
                       </div>
                       <p className="text-xs text-[#888] mt-0.5">
-                        {isSucursal ? "Retiras en la sucursal que elijas" : cot.tiempo}
+                        {isSucursal ? "Retiras en la sucursal que elijas" : getTiempo(cot)}
                       </p>
                     </div>
 
@@ -684,7 +699,7 @@ export default function EnvioClient() {
                         className="font-bold text-base transition-all"
                         style={{ color: isSelected ? cfg.color : "#1A1A18" }}
                       >
-                        ${(cot.price ?? 0).toLocaleString("es-CL")}
+                        ${(getPrice(cot) ?? 0).toLocaleString("es-CL")}
                       </span>
                     </div>
                   </button>

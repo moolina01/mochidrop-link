@@ -229,19 +229,25 @@ function SucursalSelector({
             <button
               key={s.branch_code}
               onClick={() => onSelect(s)}
-              className="w-full text-left text-[#1A1A18] rounded-xl border-2 px-4 py-3 transition-all"
+              className="w-full text-left rounded-xl border-2 px-4 py-3 transition-all"
               style={{
                 borderColor: isSelected ? "#00A651" : "#E8E8E3",
                 backgroundColor: isSelected ? "#E8F8EE" : "#fff",
+                color: "#1A1A18",
               }}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-[#1A1A18] leading-tight">
-                    {s.address}
+                  <p style={{ color: "#1A1A18", fontSize: 14, fontWeight: 600, lineHeight: "1.3" }}>
+                    {typeof s.address === "object"
+                      ? `${(s.address as any).street ?? ""} ${(s.address as any).number ?? ""}`.trim()
+                      : s.address}
                   </p>
-                  <p className="text-xs text-[#5C5C57] mt-0.5">
-                    {s.city}{s.locality && s.locality !== s.city ? `, ${s.locality}` : ""}
+                  <p style={{ color: "#5C5C57", fontSize: 12, marginTop: 2 }}>
+                    {typeof s.address === "object"
+                      ? (s.address as any).city ?? s.city
+                      : s.city}
+                    {s.locality && s.locality !== s.city ? `, ${s.locality}` : ""}
                   </p>
                 </div>
                 {isSelected && (

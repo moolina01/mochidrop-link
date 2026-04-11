@@ -12,6 +12,15 @@ import {
   ArrowTopRightOnSquareIcon,
 } from "@heroicons/react/24/solid";
 
+type CotizacionItem = {
+  price?: number | null;
+  tipo?: string;
+  tiempo?: string;
+  service?: string;
+  carrier?: string;
+  raw?: { totalPrice?: number | null; deliveryEstimate?: string };
+};
+
 type EnvioType = {
   nombre_pyme: string;
   logo_pyme: string;
@@ -22,16 +31,16 @@ type EnvioType = {
     depto?: string;
     comuna: string;
     telefono?: string;
-    // Retrocompatibilidad
     direccion?: string;
     number?: string;
   };
-  cotizaciones: {
-    starken?: { price: number; tipo: string; tiempo: string };
-    chilexpress?: { price: number; tipo: string; tiempo: string };
-    blueexpress?: { price: number; tipo: string; tiempo: string };
-    noventa9Minutos?: { price: number; tipo: string; tiempo: string };
-  };
+  cotizaciones: Record<string, CotizacionItem>;
+  sucursal_retiro?: {
+    reference?: string;
+    address?: string | { street?: string; number?: string; city?: string };
+    city?: string;
+    locality?: string;
+  } | null;
   estado?: string;
   courier?: string;
   tracking?: string;
@@ -39,11 +48,21 @@ type EnvioType = {
   link_publico?: string;
 };
 
+function getPrice(cot: CotizacionItem): number {
+  return cot.price ?? cot.raw?.totalPrice ?? 0;
+}
+
+function getTiempo(cot: CotizacionItem): string {
+  return cot.tiempo ?? cot.raw?.deliveryEstimate ?? "";
+}
+
 const COURIER_STYLES: Record<string, { color: string; label: string }> = {
-  starken:          { color: "text-green-700", label: "Starken"      },
-  chilexpress:      { color: "text-red-600",   label: "Chilexpress"  },
-  blueexpress:      { color: "text-blue-700",  label: "Blue Express" },
-  noventa9Minutos:  { color: "text-red-500",   label: "99 Minutos"   },
+  starken:           { color: "text-green-700", label: "Starken"           },
+  starken_domicilio: { color: "text-green-700", label: "Starken Domicilio" },
+  starken_sucursal:  { color: "text-green-700", label: "Starken Sucursal"  },
+  chilexpress:       { color: "text-red-600",   label: "Chilexpress"       },
+  blueexpress:       { color: "text-blue-700",  label: "Blue Express"      },
+  noventa9Minutos:   { color: "text-red-500",   label: "99 Minutos"        },
 };
 
 function LoadingFallback() {
@@ -108,11 +127,11 @@ export default function FinalClient() {
       if (data) {
         setEnvio(data);
 
-        const key = (data.courier || courierParam || "") as "starken" | "chilexpress" | "blueexpress" | "noventa9Minutos";
+        const key = data.courier || courierParam || "";
         const cotizacion = key ? data.cotizaciones?.[key] : null;
+        const cotizacionPrice = cotizacion ? getPrice(cotizacion) : null;
 
-        if (cotizacion) {
-          // Datos suficientes para mostrar la UI principal
+        if (cotizacion && cotizacionPrice) {
           setGenerating(false);
         }
 
@@ -167,9 +186,9 @@ export default function FinalClient() {
           const newData = payload.new as EnvioType;
           setEnvio(newData);
 
-          const key = (newData.courier || courierParam || "") as "starken" | "chilexpress" | "blueexpress" | "noventa9Minutos";
+          const key = newData.courier || courierParam || "";
           const cotizacion = key ? newData.cotizaciones?.[key] : null;
-          if (cotizacion) {
+          if (cotizacion && getPrice(cotizacion)) {
             setGenerating(false);
           }
         }
@@ -224,7 +243,7 @@ export default function FinalClient() {
     return <div className="p-10 text-center text-[#5C5C57]">No se pudo cargar la información del envío.</div>;
   }
 
-  const courierKey = (envio.courier || courierParam || "") as "starken" | "chilexpress" | "blueexpress" | "noventa9Minutos";
+  const courierKey = envio.courier || courierParam || "";
   const info = courierKey ? envio.cotizaciones[courierKey] : null;
 
   if (!info) {
@@ -309,14 +328,18 @@ export default function FinalClient() {
             <div>
               <p className="text-xs font-semibold text-[#9C9C95] uppercase tracking-wider mb-1">Courier</p>
               <p className={`font-bold text-xl ${style.color}`}>{style.label}</p>
-              <p className="text-[#5C5C57] text-sm mt-0.5">{info.tipo}</p>
-              <div className="flex items-center gap-1 text-[#9C9C95] text-sm mt-1.5">
-                <ClockIcon className="w-4 h-4" />
-                <span>Llega en {info.tiempo}</span>
-              </div>
+              {info.tipo && <p className="text-[#5C5C57] text-sm mt-0.5">{info.tipo}</p>}
+              {courierKey === "starken_sucursal" ? (
+                <p className="text-[#5C5C57] text-sm mt-0.5">Retiro en sucursal</p>
+              ) : getTiempo(info) ? (
+                <div className="flex items-center gap-1 text-[#9C9C95] text-sm mt-1.5">
+                  <ClockIcon className="w-4 h-4" />
+                  <span>Llega en {getTiempo(info)}</span>
+                </div>
+              ) : null}
             </div>
             <div className="text-right">
-              <p className="font-bold text-[#1A1A18] text-2xl">${info.price.toLocaleString("es-CL")}</p>
+              <p className="font-bold text-[#1A1A18] text-2xl">${getPrice(info).toLocaleString("es-CL")}</p>
             </div>
           </div>
 
@@ -375,22 +398,40 @@ export default function FinalClient() {
             )}
           </div>
 
-          {/* Destinatario */}
+          {/* Destinatario / Sucursal */}
           <div className="px-5 py-4">
             <div className="flex items-start gap-3">
               <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-[#FAFAF7] border border-[#E8E8E3] flex items-center justify-center mt-0.5">
                 <MapPinIcon className="w-4 h-4 text-[#E8553D]" />
               </div>
-              <div>
-                <p className="text-xs font-semibold text-[#9C9C95] uppercase tracking-wider mb-1">Destinatario</p>
-                <p className="font-semibold text-[#1A1A18] text-sm">{envio.datos_destino.nombre}</p>
-                <p className="text-[#5C5C57] text-sm leading-snug">
-                  {envio.datos_destino.calle || envio.datos_destino.direccion} {envio.datos_destino.numero || envio.datos_destino.number}{envio.datos_destino.depto ? `, Depto ${envio.datos_destino.depto}` : ""}, {envio.datos_destino.comuna}
-                </p>
-                {envio.datos_destino.telefono && (
-                  <p className="text-[#9C9C95] text-sm mt-0.5">{envio.datos_destino.telefono}</p>
-                )}
-              </div>
+              {courierKey === "starken_sucursal" && envio.sucursal_retiro ? (
+                <div>
+                  <p className="text-xs font-semibold text-[#9C9C95] uppercase tracking-wider mb-1">Sucursal de retiro</p>
+                  <p className="font-semibold text-[#1A1A18] text-sm">
+                    {typeof envio.sucursal_retiro.address === "object"
+                      ? `${(envio.sucursal_retiro.address as any).street ?? ""} ${(envio.sucursal_retiro.address as any).number ?? ""}`.trim()
+                      : envio.sucursal_retiro.address ?? envio.sucursal_retiro.reference}
+                  </p>
+                  <p className="text-[#5C5C57] text-sm">
+                    {typeof envio.sucursal_retiro.address === "object"
+                      ? (envio.sucursal_retiro.address as any).city ?? envio.sucursal_retiro.city
+                      : envio.sucursal_retiro.city}
+                    {envio.sucursal_retiro.locality ? `, ${envio.sucursal_retiro.locality}` : ""}
+                  </p>
+                  <p className="text-xs text-[#9C9C95] mt-1">Para: {envio.datos_destino.nombre}</p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-xs font-semibold text-[#9C9C95] uppercase tracking-wider mb-1">Destinatario</p>
+                  <p className="font-semibold text-[#1A1A18] text-sm">{envio.datos_destino.nombre}</p>
+                  <p className="text-[#5C5C57] text-sm leading-snug">
+                    {envio.datos_destino.calle || envio.datos_destino.direccion} {envio.datos_destino.numero || envio.datos_destino.number}{envio.datos_destino.depto ? `, Depto ${envio.datos_destino.depto}` : ""}, {envio.datos_destino.comuna}
+                  </p>
+                  {envio.datos_destino.telefono && (
+                    <p className="text-[#9C9C95] text-sm mt-0.5">{envio.datos_destino.telefono}</p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

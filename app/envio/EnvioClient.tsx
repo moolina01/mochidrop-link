@@ -703,9 +703,9 @@ export default function EnvioClient() {
                             ⚡ Más rápido
                           </span>
                         )}
-                        {key === "blueexpress" && cot.tipo && (
+                        {key === "blueexpress" && (
                           <span className="text-[10px] font-bold text-[#0055B8] bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full">
-                            {cot.tipo}
+                            {cot.tipo ?? cot.service ?? "Priority"}
                           </span>
                         )}
                       </div>

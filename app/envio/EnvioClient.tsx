@@ -105,6 +105,11 @@ const COURIER_CONFIG: Record<string, { color: string; colorLight: string; label:
     colorLight: "#FFF0EE",
     label: "99 Minutos",
   },
+  "99minutos": {
+    color: "#FF3B30",
+    colorLight: "#FFF0EE",
+    label: "99 Minutos",
+  },
 };
 
 // Orden de visualización
@@ -115,6 +120,7 @@ const COURIER_ORDER = [
   "chilexpress",
   "blueexpress",
   "noventa9Minutos",
+  "99minutos",
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -692,7 +698,7 @@ export default function EnvioClient() {
                             Retiro en sucursal
                           </span>
                         )}
-                        {key === "noventa9Minutos" && (
+                        {(key === "noventa9Minutos" || key === "99minutos") && (
                           <span className="text-[10px] font-bold text-[#FF3B30] bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-full">
                             ⚡ Más rápido
                           </span>

@@ -86,6 +86,11 @@ const COURIER_CONFIG: Record<string, { color: string; colorLight: string; label:
     colorLight: "#FFF0EE",
     label: "99 Minutos",
   },
+  "99minutos": {
+    color: "#FF3B30",
+    colorLight: "#FFF0EE",
+    label: "99 Minutos",
+  },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

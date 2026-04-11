@@ -63,6 +63,7 @@ const COURIER_STYLES: Record<string, { color: string; label: string }> = {
   chilexpress:       { color: "text-red-600",   label: "Chilexpress"       },
   blueexpress:       { color: "text-blue-700",  label: "Blue Express"      },
   noventa9Minutos:   { color: "text-red-500",   label: "99 Minutos"        },
+  "99minutos":       { color: "text-red-500",   label: "99 Minutos"        },
 };
 
 function LoadingFallback() {

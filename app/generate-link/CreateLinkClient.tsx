@@ -379,87 +379,27 @@ function LimitModal({ onClose }: { onClose: () => void }) {
 
 // ─── SettingsModal ────────────────────────────────────────────────────────────
 
-function Toggle({ active, onChange, disabled }: { active: boolean; onChange: () => void; disabled?: boolean }) {
-  return (
-    <button onClick={onChange} disabled={disabled} style={{
-      flexShrink: 0, width: 44, height: 24, borderRadius: 100,
-      background: active ? "#E8553D" : "#D1D1CC",
-      border: "none", cursor: disabled ? "not-allowed" : "pointer",
-      position: "relative", transition: "background 0.2s", marginLeft: 16,
-    }}>
-      <div style={{
-        position: "absolute", top: 3, width: 18, height: 18, borderRadius: "50%",
-        background: "#fff", transition: "left 0.2s",
-        left: active ? 23 : 3, boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
-      }} />
-    </button>
-  );
-}
-
 function SettingsModal({
-  askInstagram, onToggleInstagram,
-  pymeSlug, linkFijoEnabled, defaultDims,
-  onSaveLinkFijo,
-  onClose,
+  askInstagram, onToggle, onClose,
 }: {
   askInstagram: boolean;
-  onToggleInstagram: (val: boolean) => Promise<void>;
-  pymeSlug: string;
-  linkFijoEnabled: boolean;
-  defaultDims: { largo: string; alto: string; ancho: string; peso: string };
-  onSaveLinkFijo: (enabled: boolean, dims: { largo: string; alto: string; ancho: string; peso: string }) => Promise<void>;
+  onToggle: (val: boolean) => Promise<void>;
   onClose: () => void;
 }) {
   const [saving, setSaving] = useState(false);
-  const [savingFijo, setSavingFijo] = useState(false);
-  const [fijoEnabled, setFijoEnabled] = useState(linkFijoEnabled);
-  const [dims, setDims] = useState(defaultDims);
-  const [fijoSaved, setFijoSaved] = useState(false);
 
-  const dimsComplete = Number(dims.largo) > 0 && Number(dims.alto) > 0 && Number(dims.ancho) > 0 && Number(dims.peso) > 0;
-  const fijoUrl = pymeSlug ? `${typeof window !== "undefined" ? window.location.origin : ""}/${pymeSlug}` : "";
-
-  async function handleToggleInstagram() {
+  async function handleToggle() {
     setSaving(true);
-    await onToggleInstagram(!askInstagram);
+    await onToggle(!askInstagram);
     setSaving(false);
   }
-
-  async function handleSaveLinkFijo() {
-    if (fijoEnabled && !dimsComplete) return;
-    setSavingFijo(true);
-    await onSaveLinkFijo(fijoEnabled, dims);
-    setSavingFijo(false);
-    setFijoSaved(true);
-    setTimeout(() => setFijoSaved(false), 2000);
-  }
-
-  const dimInput = (label: string, key: keyof typeof dims) => (
-    <div>
-      <p style={{ margin: "0 0 5px", fontSize: 12, fontWeight: 600, color: "#5C5C57" }}>{label}</p>
-      <input
-        type="number"
-        value={dims[key]}
-        placeholder="0"
-        onChange={(e) => setDims((s) => ({ ...s, [key]: e.target.value.replace(/[^\d.]/g, "") }))}
-        style={{
-          width: "100%", boxSizing: "border-box",
-          border: "1px solid #E8E8E3", borderRadius: 8,
-          padding: "9px 10px", fontSize: 13, color: "#1A1A18",
-          background: "#FAFAF7", outline: "none", fontFamily: "inherit",
-        }}
-        onFocus={(e) => { e.currentTarget.style.borderColor = "#E8553D"; }}
-        onBlur={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; }}
-      />
-    </div>
-  );
 
   return (
     <ModalOverlay>
       <div style={{
         background: "#fff", borderRadius: 20, padding: "32px",
-        width: "100%", maxWidth: 420, boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-        position: "relative", maxHeight: "90vh", overflowY: "auto",
+        width: "100%", maxWidth: 400, boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+        position: "relative",
       }}>
         <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "#9C9C95", fontFamily: "inherit", lineHeight: 1 }}>✕</button>
 
@@ -476,75 +416,32 @@ function SettingsModal({
           </div>
         </div>
 
-        {/* Instagram toggle */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           border: "1px solid", borderColor: askInstagram ? "#E8553D" : "#E8E8E3",
-          borderRadius: 12, padding: "14px 16px", transition: "border-color 0.2s", marginBottom: 12,
+          borderRadius: 12, padding: "14px 16px", transition: "border-color 0.2s",
         }}>
           <div>
             <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1A1A18" }}>Pedir Instagram al cliente</p>
             <p style={{ margin: "3px 0 0", fontSize: 12, color: "#9C9C95" }}>El cliente ingresa su @usuario al llenar el formulario</p>
           </div>
-          <Toggle active={askInstagram} onChange={handleToggleInstagram} disabled={saving} />
-        </div>
-
-        {/* Separador */}
-        <div style={{ height: 1, background: "#F0F0EB", margin: "20px 0" }} />
-
-        {/* Link fijo */}
-        <div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-            <div>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1A1A18" }}>Link fijo de tu tienda</p>
-              <p style={{ margin: "3px 0 0", fontSize: 12, color: "#9C9C95" }}>Un link permanente con dimensiones fijas para todos tus envíos</p>
-            </div>
-            <Toggle active={fijoEnabled} onChange={() => setFijoEnabled((v) => !v)} />
-          </div>
-
-          {fijoEnabled && (
-            <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-              <p style={{ margin: 0, fontSize: 12, color: "#5C5C57", fontWeight: 600 }}>
-                Dimensiones por defecto del paquete
-              </p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                {dimInput("Largo (cm)", "largo")}
-                {dimInput("Alto (cm)", "alto")}
-                {dimInput("Ancho (cm)", "ancho")}
-                {dimInput("Peso (kg)", "peso")}
-              </div>
-
-              {fijoUrl && (
-                <div style={{ background: "#fdf3f0", borderRadius: 10, padding: "10px 12px" }}>
-                  <p style={{ margin: "0 0 3px", fontSize: 11, fontWeight: 600, color: "#9C9C95" }}>Tu link fijo será:</p>
-                  <p style={{ margin: 0, fontFamily: "ui-monospace, monospace", fontSize: 12, color: "#c0391b", wordBreak: "break-all" }}>
-                    {fijoUrl}
-                  </p>
-                </div>
-              )}
-
-              {!dimsComplete && (
-                <p style={{ margin: 0, fontSize: 12, color: "#9C9C95", textAlign: "center" }}>
-                  Completa las dimensiones para activar el link fijo
-                </p>
-              )}
-            </div>
-          )}
-
-          <button
-            onClick={handleSaveLinkFijo}
-            disabled={savingFijo || (fijoEnabled && !dimsComplete)}
-            style={{
-              width: "100%", marginTop: 16, padding: "12px",
-              borderRadius: 10, border: "none", fontSize: 14, fontWeight: 700,
-              color: "#fff", fontFamily: "inherit", cursor: "pointer",
-              background: fijoSaved ? "#2D8A56" : savingFijo || (fijoEnabled && !dimsComplete) ? "#D1D1CC" : "#E8553D",
-              transition: "background 0.2s",
-            }}
-          >
-            {savingFijo ? "Guardando…" : fijoSaved ? "✓ Guardado" : "Guardar configuración"}
+          <button onClick={handleToggle} disabled={saving} style={{
+            flexShrink: 0, width: 44, height: 24, borderRadius: 100,
+            background: askInstagram ? "#E8553D" : "#D1D1CC",
+            border: "none", cursor: saving ? "not-allowed" : "pointer",
+            position: "relative", transition: "background 0.2s", marginLeft: 16,
+          }}>
+            <div style={{
+              position: "absolute", top: 3, width: 18, height: 18, borderRadius: "50%",
+              background: "#fff", transition: "left 0.2s",
+              left: askInstagram ? 23 : 3, boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+            }} />
           </button>
         </div>
+
+        <p style={{ margin: "12px 0 0", fontSize: 12, color: "#9C9C95", textAlign: "center" }}>
+          {saving ? "Guardando…" : askInstagram ? "✓ Activo — tus nuevos links pedirán Instagram" : "Desactivado — el campo no aparece"}
+        </p>
       </div>
     </ModalOverlay>
   );
@@ -579,9 +476,6 @@ export default function CreateLinkClient() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [linksCount, setLinksCount] = useState<{ used: number; limit: number } | null>(null);
   const [askInstagram, setAskInstagram] = useState(false);
-  const [pymeSlug, setPymeSlug] = useState("");
-  const [linkFijoEnabled, setLinkFijoEnabled] = useState(false);
-  const [defaultDims, setDefaultDims] = useState({ largo: "", alto: "", ancho: "", peso: "" });
 
   const profileComplete = useMemo(() => isProfileComplete(profile), [profile]);
   const pkgComplete = useMemo(() => isPackageComplete(pkg), [pkg]);
@@ -615,21 +509,13 @@ export default function CreateLinkClient() {
     if (!user) { setLinksCount(null); setAskInstagram(false); return; }
     supabase
       .from("pymes")
-      .select("links_creados, limite_links, ask_instagram, nombre_tienda, logo_url, origen_comuna, origen_calle, origen_numero, origen_depto, slug, link_fijo_enabled, default_largo, default_alto, default_ancho, default_peso")
+      .select("links_creados, limite_links, ask_instagram, nombre_tienda, logo_url, origen_comuna, origen_calle, origen_numero, origen_depto, whatsapp")
       .eq("auth_id", user.id)
       .single()
       .then(({ data }) => {
         if (data) {
           setLinksCount({ used: data.links_creados, limit: data.limite_links });
           setAskInstagram(data.ask_instagram ?? false);
-          setPymeSlug(data.slug ?? "");
-          setLinkFijoEnabled(data.link_fijo_enabled ?? false);
-          setDefaultDims({
-            largo: String(data.default_largo ?? ""),
-            alto: String(data.default_alto ?? ""),
-            ancho: String(data.default_ancho ?? ""),
-            peso: String(data.default_peso ?? ""),
-          });
           const loadedProfile: ProfileState = {
             nombrePyme: data.nombre_tienda ?? "",
             logoFile: null,
@@ -692,7 +578,6 @@ export default function CreateLinkClient() {
         setProfile((p) => ({ ...p, logoUrl }));
       }
 
-      const newSlug = slugify(profile.nombrePyme);
       await supabase.from("pymes").update({
         nombre_tienda: profile.nombrePyme.trim(),
         logo_url: logoUrl || null,
@@ -700,9 +585,7 @@ export default function CreateLinkClient() {
         origen_calle: profile.origenCalle.trim(),
         origen_numero: profile.origenNumero.trim(),
         origen_depto: profile.origenDepto.trim() || null,
-        slug: newSlug || null,
       }).eq("auth_id", currentUser.id);
-      setPymeSlug(newSlug);
 
       setProfileSaved(true);
       setTimeout(() => {
@@ -791,8 +674,6 @@ export default function CreateLinkClient() {
       // Si el perfil local no está guardado en DB (usuario recién registrado), guardarlo ahora.
       const profileAlreadySaved = Boolean(pymeData?.nombre_tienda);
       const updates: Record<string, unknown> = { links_creados: newCount };
-      const newSlug = slugify(profile.nombrePyme);
-      updates.slug = newSlug || null;
       if (!profileAlreadySaved && isProfileComplete(profile)) {
         updates.nombre_tienda = profile.nombrePyme.trim();
         updates.logo_url = logoUrl || null;
@@ -801,7 +682,6 @@ export default function CreateLinkClient() {
         updates.origen_numero = profile.origenNumero.trim();
         updates.origen_depto = profile.origenDepto.trim() || null;
       }
-      setPymeSlug(newSlug);
       await supabase
         .from("pymes")
         .update(updates)
@@ -843,20 +723,6 @@ export default function CreateLinkClient() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  async function handleSaveLinkFijo(enabled: boolean, dims: { largo: string; alto: string; ancho: string; peso: string }) {
-    setLinkFijoEnabled(enabled);
-    setDefaultDims(dims);
-    if (user) {
-      await supabase.from("pymes").update({
-        link_fijo_enabled: enabled,
-        default_largo: Number(dims.largo) || null,
-        default_alto: Number(dims.alto) || null,
-        default_ancho: Number(dims.ancho) || null,
-        default_peso: Number(dims.peso) || null,
-      }).eq("auth_id", user.id);
-    }
-  }
-
   async function copyWhatsAppMsg() {
     if (!generatedUrl) return;
     const msg = `Para coordinar tu pedido necesito que completes este formulario con tus datos: 👉 ${generatedUrl} Es rápido, menos de 1 minuto 🙌 — ${profile.nombrePyme}`;
@@ -896,16 +762,12 @@ export default function CreateLinkClient() {
       {showSettingsModal && (
         <SettingsModal
           askInstagram={askInstagram}
-          onToggleInstagram={async (val) => {
+          onToggle={async (val) => {
             setAskInstagram(val);
             if (user) {
               await supabase.from("pymes").update({ ask_instagram: val }).eq("auth_id", user.id);
             }
           }}
-          pymeSlug={pymeSlug}
-          linkFijoEnabled={linkFijoEnabled}
-          defaultDims={defaultDims}
-          onSaveLinkFijo={handleSaveLinkFijo}
           onClose={() => setShowSettingsModal(false)}
         />
       )}
@@ -1212,37 +1074,6 @@ export default function CreateLinkClient() {
                       }}
                     >
                       Configurar →
-                    </button>
-                  </div>
-                )}
-
-                {/* Banner link fijo */}
-                {linkFijoEnabled && pymeSlug && (
-                  <div style={{
-                    background: "#F5FBF7", border: "1px solid rgba(45,138,86,0.25)",
-                    borderRadius: 14, padding: "14px 18px",
-                    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
-                  }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: "0 0 3px", fontSize: 12, fontWeight: 700, color: "#2D8A56", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                        Tu link fijo activo
-                      </p>
-                      <p style={{
-                        margin: 0, fontFamily: "ui-monospace, monospace", fontSize: 11, color: "#1A6B3C",
-                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                      }}>
-                        {`${window.location.origin}/${pymeSlug}`}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => navigator.clipboard.writeText(`${window.location.origin}/${pymeSlug}`).catch(() => {})}
-                      style={{
-                        flexShrink: 0, background: "#2D8A56", border: "none", borderRadius: 8,
-                        padding: "7px 12px", fontSize: 12, fontWeight: 600, color: "#fff",
-                        cursor: "pointer", fontFamily: "inherit",
-                      }}
-                    >
-                      Copiar
                     </button>
                   </div>
                 )}

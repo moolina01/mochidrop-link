@@ -23,11 +23,13 @@ export default async function PymeLandingPage({
 }) {
   const { slug } = await params;
 
-  const { data: pyme } = await supabaseServer
+  const { data: pyme, error } = await supabaseServer
     .from("pymes")
     .select("auth_id, nombre_tienda, logo_url, ask_instagram, link_fijo_enabled, default_largo, default_alto, default_ancho, default_peso")
     .eq("slug", slug)
     .single();
+
+  console.log("[link-fijo] slug:", slug, "| pyme:", pyme, "| error:", error);
 
   if (!pyme || !pyme.link_fijo_enabled) {
     notFound();

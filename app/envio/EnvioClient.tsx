@@ -288,9 +288,9 @@ function SucursalSelector({
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export default function EnvioClient() {
+export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
   const searchParams = useSearchParams();
-  const id = searchParams.get("id");
+  const id = envioId ?? searchParams.get("id");
 
   const [envio, setEnvio] = useState<EnvioType | null>(null);
   const [loading, setLoading] = useState(true);

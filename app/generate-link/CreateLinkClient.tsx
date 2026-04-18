@@ -1,12 +1,28 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/utils/supabase";
 import type { User } from "@supabase/supabase-js";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const N8N_CREATE_LINK = "/api/crear-envio";
+const TEMPLATES_KEY = "ld_pkg_templates";
+const MAX_TEMPLATES = 3;
+
+function templateLabel(pkg: PackageState): string {
+  return `${pkg.largo}×${pkg.alto}×${pkg.ancho} cm · ${pkg.peso} kg`;
+}
+
+function saveTemplate(pkg: PackageState) {
+  try {
+    const label = templateLabel(pkg);
+    const existing: PackageTemplate[] = JSON.parse(localStorage.getItem(TEMPLATES_KEY) ?? "[]");
+    const deduped = existing.filter((t) => t.label !== label);
+    const updated = [{ ...pkg, label }, ...deduped].slice(0, MAX_TEMPLATES);
+    localStorage.setItem(TEMPLATES_KEY, JSON.stringify(updated));
+  } catch {}
+}
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -28,6 +44,8 @@ type PackageState = {
   peso: string;
 };
 
+type PackageTemplate = PackageState & { label: string };
+
 type ActiveTab = "tienda" | "crear";
 
 const DEFAULT_PROFILE: ProfileState = {
@@ -47,6 +65,16 @@ const DEFAULT_PACKAGE: PackageState = {
   ancho: "",
   peso: "",
 };
+
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+}
 
 function isProfileComplete(p: ProfileState) {
   return (
@@ -433,7 +461,12 @@ export default function CreateLinkClient() {
   const [loading, setLoading] = useState(false);
   const [generatedUrl, setGeneratedUrl] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copiedMsg, setCopiedMsg] = useState(false);
   const [error, setError] = useState("");
+
+  const [templates, setTemplates] = useState<PackageTemplate[]>([]);
+
+  const generatedCardRef = useRef<HTMLDivElement>(null);
 
   // Auth
   const [user, setUser] = useState<User | null>(null);
@@ -451,6 +484,16 @@ export default function CreateLinkClient() {
   const allDims = pkg.largo && pkg.alto && pkg.ancho && pkg.peso
     ? `${pkg.largo}×${pkg.alto}×${pkg.ancho} cm · ${pkg.peso} kg`
     : null;
+
+  // Restaurar link generado y templates al recargar
+  useEffect(() => {
+    const saved = localStorage.getItem("ld_last_url");
+    if (saved) setGeneratedUrl(saved);
+    try {
+      const t: PackageTemplate[] = JSON.parse(localStorage.getItem(TEMPLATES_KEY) ?? "[]");
+      if (t.length) setTemplates(t);
+    } catch {}
+  }, []);
 
   // Auth listener
   useEffect(() => {
@@ -483,19 +526,23 @@ export default function CreateLinkClient() {
             origenNumero: data.origen_numero ?? "",
             origenDepto: data.origen_depto ?? "",
           };
-          setProfile(loadedProfile);
-          // Si el perfil está completo, abrir directo en "Crear Link"
-          if (
-            data.nombre_tienda &&
-            data.origen_comuna &&
-            data.origen_calle &&
-            data.origen_numero
-          ) {
+          // Solo sobrescribir el formulario si el DB tiene datos guardados.
+          // Para nuevos usuarios el DB está vacío — no pisar lo que ya escribieron.
+          if (isProfileComplete(loadedProfile)) {
+            setProfile(loadedProfile);
             setActiveTab("crear");
           }
         }
       });
   }, [user]);
+
+  useEffect(() => {
+    if (generatedUrl && generatedCardRef.current) {
+      setTimeout(() => {
+        generatedCardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }, 120);
+    }
+  }, [generatedUrl]);
 
   function setP<K extends keyof ProfileState>(key: K, value: ProfileState[K]) {
     setProfile((s) => ({ ...s, [key]: value }));
@@ -569,7 +616,7 @@ export default function CreateLinkClient() {
     try {
       const { data: pymeData } = await supabase
         .from("pymes")
-        .select("links_creados, limite_links, email, ask_instagram")
+        .select("links_creados, limite_links, email, ask_instagram, nombre_tienda")
         .eq("auth_id", currentUser.id)
         .single();
 
@@ -624,13 +671,33 @@ export default function CreateLinkClient() {
       if (!id) throw new Error("N8N respondió OK pero no devolvió el ID del envío. Revisa el workflow en N8N.");
 
       const newCount = (pymeData?.links_creados ?? 0) + 1;
+      // Si el perfil local no está guardado en DB (usuario recién registrado), guardarlo ahora.
+      const profileAlreadySaved = Boolean(pymeData?.nombre_tienda);
+      const updates: Record<string, unknown> = { links_creados: newCount };
+      if (!profileAlreadySaved && isProfileComplete(profile)) {
+        updates.nombre_tienda = profile.nombrePyme.trim();
+        updates.logo_url = logoUrl || null;
+        updates.origen_comuna = profile.origenComuna.trim();
+        updates.origen_calle = profile.origenCalle.trim();
+        updates.origen_numero = profile.origenNumero.trim();
+        updates.origen_depto = profile.origenDepto.trim() || null;
+      }
       await supabase
         .from("pymes")
-        .update({ links_creados: newCount })
+        .update(updates)
         .eq("auth_id", currentUser.id);
       setLinksCount((prev) => prev ? { ...prev, used: newCount } : prev);
 
-      setGeneratedUrl(`${window.location.origin}/envio?id=${id}`);
+      const slug = slugify(profile.nombrePyme);
+      const code = Number(id).toString(36);
+      const base = slug ? `/${slug}/envio/${code}` : `/envio?id=${id}`;
+      const newUrl = `${window.location.origin}${base}`;
+      localStorage.setItem("ld_last_url", newUrl);
+      setGeneratedUrl(newUrl);
+      saveTemplate(pkg);
+      setTemplates(() => {
+        try { return JSON.parse(localStorage.getItem(TEMPLATES_KEY) ?? "[]"); } catch { return []; }
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
     } finally {
@@ -656,6 +723,14 @@ export default function CreateLinkClient() {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  async function copyWhatsAppMsg() {
+    if (!generatedUrl) return;
+    const msg = `Para coordinar tu pedido necesito que completes este formulario con tus datos: 👉 ${generatedUrl} Es rápido, menos de 1 minuto 🙌 — ${profile.nombrePyme}`;
+    await navigator.clipboard.writeText(msg).catch(() => {});
+    setCopiedMsg(true);
+    setTimeout(() => setCopiedMsg(false), 2500);
+  }
+
   return (
     <div style={{ overflowX: "hidden" }}>
       <style>{`
@@ -671,6 +746,16 @@ export default function CreateLinkClient() {
           .gen-header-email { display: none; }
           .gen-links-count { font-size: 11px; }
         }
+        @keyframes link-slide-up {
+          0% { opacity: 0; transform: translateY(12px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes confirm-pop {
+          0% { transform: scale(0.5); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        .link-slide-up { animation: link-slide-up 0.3s ease both; }
+        .confirm-icon { animation: confirm-pop 0.3s ease-out both; }
       `}</style>
 
       {/* Modales */}
@@ -777,7 +862,7 @@ export default function CreateLinkClient() {
             Tu cliente elige courier y paga solo.
           </h1>
           <p style={{ margin: 0, fontSize: 15, color: "#5C5C57" }}>
-            Configura tu tienda una vez, luego crea links en segundos.
+            Configura tu tienda una vez — después crear links toma menos de 30 segundos.
           </p>
         </div>
 
@@ -823,18 +908,21 @@ export default function CreateLinkClient() {
             {/* ════ TAB 1: Mi Tienda ════ */}
             {activeTab === "tienda" && (
               <>
-                {/* 1 — Tu negocio */}
+                {/* 1 — Identidad */}
                 <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "24px", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
-                  <SectionTitle n={1} label="Tu negocio" />
+                  <SectionTitle n={1} label="Tu tienda" />
+                  <p style={{ margin: "-8px 0 18px", fontSize: 13, color: "#9C9C95" }}>
+                    Aparece en el encabezado del link que ve tu cliente.
+                  </p>
                   <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                    <Field label="Nombre de tu tienda *">
+                    <Field label="Nombre *">
                       <TextInput
                         value={profile.nombrePyme}
                         onChange={(v) => setP("nombrePyme", v)}
                         placeholder="Ej: Tienda Luna"
                       />
                     </Field>
-                    <Field label="Logo" hint="Opcional — aparece en el link que ve tu cliente">
+                    <Field label="Logo" hint="Opcional — dale cara a tu tienda">
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <div style={{
                           width: 44, height: 44, borderRadius: 10,
@@ -854,7 +942,7 @@ export default function CreateLinkClient() {
                           border: "1px solid #E8E8E3", borderRadius: 8,
                           padding: "8px 14px", fontSize: 13, fontWeight: 600, color: "#1A1A18",
                         }}>
-                          {profile.logoPreview ? "Cambiar logo" : "Subir logo"}
+                          {profile.logoPreview ? "Cambiar" : "Subir logo"}
                           <input type="file" accept="image/*" style={{ display: "none" }}
                             onChange={(e) => onPickLogo(e.target.files?.[0])} />
                         </label>
@@ -870,54 +958,36 @@ export default function CreateLinkClient() {
                   </div>
                 </div>
 
-                {/* 2 — Origen */}
+                {/* 2 — Dirección de retiro */}
                 <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "24px", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
-                  <SectionTitle n={2} label="Desde dónde despachas" />
-                  <p style={{ margin: "0 0 16px", fontSize: 13, color: "#5C5C57" }}>
-                    Dirección de retiro del paquete. Los couriers calculan el precio desde aquí.
+                  <SectionTitle n={2} label="Dirección de retiro" />
+                  <p style={{ margin: "-8px 0 18px", fontSize: 13, color: "#9C9C95" }}>
+                    El courier viene aquí a buscar el paquete. También calcula el precio desde esta dirección.
                   </p>
                   <div className="gen-grid-2col">
-                    <Field label="Comuna de origen *">
-                      <TextInput
-                        value={profile.origenComuna}
-                        onChange={(v) => setP("origenComuna", v)}
-                        placeholder="Ej: Las Condes"
-                      />
+                    <Field label="Comuna *">
+                      <TextInput value={profile.origenComuna} onChange={(v) => setP("origenComuna", v)} placeholder="Ej: Las Condes" />
                     </Field>
                     <Field label="Calle *">
-                      <TextInput
-                        value={profile.origenCalle}
-                        onChange={(v) => setP("origenCalle", v)}
-                        placeholder="Ej: Av. El Bosque"
-                      />
+                      <TextInput value={profile.origenCalle} onChange={(v) => setP("origenCalle", v)} placeholder="Ej: Av. El Bosque" />
                     </Field>
                   </div>
                   <div style={{ marginTop: 12 }} className="gen-grid-2col">
                     <Field label="Número *">
-                      <TextInput
-                        value={profile.origenNumero}
-                        onChange={(v) => setP("origenNumero", v)}
-                        placeholder="Ej: 500"
-                      />
+                      <TextInput value={profile.origenNumero} onChange={(v) => setP("origenNumero", v)} placeholder="Ej: 500" />
                     </Field>
-                    <Field label="Depto / Oficina">
-                      <TextInput
-                        value={profile.origenDepto}
-                        onChange={(v) => setP("origenDepto", v)}
-                        placeholder="Ej: Of. 301"
-                      />
+                    <Field label="Depto / Piso">
+                      <TextInput value={profile.origenDepto} onChange={(v) => setP("origenDepto", v)} placeholder="Opcional" />
                     </Field>
                   </div>
                 </div>
 
-                {/* Profile error */}
                 {profileError && (
                   <div style={{ background: "#FFF0ED", border: "1px solid #E8553D", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#C23E28" }}>
                     {profileError}
                   </div>
                 )}
 
-                {/* Save button */}
                 <button
                   onClick={handleSaveProfile}
                   disabled={!profileComplete || profileSaving}
@@ -925,18 +995,12 @@ export default function CreateLinkClient() {
                     width: "100%", padding: "16px", borderRadius: 14, border: "none",
                     fontSize: 16, fontWeight: 700, color: "#fff", fontFamily: "inherit",
                     cursor: profileComplete && !profileSaving ? "pointer" : "not-allowed",
-                    background: profileSaved
-                      ? "#2D8A56"
-                      : profileComplete && !profileSaving ? "#E8553D" : "#D1D1CC",
+                    background: profileSaved ? "#2D8A56" : profileComplete && !profileSaving ? "#E8553D" : "#D1D1CC",
                     boxShadow: profileComplete && !profileSaving ? "0 4px 20px rgba(232,85,61,0.3)" : "none",
                     transition: "all 0.2s",
                   }}
                 >
-                  {profileSaving
-                    ? "Guardando…"
-                    : profileSaved
-                    ? "✓ Guardado — abriendo Crear Link…"
-                    : "Guardar datos de mi tienda →"}
+                  {profileSaving ? "Guardando…" : profileSaved ? "✓ Guardado" : "Guardar y continuar →"}
                 </button>
 
                 {!profileComplete && (
@@ -1017,8 +1081,29 @@ export default function CreateLinkClient() {
                 {/* Paquete */}
                 <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "24px", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
                   <SectionTitle n={1} label="Dimensiones del paquete" />
-                  <p style={{ margin: "0 0 16px", fontSize: 13, color: "#5C5C57" }}>
-                    Necesario para cotizar el precio real del envío con cada courier.
+                  {templates.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "-4px 0 16px" }}>
+                      {templates.map((t) => (
+                        <button
+                          key={t.label}
+                          onClick={() => setPkg({ largo: t.largo, alto: t.alto, ancho: t.ancho, peso: t.peso })}
+                          style={{
+                            background: "#F5F5F0", border: "1px solid #E8E8E3",
+                            borderRadius: 100, padding: "4px 11px",
+                            fontSize: 11, fontWeight: 500, color: "#5C5C57",
+                            cursor: "pointer", fontFamily: "inherit",
+                            transition: "border-color 0.15s, color 0.15s",
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.color = "#E8553D"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; e.currentTarget.style.color = "#5C5C57"; }}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <p style={{ margin: "-8px 0 18px", fontSize: 13, color: "#9C9C95" }}>
+                    Para cotizar el precio real de cada courier.
                   </p>
                   <div className="gen-grid-4col">
                     <Field label="Largo (cm) *">
@@ -1035,7 +1120,7 @@ export default function CreateLinkClient() {
                     </Field>
                   </div>
                   <p style={{ margin: "12px 0 0", fontSize: 12, color: "#9C9C95" }}>
-                    💡 Si no sabes el peso exacto, estima por exceso. Los couriers cobran por el mayor entre el peso real y el volumétrico.
+                    Sin los datos exactos, estima por exceso.
                   </p>
                 </div>
 
@@ -1068,69 +1153,171 @@ export default function CreateLinkClient() {
                   </p>
                 )}
 
-                {/* Generated URL */}
+                {/* Generated — estado simplificado en panel izquierdo */}
                 {generatedUrl && (
-                  <div style={{ background: "#F5FBF7", border: "1px solid #2D8A56", borderRadius: 14, padding: "20px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-                      <div style={{
-                        width: 24, height: 24, borderRadius: "50%", background: "#2D8A56",
-                        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                  <div ref={generatedCardRef} className="link-slide-up" style={{
+                    background: "#fff",
+                    borderRadius: 16,
+                    border: "1px solid #F0F0EB",
+                    overflow: "hidden",
+                  }}>
+
+                    {/* Confirmación */}
+                    <div style={{ padding: "32px 24px 24px", textAlign: "center" }}>
+                      <div className="confirm-icon" style={{
+                        width: 52, height: 52, borderRadius: "50%",
+                        background: "#fdf3f0",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        margin: "0 auto 18px",
                       }}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E84B2A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="20 6 9 17 4 12" />
                         </svg>
                       </div>
-                      <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#2D8A56" }}>
-                        ¡Link generado! Cópialo y mándalo por WhatsApp.
+                      <p style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 500, color: "#1A1A18", letterSpacing: "-0.02em" }}>
+                        ¡Link listo para compartir!
+                      </p>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 400, color: "#9C9C95" }}>
+                        Revisa el panel derecho para copiarlo y compartirlo.
                       </p>
                     </div>
-                    <div style={{ background: "#fff", border: "1px solid #E8E8E3", borderRadius: 10, padding: "10px 14px", marginBottom: 12 }}>
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1A1A18", wordBreak: "break-all" }}>{generatedUrl}</p>
-                    </div>
-                    <p style={{ margin: "0 0 12px", fontSize: 13, color: "#5C5C57" }}>
-                      Tu cliente abre el link, llena sus datos, elige courier y paga. Tú no tocas nada.
-                    </p>
-                    <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-                      <button onClick={copyUrl} style={{
-                        flex: 1, padding: "11px", borderRadius: 10,
-                        border: "1px solid #E8E8E3", background: "#fff",
-                        fontSize: 14, fontWeight: 700, color: "#1A1A18",
-                        cursor: "pointer", fontFamily: "inherit",
-                      }}>
-                        {copied ? "✓ Copiado" : "📋 Copiar link"}
+
+                    {/* Crear otro */}
+                    <div style={{ padding: "4px 24px 28px" }}>
+                      <button
+                        onClick={() => { localStorage.removeItem("ld_last_url"); setGeneratedUrl(""); setPkg(DEFAULT_PACKAGE); }}
+                        style={{
+                          width: "100%", padding: "13px", borderRadius: 12,
+                          border: "1.5px solid #E8E8E3", background: "transparent",
+                          fontSize: 14, fontWeight: 500, color: "#5C5C57",
+                          cursor: "pointer", fontFamily: "inherit",
+                        }}
+                      >
+                        Crear otro link
                       </button>
-                      <a href={generatedUrl} target="_blank" rel="noreferrer" style={{
-                        flex: 1, padding: "11px", borderRadius: 10,
-                        background: "#1A1A18", fontSize: 14, fontWeight: 700, color: "#fff",
-                        textDecoration: "none", textAlign: "center", display: "block",
-                      }}>
-                        Abrir →
-                      </a>
                     </div>
-                    <button
-                      onClick={() => { setGeneratedUrl(""); setPkg(DEFAULT_PACKAGE); }}
-                      style={{
-                        width: "100%", padding: "11px", borderRadius: 10,
-                        border: "1px solid #E8E8E3", background: "transparent",
-                        fontSize: 13, fontWeight: 600, color: "#5C5C57",
-                        cursor: "pointer", fontFamily: "inherit",
-                      }}
-                    >
-                      Crear otro link →
-                    </button>
                   </div>
                 )}
               </>
             )}
           </div>
 
-          {/* ── RIGHT: Preview ──────────────────────────────────────────────── */}
+          {/* ── RIGHT: Preview / Link generado ─────────────────────────────── */}
           <div style={{ position: "sticky", top: 76, height: "fit-content" }}>
             <p style={{ margin: "0 0 12px", fontSize: 11, fontWeight: 700, color: "#9C9C95", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-              Así lo ve tu cliente
+              {generatedUrl ? "Tu link" : "Así lo ve tu cliente"}
             </p>
 
-            <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E8E8E3", overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+            {/* ── Link generado en el panel derecho ── */}
+            {generatedUrl && (
+              <div className="link-slide-up" style={{
+                background: "#fff", borderRadius: 16,
+                border: "1px solid #F0F0EB", overflow: "hidden",
+              }}>
+                {/* URL card */}
+                <div style={{ padding: "16px 16px 12px" }}>
+                  <div style={{
+                    background: "#fdf3f0", borderRadius: 12,
+                    padding: "12px 14px",
+                    display: "flex", alignItems: "center", gap: 10,
+                  }}>
+                    <p style={{
+                      margin: 0, flex: 1,
+                      fontFamily: "ui-monospace, 'Cascadia Code', monospace",
+                      fontSize: 11, fontWeight: 400, color: "#c0391b",
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>
+                      {generatedUrl}
+                    </p>
+                    <button onClick={copyUrl} title={copied ? "Copiado" : "Copiar link"} style={{
+                      flexShrink: 0, width: 30, height: 30, borderRadius: 8,
+                      border: "none", background: copied ? "#c93d27" : "#E84B2A",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      cursor: "pointer", transition: "background 0.15s",
+                    }}>
+                      {copied ? (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      ) : (
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="9" y="9" width="13" height="13" rx="2" />
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                  {allDims && (
+                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 10 }}>
+                      {[allDims, "4 couriers", "Válido 48h"].map((chip) => (
+                        <span key={chip} style={{
+                          background: "#F5F5F0", borderRadius: 100,
+                          padding: "3px 10px", fontSize: 10, color: "#5C5C57",
+                        }}>{chip}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Compartir */}
+                <div style={{ borderTop: "1px solid #F0F0EB", padding: "12px 16px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
+                    <a
+                      href={`https://wa.me/?text=${encodeURIComponent(`Para coordinar tu pedido necesito que completes este formulario con tus datos: 👉 ${generatedUrl} Es rápido, menos de 1 minuto 🙌 — ${profile.nombrePyme}`)}`}
+                      target="_blank" rel="noreferrer"
+                      style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: "10px 6px", borderRadius: 10, border: "1px solid #F0F0EB", background: "#fff", fontSize: 10, fontWeight: 500, color: "#1A1A18", textDecoration: "none" }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="#25D366">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z" />
+                      </svg>
+                      WhatsApp
+                    </a>
+                    <a
+                      href={`mailto:?subject=${encodeURIComponent(`Link de envío — ${profile.nombrePyme}`)}&body=${encodeURIComponent(`Hola, para coordinar tu pedido completa este formulario: ${generatedUrl}`)}`}
+                      style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: "10px 6px", borderRadius: 10, border: "1px solid #F0F0EB", background: "#fff", fontSize: 10, fontWeight: 500, color: "#1A1A18", textDecoration: "none" }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C5C57" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="4" width="20" height="16" rx="2" /><path d="M2 7l10 7 10-7" />
+                      </svg>
+                      Email
+                    </a>
+                    <button
+                      onClick={() => { if (typeof navigator !== "undefined" && navigator.share) { navigator.share({ title: `Link de envío — ${profile.nombrePyme}`, url: generatedUrl }); } else { copyUrl(); } }}
+                      style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, padding: "10px 6px", borderRadius: 10, border: "1px solid #F0F0EB", background: "#fff", fontSize: 10, fontWeight: 500, color: "#1A1A18", cursor: "pointer", fontFamily: "inherit" }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5C5C57" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                        <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
+                      </svg>
+                      Compartir
+                    </button>
+                  </div>
+                </div>
+
+                {/* Cuota */}
+                {linksCount && (
+                  <div style={{ borderTop: "1px solid #F0F0EB", padding: "12px 16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <p style={{ margin: 0, fontSize: 11, color: "#9C9C95" }}>Links usados</p>
+                      <p style={{ margin: 0, fontSize: 11, fontWeight: 500, color: linksCount.used >= linksCount.limit ? "#E84B2A" : "#1A1A18" }}>
+                        {linksCount.used} / {linksCount.limit}
+                      </p>
+                    </div>
+                    <div style={{ height: 3, background: "#F0F0EB", borderRadius: 100, overflow: "hidden" }}>
+                      <div style={{
+                        height: "100%",
+                        width: `${Math.min((linksCount.used / linksCount.limit) * 100, 100)}%`,
+                        background: linksCount.used >= linksCount.limit ? "#E84B2A" : "#1A1A18",
+                        borderRadius: 100, transition: "width 0.4s ease",
+                      }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Preview del formulario (cuando no hay link generado) ── */}
+            {!generatedUrl && <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E8E8E3", overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
               {/* Header de la tienda */}
               <div style={{ background: "#FAFAF7", padding: "14px 16px", borderBottom: "1px solid #E8E8E3", display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{
@@ -1207,21 +1394,23 @@ export default function CreateLinkClient() {
                   🔒 Pago seguro con FLOW
                 </p>
               </div>
-            </div>
+            </div>}
 
-            {/* Info pills */}
-            <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
-              {[
-                "Los precios de courier se calculan en tiempo real al generar el link",
-                "Tu cliente paga con tarjeta — sin transferencias",
-                "La guía de despacho llega a tu correo automáticamente",
-              ].map((tip, i) => (
-                <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                  <span style={{ fontSize: 12, flexShrink: 0, marginTop: 1 }}>✓</span>
-                  <p style={{ margin: 0, fontSize: 12, color: "#5C5C57" }}>{tip}</p>
-                </div>
-              ))}
-            </div>
+            {/* Info pills — solo cuando no hay link generado */}
+            {!generatedUrl && (
+              <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+                {[
+                  "Los precios de courier se calculan en tiempo real al generar el link",
+                  "Tu cliente paga con tarjeta — sin transferencias",
+                  "La guía de despacho llega a tu correo automáticamente",
+                ].map((tip, i) => (
+                  <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                    <span style={{ fontSize: 12, flexShrink: 0, marginTop: 1 }}>✓</span>
+                    <p style={{ margin: 0, fontSize: 12, color: "#5C5C57" }}>{tip}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
         </div>

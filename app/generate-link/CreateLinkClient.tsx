@@ -845,9 +845,26 @@ export default function CreateLinkClient() {
               </div>
             )}
             {!user && (
-              <a href="/" style={{ fontSize: 13, color: "#5C5C57", textDecoration: "none", fontWeight: 500 }}>
-                ← Volver al inicio
-              </a>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <a href="/" style={{ fontSize: 13, color: "#5C5C57", textDecoration: "none", fontWeight: 500 }}>
+                  ← Volver al inicio
+                </a>
+                <button
+                  onClick={() => { setPendingAction(null); setShowAuthModal(true); }}
+                  title="Iniciar sesión"
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    width: 34, height: 34, borderRadius: "50%",
+                    background: "#F5F5F0", border: "1px solid #E8E8E3",
+                    cursor: "pointer", color: "#5C5C57", flexShrink: 0,
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </button>
+              </div>
             )}
           </div>
         </div>

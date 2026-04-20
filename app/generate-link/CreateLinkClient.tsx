@@ -485,16 +485,6 @@ export default function CreateLinkClient() {
     ? `${pkg.largo}×${pkg.alto}×${pkg.ancho} cm · ${pkg.peso} kg`
     : null;
 
-  // Restaurar link generado y templates al recargar
-  useEffect(() => {
-    const saved = localStorage.getItem("ld_last_url");
-    if (saved) setGeneratedUrl(saved);
-    try {
-      const t: PackageTemplate[] = JSON.parse(localStorage.getItem(TEMPLATES_KEY) ?? "[]");
-      if (t.length) setTemplates(t);
-    } catch {}
-  }, []);
-
   // Auth listener
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
@@ -506,7 +496,20 @@ export default function CreateLinkClient() {
 
   // Cargar perfil de pyme cuando hay usuario
   useEffect(() => {
-    if (!user) { setLinksCount(null); setAskInstagram(false); return; }
+    if (!user) {
+      setLinksCount(null);
+      setAskInstagram(false);
+      setGeneratedUrl("");
+      setTemplates([]);
+      return;
+    }
+    // Restaurar link y templates solo si hay sesión activa
+    const saved = localStorage.getItem("ld_last_url");
+    if (saved) setGeneratedUrl(saved);
+    try {
+      const t: PackageTemplate[] = JSON.parse(localStorage.getItem(TEMPLATES_KEY) ?? "[]");
+      if (t.length) setTemplates(t);
+    } catch {}
     supabase
       .from("pymes")
       .select("links_creados, limite_links, ask_instagram, nombre_tienda, logo_url, origen_comuna, origen_calle, origen_numero, origen_depto, whatsapp")

@@ -387,7 +387,15 @@ function LimitModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ─── SettingsModal ────────────────────────────────────────────────────────────
+// ─── SettingsModal + CouriersModal ────────────────────────────────────────────
+
+const COURIER_META: Record<string, { color: string; bg: string; desc: string }> = {
+  starken_domicilio: { color: "#00A651", bg: "#E8F8EE", desc: "Entrega a domicilio" },
+  starken_sucursal:  { color: "#00A651", bg: "#E8F8EE", desc: "Retiro en sucursal" },
+  chilexpress:       { color: "#E6A800", bg: "#FFFBE8", desc: "Entrega a domicilio" },
+  blueexpress:       { color: "#0055B8", bg: "#E8F0FA", desc: "Entrega a domicilio" },
+  noventa9Minutos:   { color: "#FF3B30", bg: "#FFF0EE", desc: "Entrega express" },
+};
 
 function Toggle({ active, onChange, disabled }: { active: boolean; onChange: () => void; disabled?: boolean }) {
   return (
@@ -406,44 +414,144 @@ function Toggle({ active, onChange, disabled }: { active: boolean; onChange: () 
   );
 }
 
+function CouriersModal({
+  couriersHabilitados, onSave, onClose,
+}: {
+  couriersHabilitados: string[];
+  onSave: (couriers: string[]) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [local, setLocal] = useState<string[]>(couriersHabilitados);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  function toggle(key: string) {
+    setLocal((prev) => prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]);
+    setSaved(false);
+  }
+
+  async function handleSave() {
+    if (local.length === 0) return;
+    setSaving(true);
+    await onSave(local);
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => { setSaved(false); onClose(); }, 1200);
+  }
+
+  const activeCount = local.length;
+
+  return (
+    <ModalOverlay>
+      <div style={{
+        background: "#fff", borderRadius: 24, width: "100%", maxWidth: 440,
+        boxShadow: "0 24px 64px rgba(0,0,0,0.18)", position: "relative",
+        overflow: "hidden",
+      }}>
+        {/* Header */}
+        <div style={{ padding: "24px 24px 20px", borderBottom: "1px solid #F0F0EB" }}>
+          <button onClick={onClose} style={{ position: "absolute", top: 18, right: 18, background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#9C9C95", fontFamily: "inherit", lineHeight: 1 }}>✕</button>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#9C9C95", fontFamily: "inherit", fontSize: 13, padding: 0, display: "flex", alignItems: "center", gap: 4 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+              Configuración
+            </button>
+          </div>
+          <h2 style={{ margin: "12px 0 4px", fontSize: 20, fontWeight: 700, color: "#1A1A18" }}>Couriers disponibles</h2>
+          <p style={{ margin: 0, fontSize: 13, color: "#9C9C95" }}>
+            {activeCount === ALL_COURIERS.length ? "Todos activos" : `${activeCount} de ${ALL_COURIERS.length} activos`} · Solo aparecen los que actives
+          </p>
+        </div>
+
+        {/* Lista */}
+        <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
+          {ALL_COURIERS.map(({ key, label }) => {
+            const active = local.includes(key);
+            const meta = COURIER_META[key] ?? { color: "#1A1A18", bg: "#F5F5F0", desc: "" };
+            return (
+              <button
+                key={key}
+                onClick={() => toggle(key)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 14,
+                  background: active ? meta.bg : "#FAFAF7",
+                  border: `1.5px solid ${active ? meta.color : "#E8E8E3"}`,
+                  borderRadius: 14, padding: "14px 16px",
+                  cursor: "pointer", textAlign: "left", width: "100%",
+                  transition: "all 0.18s", fontFamily: "inherit",
+                }}
+              >
+                {/* Barra de color */}
+                <div style={{ width: 4, height: 36, borderRadius: 100, background: meta.color, opacity: active ? 1 : 0.25, flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: active ? "#1A1A18" : "#9C9C95" }}>{label}</p>
+                  <p style={{ margin: "2px 0 0", fontSize: 11, color: active ? "#5C5C57" : "#C8C8C2" }}>{meta.desc}</p>
+                </div>
+                {/* Check / inactive */}
+                <div style={{
+                  width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
+                  background: active ? meta.color : "transparent",
+                  border: `2px solid ${active ? meta.color : "#D1D1CC"}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  transition: "all 0.18s",
+                }}>
+                  {active && (
+                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                      <polyline points="2,6 5,9 10,3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: "12px 20px 24px", borderTop: "1px solid #F0F0EB" }}>
+          {local.length === 0 && (
+            <p style={{ margin: "0 0 10px", fontSize: 12, color: "#C23E28", textAlign: "center" }}>
+              Activa al menos un courier para continuar
+            </p>
+          )}
+          <button
+            onClick={handleSave}
+            disabled={saving || local.length === 0}
+            style={{
+              width: "100%", padding: "14px", borderRadius: 12, border: "none",
+              fontSize: 15, fontWeight: 700, color: "#fff", fontFamily: "inherit", cursor: "pointer",
+              background: saved ? "#2D8A56" : saving || local.length === 0 ? "#D1D1CC" : "#E8553D",
+              transition: "background 0.2s",
+            }}
+          >
+            {saving ? "Guardando…" : saved ? "✓ Guardado" : `Guardar selección`}
+          </button>
+        </div>
+      </div>
+    </ModalOverlay>
+  );
+}
+
 function SettingsModal({
   askInstagram, onToggleInstagram,
-  couriersHabilitados, onSaveCouriers,
+  couriersHabilitados,
+  onOpenCouriers,
   onClose,
 }: {
   askInstagram: boolean;
   onToggleInstagram: (val: boolean) => Promise<void>;
   couriersHabilitados: string[];
-  onSaveCouriers: (couriers: string[]) => Promise<void>;
+  onOpenCouriers: () => void;
   onClose: () => void;
 }) {
   const [savingInsta, setSavingInsta] = useState(false);
-  const [localCouriers, setLocalCouriers] = useState<string[]>(couriersHabilitados);
-  const [savingCouriers, setSavingCouriers] = useState(false);
-  const [couriersSaved, setCouriersSaved] = useState(false);
-
-  function toggleCourier(key: string) {
-    setLocalCouriers((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
-    );
-    setCouriersSaved(false);
-  }
-
-  async function handleSaveCouriers() {
-    if (localCouriers.length === 0) return;
-    setSavingCouriers(true);
-    await onSaveCouriers(localCouriers);
-    setSavingCouriers(false);
-    setCouriersSaved(true);
-    setTimeout(() => setCouriersSaved(false), 2000);
-  }
+  const activeCount = couriersHabilitados.length;
 
   return (
     <ModalOverlay>
       <div style={{
-        background: "#fff", borderRadius: 20, padding: "32px",
+        background: "#fff", borderRadius: 20, padding: "28px",
         width: "100%", maxWidth: 400, boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-        position: "relative", maxHeight: "90vh", overflowY: "auto",
+        position: "relative",
       }}>
         <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "#9C9C95", fontFamily: "inherit", lineHeight: 1 }}>✕</button>
 
@@ -460,62 +568,47 @@ function SettingsModal({
           </div>
         </div>
 
-        {/* Instagram */}
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          border: "1px solid", borderColor: askInstagram ? "#E8553D" : "#E8E8E3",
-          borderRadius: 12, padding: "14px 16px", transition: "border-color 0.2s", marginBottom: 20,
-        }}>
-          <div>
-            <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1A1A18" }}>Pedir Instagram al cliente</p>
-            <p style={{ margin: "3px 0 0", fontSize: 12, color: "#9C9C95" }}>El cliente ingresa su @usuario al llenar el formulario</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {/* Instagram */}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            border: "1px solid", borderColor: askInstagram ? "#E8553D" : "#E8E8E3",
+            borderRadius: 12, padding: "14px 16px", transition: "border-color 0.2s",
+          }}>
+            <div>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1A1A18" }}>Pedir Instagram al cliente</p>
+              <p style={{ margin: "3px 0 0", fontSize: 12, color: "#9C9C95" }}>El cliente ingresa su @usuario al llenar el formulario</p>
+            </div>
+            <Toggle active={askInstagram} disabled={savingInsta} onChange={async () => {
+              setSavingInsta(true);
+              await onToggleInstagram(!askInstagram);
+              setSavingInsta(false);
+            }} />
           </div>
-          <Toggle active={askInstagram} disabled={savingInsta} onChange={async () => {
-            setSavingInsta(true);
-            await onToggleInstagram(!askInstagram);
-            setSavingInsta(false);
-          }} />
+
+          {/* Couriers — navega al modal dedicado */}
+          <button
+            onClick={() => { onClose(); onOpenCouriers(); }}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              border: "1px solid #E8E8E3", borderRadius: 12, padding: "14px 16px",
+              background: "#FAFAF7", cursor: "pointer", width: "100%", textAlign: "left", fontFamily: "inherit",
+              transition: "border-color 0.18s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#1A1A18"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; }}
+          >
+            <div>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1A1A18" }}>Couriers disponibles</p>
+              <p style={{ margin: "3px 0 0", fontSize: 12, color: "#9C9C95" }}>
+                {activeCount === ALL_COURIERS.length ? "Todos activos" : `${activeCount} de ${ALL_COURIERS.length} activos`}
+              </p>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9C9C95" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
         </div>
-
-        {/* Couriers */}
-        <div style={{ height: 1, background: "#F0F0EB", marginBottom: 20 }} />
-        <p style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 700, color: "#1A1A18" }}>Couriers disponibles</p>
-        <p style={{ margin: "-6px 0 14px", fontSize: 12, color: "#9C9C95" }}>Solo aparecen en tus links los que tengas activos</p>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
-          {ALL_COURIERS.map(({ key, label }) => {
-            const active = localCouriers.includes(key);
-            return (
-              <div key={key} style={{
-                display: "flex", alignItems: "center", justifyContent: "space-between",
-                border: "1px solid", borderColor: active ? "#E8553D" : "#E8E8E3",
-                borderRadius: 10, padding: "11px 14px", transition: "border-color 0.2s",
-              }}>
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: active ? "#1A1A18" : "#9C9C95" }}>{label}</p>
-                <Toggle active={active} onChange={() => toggleCourier(key)} />
-              </div>
-            );
-          })}
-        </div>
-
-        {localCouriers.length === 0 && (
-          <p style={{ margin: "0 0 12px", fontSize: 12, color: "#C23E28", textAlign: "center" }}>
-            Activa al menos un courier
-          </p>
-        )}
-
-        <button
-          onClick={handleSaveCouriers}
-          disabled={savingCouriers || localCouriers.length === 0}
-          style={{
-            width: "100%", padding: "12px", borderRadius: 10, border: "none",
-            fontSize: 14, fontWeight: 700, color: "#fff", fontFamily: "inherit", cursor: "pointer",
-            background: couriersSaved ? "#2D8A56" : savingCouriers || localCouriers.length === 0 ? "#D1D1CC" : "#E8553D",
-            transition: "background 0.2s",
-          }}
-        >
-          {savingCouriers ? "Guardando…" : couriersSaved ? "✓ Guardado" : "Guardar couriers"}
-        </button>
       </div>
     </ModalOverlay>
   );
@@ -548,6 +641,7 @@ export default function CreateLinkClient() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showCouriersModal, setShowCouriersModal] = useState(false);
   const [linksCount, setLinksCount] = useState<{ used: number; limit: number } | null>(null);
   const [askInstagram, setAskInstagram] = useState(false);
   const [couriersHabilitados, setCouriersHabilitados] = useState<string[]>(DEFAULT_COURIERS);
@@ -849,11 +943,18 @@ export default function CreateLinkClient() {
             if (user) await supabase.from("pymes").update({ ask_instagram: val }).eq("auth_id", user.id);
           }}
           couriersHabilitados={couriersHabilitados}
-          onSaveCouriers={async (couriers) => {
+          onOpenCouriers={() => setShowCouriersModal(true)}
+          onClose={() => setShowSettingsModal(false)}
+        />
+      )}
+      {showCouriersModal && (
+        <CouriersModal
+          couriersHabilitados={couriersHabilitados}
+          onSave={async (couriers) => {
             setCouriersHabilitados(couriers);
             if (user) await supabase.from("pymes").update({ couriers_habilitados: couriers }).eq("auth_id", user.id);
           }}
-          onClose={() => setShowSettingsModal(false)}
+          onClose={() => setShowCouriersModal(false)}
         />
       )}
       {showAuthModal && (

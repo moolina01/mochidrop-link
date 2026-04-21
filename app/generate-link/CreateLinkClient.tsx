@@ -439,75 +439,93 @@ function CouriersModal({
     setTimeout(() => { setSaved(false); onClose(); }, 1200);
   }
 
-  const activeCount = local.length;
-
   return (
     <ModalOverlay>
       <div style={{
-        background: "#fff", borderRadius: 24, width: "100%", maxWidth: 440,
-        boxShadow: "0 24px 64px rgba(0,0,0,0.18)", position: "relative",
-        overflow: "hidden",
+        background: "#fff", borderRadius: 20, width: "100%", maxWidth: 420,
+        boxShadow: "0 24px 64px rgba(0,0,0,0.15)", position: "relative", overflow: "hidden",
       }}>
-        {/* Header */}
-        <div style={{ padding: "24px 24px 20px", borderBottom: "1px solid #F0F0EB" }}>
-          <button onClick={onClose} style={{ position: "absolute", top: 18, right: 18, background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#9C9C95", fontFamily: "inherit", lineHeight: 1 }}>✕</button>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#9C9C95", fontFamily: "inherit", fontSize: 13, padding: 0, display: "flex", alignItems: "center", gap: 4 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
-              Configuración
-            </button>
-          </div>
-          <h2 style={{ margin: "12px 0 4px", fontSize: 20, fontWeight: 700, color: "#1A1A18" }}>Couriers disponibles</h2>
-          <p style={{ margin: 0, fontSize: 13, color: "#9C9C95" }}>
-            {activeCount === ALL_COURIERS.length ? "Todos activos" : `${activeCount} de ${ALL_COURIERS.length} activos`} · Solo aparecen los que actives
+
+        {/* Navegación estilo Apple */}
+        <div style={{ display: "flex", alignItems: "center", padding: "18px 20px 0" }}>
+          <button onClick={onClose} style={{
+            display: "flex", alignItems: "center", gap: 4,
+            background: "none", border: "none", cursor: "pointer",
+            fontSize: 14, color: "#E8553D", fontFamily: "inherit", fontWeight: 500, padding: 0,
+          }}>
+            <svg width="9" height="15" viewBox="0 0 9 15" fill="none">
+              <path d="M8 1L1.5 7.5L8 14" stroke="#E8553D" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Configuración
+          </button>
+        </div>
+
+        {/* Título + descripción estilo Apple */}
+        <div style={{ padding: "14px 20px 20px" }}>
+          <h2 style={{ margin: "0 0 6px", fontSize: 22, fontWeight: 700, color: "#1A1A18", letterSpacing: "-0.02em" }}>
+            Couriers
+          </h2>
+          <p style={{ margin: 0, fontSize: 13, color: "#9C9C95", lineHeight: 1.5 }}>
+            Activa o desactiva los couriers que aparecerán en tus links de envío. Tu cliente solo verá las opciones que tengas habilitadas.
           </p>
         </div>
 
-        {/* Lista */}
-        <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
-          {ALL_COURIERS.map(({ key, label }) => {
+        {/* Lista estilo iOS — fila separada por línea interna */}
+        <div style={{ background: "#F5F5F0", margin: "0 0 8px", padding: "0 20px" }}>
+          <p style={{ margin: 0, padding: "8px 0", fontSize: 11, fontWeight: 600, color: "#9C9C95", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            Disponibles
+          </p>
+        </div>
+
+        <div style={{ background: "#fff", border: "1px solid #F0F0EB", margin: "0 20px", borderRadius: 14, overflow: "hidden" }}>
+          {ALL_COURIERS.map(({ key, label }, i) => {
             const active = local.includes(key);
             const meta = COURIER_META[key] ?? { color: "#1A1A18", bg: "#F5F5F0", desc: "" };
+            const isLast = i === ALL_COURIERS.length - 1;
             return (
               <button
                 key={key}
                 onClick={() => toggle(key)}
                 style={{
-                  display: "flex", alignItems: "center", gap: 14,
-                  background: active ? meta.bg : "#FAFAF7",
-                  border: `1.5px solid ${active ? meta.color : "#E8E8E3"}`,
-                  borderRadius: 14, padding: "14px 16px",
-                  cursor: "pointer", textAlign: "left", width: "100%",
-                  transition: "all 0.18s", fontFamily: "inherit",
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "13px 16px", width: "100%", textAlign: "left",
+                  background: "#fff", border: "none", cursor: "pointer", fontFamily: "inherit",
+                  borderBottom: isLast ? "none" : "1px solid #F5F5F0",
+                  transition: "background 0.1s",
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "#FAFAF7"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; }}
               >
-                {/* Barra de color */}
-                <div style={{ width: 4, height: 36, borderRadius: 100, background: meta.color, opacity: active ? 1 : 0.25, flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: active ? "#1A1A18" : "#9C9C95" }}>{label}</p>
-                  <p style={{ margin: "2px 0 0", fontSize: 11, color: active ? "#5C5C57" : "#C8C8C2" }}>{meta.desc}</p>
-                </div>
-                {/* Check / inactive */}
+                {/* Dot de color del courier */}
                 <div style={{
-                  width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
-                  background: active ? meta.color : "transparent",
-                  border: `2px solid ${active ? meta.color : "#D1D1CC"}`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  transition: "all 0.18s",
-                }}>
-                  {active && (
-                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-                      <polyline points="2,6 5,9 10,3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
+                  width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+                  background: meta.color, opacity: active ? 1 : 0.3,
+                }} />
+
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: active ? "#1A1A18" : "#9C9C95" }}>
+                    {label}
+                  </p>
+                  <p style={{ margin: "1px 0 0", fontSize: 11, color: "#C8C8C2" }}>{meta.desc}</p>
                 </div>
+
+                {/* Checkmark cuando activo */}
+                {active && (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8553D" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
               </button>
             );
           })}
         </div>
 
+        <p style={{ margin: "10px 20px 0", fontSize: 11, color: "#C8C8C2", lineHeight: 1.5 }}>
+          Los cambios aplicarán a los links que generes a partir de ahora. Los links existentes no se modifican.
+        </p>
+
         {/* Footer */}
-        <div style={{ padding: "12px 20px 24px", borderTop: "1px solid #F0F0EB" }}>
+        <div style={{ padding: "16px 20px 24px" }}>
           {local.length === 0 && (
             <p style={{ margin: "0 0 10px", fontSize: 12, color: "#C23E28", textAlign: "center" }}>
               Activa al menos un courier para continuar
@@ -518,12 +536,12 @@ function CouriersModal({
             disabled={saving || local.length === 0}
             style={{
               width: "100%", padding: "14px", borderRadius: 12, border: "none",
-              fontSize: 15, fontWeight: 700, color: "#fff", fontFamily: "inherit", cursor: "pointer",
-              background: saved ? "#2D8A56" : saving || local.length === 0 ? "#D1D1CC" : "#E8553D",
+              fontSize: 15, fontWeight: 600, color: "#fff", fontFamily: "inherit", cursor: "pointer",
+              background: saved ? "#2D8A56" : saving || local.length === 0 ? "#D1D1CC" : "#1A1A18",
               transition: "background 0.2s",
             }}
           >
-            {saving ? "Guardando…" : saved ? "✓ Guardado" : `Guardar selección`}
+            {saving ? "Guardando…" : saved ? "✓ Guardado" : "Guardar"}
           </button>
         </div>
       </div>

@@ -59,6 +59,7 @@ type EnvioType = {
   tracking?: string;
   tracking_url?: string;
   ask_instagram?: boolean;
+  couriers_habilitados?: string[] | null;
 };
 
 // ─── Helpers de cotización ────────────────────────────────────────────────────
@@ -433,8 +434,11 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
 
   const cotizaciones = envio.cotizaciones ?? {};
 
-  // Construir lista de couriers disponibles en orden definido
-  const courierKeys = COURIER_ORDER.filter((k) => cotizaciones[k] && getPrice(cotizaciones[k]!) != null);
+  // Construir lista de couriers disponibles en orden definido, respetando los habilitados por la pyme
+  const couriersPermitidos: string[] = envio.couriers_habilitados ?? COURIER_ORDER;
+  const courierKeys = COURIER_ORDER.filter((k) =>
+    couriersPermitidos.includes(k) && cotizaciones[k] && getPrice(cotizaciones[k]!) != null
+  );
 
   // Si no hay couriers válidos, mostrar el formulario de nuevo
   const mostrarFormulario = courierKeys.length === 0;

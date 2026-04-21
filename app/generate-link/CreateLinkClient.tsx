@@ -8,6 +8,16 @@ import type { User } from "@supabase/supabase-js";
 
 const N8N_CREATE_LINK = "/api/crear-envio";
 const TEMPLATES_KEY = "ld_pkg_templates";
+
+const ALL_COURIERS = [
+  { key: "starken_domicilio", label: "Starken Domicilio" },
+  { key: "starken_sucursal",  label: "Starken Sucursal" },
+  { key: "chilexpress",       label: "Chilexpress" },
+  { key: "blueexpress",       label: "Blue Express" },
+  { key: "noventa9Minutos",   label: "99 Minutos" },
+] as const;
+
+const DEFAULT_COURIERS = ALL_COURIERS.map((c) => c.key);
 const MAX_TEMPLATES = 3;
 
 function templateLabel(pkg: PackageState): string {
@@ -379,19 +389,53 @@ function LimitModal({ onClose }: { onClose: () => void }) {
 
 // ─── SettingsModal ────────────────────────────────────────────────────────────
 
+function Toggle({ active, onChange, disabled }: { active: boolean; onChange: () => void; disabled?: boolean }) {
+  return (
+    <button onClick={onChange} disabled={disabled} style={{
+      flexShrink: 0, width: 44, height: 24, borderRadius: 100,
+      background: active ? "#E8553D" : "#D1D1CC",
+      border: "none", cursor: disabled ? "not-allowed" : "pointer",
+      position: "relative", transition: "background 0.2s", marginLeft: 16,
+    }}>
+      <div style={{
+        position: "absolute", top: 3, width: 18, height: 18, borderRadius: "50%",
+        background: "#fff", transition: "left 0.2s",
+        left: active ? 23 : 3, boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+      }} />
+    </button>
+  );
+}
+
 function SettingsModal({
-  askInstagram, onToggle, onClose,
+  askInstagram, onToggleInstagram,
+  couriersHabilitados, onSaveCouriers,
+  onClose,
 }: {
   askInstagram: boolean;
-  onToggle: (val: boolean) => Promise<void>;
+  onToggleInstagram: (val: boolean) => Promise<void>;
+  couriersHabilitados: string[];
+  onSaveCouriers: (couriers: string[]) => Promise<void>;
   onClose: () => void;
 }) {
-  const [saving, setSaving] = useState(false);
+  const [savingInsta, setSavingInsta] = useState(false);
+  const [localCouriers, setLocalCouriers] = useState<string[]>(couriersHabilitados);
+  const [savingCouriers, setSavingCouriers] = useState(false);
+  const [couriersSaved, setCouriersSaved] = useState(false);
 
-  async function handleToggle() {
-    setSaving(true);
-    await onToggle(!askInstagram);
-    setSaving(false);
+  function toggleCourier(key: string) {
+    setLocalCouriers((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+    setCouriersSaved(false);
+  }
+
+  async function handleSaveCouriers() {
+    if (localCouriers.length === 0) return;
+    setSavingCouriers(true);
+    await onSaveCouriers(localCouriers);
+    setSavingCouriers(false);
+    setCouriersSaved(true);
+    setTimeout(() => setCouriersSaved(false), 2000);
   }
 
   return (
@@ -399,7 +443,7 @@ function SettingsModal({
       <div style={{
         background: "#fff", borderRadius: 20, padding: "32px",
         width: "100%", maxWidth: 400, boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-        position: "relative",
+        position: "relative", maxHeight: "90vh", overflowY: "auto",
       }}>
         <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "#9C9C95", fontFamily: "inherit", lineHeight: 1 }}>✕</button>
 
@@ -416,32 +460,62 @@ function SettingsModal({
           </div>
         </div>
 
+        {/* Instagram */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           border: "1px solid", borderColor: askInstagram ? "#E8553D" : "#E8E8E3",
-          borderRadius: 12, padding: "14px 16px", transition: "border-color 0.2s",
+          borderRadius: 12, padding: "14px 16px", transition: "border-color 0.2s", marginBottom: 20,
         }}>
           <div>
             <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1A1A18" }}>Pedir Instagram al cliente</p>
             <p style={{ margin: "3px 0 0", fontSize: 12, color: "#9C9C95" }}>El cliente ingresa su @usuario al llenar el formulario</p>
           </div>
-          <button onClick={handleToggle} disabled={saving} style={{
-            flexShrink: 0, width: 44, height: 24, borderRadius: 100,
-            background: askInstagram ? "#E8553D" : "#D1D1CC",
-            border: "none", cursor: saving ? "not-allowed" : "pointer",
-            position: "relative", transition: "background 0.2s", marginLeft: 16,
-          }}>
-            <div style={{
-              position: "absolute", top: 3, width: 18, height: 18, borderRadius: "50%",
-              background: "#fff", transition: "left 0.2s",
-              left: askInstagram ? 23 : 3, boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
-            }} />
-          </button>
+          <Toggle active={askInstagram} disabled={savingInsta} onChange={async () => {
+            setSavingInsta(true);
+            await onToggleInstagram(!askInstagram);
+            setSavingInsta(false);
+          }} />
         </div>
 
-        <p style={{ margin: "12px 0 0", fontSize: 12, color: "#9C9C95", textAlign: "center" }}>
-          {saving ? "Guardando…" : askInstagram ? "✓ Activo — tus nuevos links pedirán Instagram" : "Desactivado — el campo no aparece"}
-        </p>
+        {/* Couriers */}
+        <div style={{ height: 1, background: "#F0F0EB", marginBottom: 20 }} />
+        <p style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 700, color: "#1A1A18" }}>Couriers disponibles</p>
+        <p style={{ margin: "-6px 0 14px", fontSize: 12, color: "#9C9C95" }}>Solo aparecen en tus links los que tengas activos</p>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+          {ALL_COURIERS.map(({ key, label }) => {
+            const active = localCouriers.includes(key);
+            return (
+              <div key={key} style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                border: "1px solid", borderColor: active ? "#E8553D" : "#E8E8E3",
+                borderRadius: 10, padding: "11px 14px", transition: "border-color 0.2s",
+              }}>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: active ? "#1A1A18" : "#9C9C95" }}>{label}</p>
+                <Toggle active={active} onChange={() => toggleCourier(key)} />
+              </div>
+            );
+          })}
+        </div>
+
+        {localCouriers.length === 0 && (
+          <p style={{ margin: "0 0 12px", fontSize: 12, color: "#C23E28", textAlign: "center" }}>
+            Activa al menos un courier
+          </p>
+        )}
+
+        <button
+          onClick={handleSaveCouriers}
+          disabled={savingCouriers || localCouriers.length === 0}
+          style={{
+            width: "100%", padding: "12px", borderRadius: 10, border: "none",
+            fontSize: 14, fontWeight: 700, color: "#fff", fontFamily: "inherit", cursor: "pointer",
+            background: couriersSaved ? "#2D8A56" : savingCouriers || localCouriers.length === 0 ? "#D1D1CC" : "#E8553D",
+            transition: "background 0.2s",
+          }}
+        >
+          {savingCouriers ? "Guardando…" : couriersSaved ? "✓ Guardado" : "Guardar couriers"}
+        </button>
       </div>
     </ModalOverlay>
   );
@@ -476,6 +550,7 @@ export default function CreateLinkClient() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [linksCount, setLinksCount] = useState<{ used: number; limit: number } | null>(null);
   const [askInstagram, setAskInstagram] = useState(false);
+  const [couriersHabilitados, setCouriersHabilitados] = useState<string[]>(DEFAULT_COURIERS);
 
   const profileComplete = useMemo(() => isProfileComplete(profile), [profile]);
   const pkgComplete = useMemo(() => isPackageComplete(pkg), [pkg]);
@@ -512,13 +587,14 @@ export default function CreateLinkClient() {
     } catch {}
     supabase
       .from("pymes")
-      .select("links_creados, limite_links, ask_instagram, nombre_tienda, logo_url, origen_comuna, origen_calle, origen_numero, origen_depto, whatsapp")
+      .select("links_creados, limite_links, ask_instagram, nombre_tienda, logo_url, origen_comuna, origen_calle, origen_numero, origen_depto, couriers_habilitados")
       .eq("auth_id", user.id)
       .single()
       .then(({ data }) => {
         if (data) {
           setLinksCount({ used: data.links_creados, limit: data.limite_links });
           setAskInstagram(data.ask_instagram ?? false);
+          setCouriersHabilitados(data.couriers_habilitados ?? DEFAULT_COURIERS);
           const loadedProfile: ProfileState = {
             nombrePyme: data.nombre_tienda ?? "",
             logoFile: null,
@@ -691,6 +767,9 @@ export default function CreateLinkClient() {
         .eq("auth_id", currentUser.id);
       setLinksCount((prev) => prev ? { ...prev, used: newCount } : prev);
 
+      // Guardar snapshot de couriers en el envío
+      await supabase.from("envios").update({ couriers_habilitados: couriersHabilitados }).eq("id", Number(id));
+
       const slug = slugify(profile.nombrePyme);
       const code = Number(id).toString(36);
       const base = slug ? `/${slug}/envio/${code}` : `/envio?id=${id}`;
@@ -765,11 +844,14 @@ export default function CreateLinkClient() {
       {showSettingsModal && (
         <SettingsModal
           askInstagram={askInstagram}
-          onToggle={async (val) => {
+          onToggleInstagram={async (val) => {
             setAskInstagram(val);
-            if (user) {
-              await supabase.from("pymes").update({ ask_instagram: val }).eq("auth_id", user.id);
-            }
+            if (user) await supabase.from("pymes").update({ ask_instagram: val }).eq("auth_id", user.id);
+          }}
+          couriersHabilitados={couriersHabilitados}
+          onSaveCouriers={async (couriers) => {
+            setCouriersHabilitados(couriers);
+            if (user) await supabase.from("pymes").update({ couriers_habilitados: couriers }).eq("auth_id", user.id);
           }}
           onClose={() => setShowSettingsModal(false)}
         />

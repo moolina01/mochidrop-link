@@ -435,7 +435,9 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
   const cotizaciones = envio.cotizaciones ?? {};
 
   // Construir lista de couriers disponibles en orden definido, respetando los habilitados por la pyme
-  const couriersPermitidos: string[] = envio.couriers_habilitados ?? COURIER_ORDER;
+  const couriersPermitidos: string[] = (envio.couriers_habilitados?.length ?? 0) > 0
+    ? envio.couriers_habilitados!
+    : COURIER_ORDER;
   const courierKeys = COURIER_ORDER.filter((k) =>
     couriersPermitidos.includes(k) && cotizaciones[k] && getPrice(cotizaciones[k]!) != null
   );

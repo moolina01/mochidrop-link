@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import CreateLinkClient from "./CreateLinkClient";
 
 export const metadata = {
@@ -8,7 +9,9 @@ export const metadata = {
 export default function Page() {
   return (
     <main style={{ minHeight: "100vh", background: "#FAFAF7" }}>
-      <CreateLinkClient />
+      <Suspense>
+        <CreateLinkClient />
+      </Suspense>
     </main>
   );
 }

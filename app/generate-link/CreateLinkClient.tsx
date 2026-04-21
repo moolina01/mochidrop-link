@@ -1465,7 +1465,7 @@ export default function CreateLinkClient() {
                   </div>
                   {allDims && (
                     <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 10 }}>
-                      {[allDims, "4 couriers", "Válido 48h"].map((chip) => (
+                      {[allDims, `${couriersHabilitados.length} courier${couriersHabilitados.length !== 1 ? "s" : ""}`, "Válido 48h"].map((chip) => (
                         <span key={chip} style={{
                           background: "#F5F5F0", borderRadius: 100,
                           padding: "3px 10px", fontSize: 10, color: "#5C5C57",

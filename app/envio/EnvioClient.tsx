@@ -438,9 +438,11 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
   const couriersPermitidos: string[] = (envio.couriers_habilitados?.length ?? 0) > 0
     ? envio.couriers_habilitados!
     : COURIER_ORDER;
-  const courierKeys = COURIER_ORDER.filter((k) =>
-    couriersPermitidos.includes(k) && cotizaciones[k] && getPrice(cotizaciones[k]!) != null
-  );
+  const is99Allowed = couriersPermitidos.includes("noventa9Minutos") || couriersPermitidos.includes("99minutos");
+  const courierKeys = COURIER_ORDER.filter((k) => {
+    const allowed = (k === "noventa9Minutos" || k === "99minutos") ? is99Allowed : couriersPermitidos.includes(k);
+    return allowed && cotizaciones[k] && getPrice(cotizaciones[k]!) != null;
+  });
 
   // Si no hay couriers válidos, mostrar el formulario de nuevo
   const mostrarFormulario = courierKeys.length === 0;

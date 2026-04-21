@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { supabase } from "@/utils/supabase";
 import type { User } from "@supabase/supabase-js";
 
@@ -672,9 +673,16 @@ export default function CreateLinkClient() {
     ? `${pkg.largo}×${pkg.alto}×${pkg.ancho} cm · ${pkg.peso} kg`
     : null;
 
+  const searchParams = useSearchParams();
+
   // Auth listener
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
+      if (!data.user && searchParams.get("login") === "1") {
+        setShowAuthModal(true);
+      }
+    });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
@@ -1374,49 +1382,19 @@ export default function CreateLinkClient() {
                   </p>
                 )}
 
-                {/* Generated — estado simplificado en panel izquierdo */}
                 {generatedUrl && (
-                  <div ref={generatedCardRef} className="link-slide-up" style={{
-                    background: "#fff",
-                    borderRadius: 16,
-                    border: "1px solid #F0F0EB",
-                    overflow: "hidden",
-                  }}>
-
-                    {/* Confirmación */}
-                    <div style={{ padding: "32px 24px 24px", textAlign: "center" }}>
-                      <div className="confirm-icon" style={{
-                        width: 52, height: 52, borderRadius: "50%",
-                        background: "#fdf3f0",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        margin: "0 auto 18px",
-                      }}>
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E84B2A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      </div>
-                      <p style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 500, color: "#1A1A18", letterSpacing: "-0.02em" }}>
-                        ¡Link listo para compartir!
-                      </p>
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 400, color: "#9C9C95" }}>
-                        Revisa el panel derecho para copiarlo y compartirlo.
-                      </p>
-                    </div>
-
-                    {/* Crear otro */}
-                    <div style={{ padding: "4px 24px 28px" }}>
-                      <button
-                        onClick={() => { localStorage.removeItem("ld_last_url"); setGeneratedUrl(""); setPkg(DEFAULT_PACKAGE); }}
-                        style={{
-                          width: "100%", padding: "13px", borderRadius: 12,
-                          border: "1.5px solid #E8E8E3", background: "transparent",
-                          fontSize: 14, fontWeight: 500, color: "#5C5C57",
-                          cursor: "pointer", fontFamily: "inherit",
-                        }}
-                      >
-                        Crear otro link
-                      </button>
-                    </div>
+                  <div ref={generatedCardRef} style={{ padding: "4px 0 0" }}>
+                    <button
+                      onClick={() => { localStorage.removeItem("ld_last_url"); setGeneratedUrl(""); setPkg(DEFAULT_PACKAGE); }}
+                      style={{
+                        width: "100%", padding: "13px", borderRadius: 12,
+                        border: "1.5px solid #E8E8E3", background: "transparent",
+                        fontSize: 14, fontWeight: 500, color: "#5C5C57",
+                        cursor: "pointer", fontFamily: "inherit",
+                      }}
+                    >
+                      Crear otro link
+                    </button>
                   </div>
                 )}
               </>
@@ -1435,6 +1413,23 @@ export default function CreateLinkClient() {
                 background: "#fff", borderRadius: 16,
                 border: "1px solid #F0F0EB", overflow: "hidden",
               }}>
+                {/* Confirmación */}
+                <div style={{ padding: "24px 20px 16px", textAlign: "center", borderBottom: "1px solid #F0F0EB" }}>
+                  <div style={{
+                    width: 44, height: 44, borderRadius: "50%",
+                    background: "#fdf3f0",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    margin: "0 auto 12px",
+                  }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E84B2A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 17, fontWeight: 500, color: "#1A1A18", letterSpacing: "-0.02em" }}>
+                    ¡Link listo para compartir!
+                  </p>
+                </div>
+
                 {/* URL card */}
                 <div style={{ padding: "16px 16px 12px" }}>
                   <div style={{

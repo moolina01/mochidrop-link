@@ -152,17 +152,17 @@ function Navbar() {
             href="/generate-link?login=1"
             onClick={() => posthog.capture("cta_click", { location: "navbar_login" })}
             style={{
-              background: "transparent",
-              color: "#1A1A18",
-              padding: "10px 20px",
+              background: "#1A1A18",
+              color: "#fff",
+              padding: "10px 22px",
               borderRadius: 100,
               fontSize: 14,
-              fontWeight: 500,
+              fontWeight: 600,
               textDecoration: "none",
-              border: "1px solid rgba(0,0,0,0.15)",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
             }}
           >
-            Ingresar
+            Ingresar →
           </a>
           {/* <motion.a
             href="/generate-link"

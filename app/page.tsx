@@ -164,7 +164,7 @@ function Navbar() {
           >
             Ingresar
           </a>
-          <motion.a
+          {/* <motion.a
             href="/generate-link"
             onClick={() => posthog.capture("cta_click", { location: "navbar" })}
             whileHover={{ y: -1 }}
@@ -180,7 +180,7 @@ function Navbar() {
             }}
           >
             Probar gratis →
-          </motion.a>
+          </motion.a> */}
         </div>
       </div>
     </header>
@@ -194,7 +194,7 @@ const COURIERS = [
   { name: "Blue Express", price: "$2.890", days: "3-4 días" },
 ];
 
-type Phase = "initial" | "selecting" | "processing" | "paid" | "confirmed";
+type Phase = "initial" | "cotizando" | "selecting" | "processing" | "paid" | "confirmed";
 
 function PhoneMockup() {
   const [phase, setPhase] = useState<Phase>("initial");

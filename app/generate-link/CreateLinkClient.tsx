@@ -8,7 +8,8 @@ import type { User } from "@supabase/supabase-js";
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const N8N_CREATE_LINK = "/api/crear-envio";
-const TEMPLATES_KEY = "ld_pkg_templates";
+const templatesKey = (uid: string) => `ld_pkg_templates_${uid}`;
+const lastUrlKey = (uid: string) => `ld_last_url_${uid}`;
 
 const ALL_COURIERS = [
   { key: "starken_domicilio", label: "Starken Domicilio" },
@@ -25,13 +26,13 @@ function templateLabel(pkg: PackageState): string {
   return `${pkg.largo}×${pkg.alto}×${pkg.ancho} cm · ${pkg.peso} kg`;
 }
 
-function saveTemplate(pkg: PackageState) {
+function saveTemplate(pkg: PackageState, uid: string) {
   try {
     const label = templateLabel(pkg);
-    const existing: PackageTemplate[] = JSON.parse(localStorage.getItem(TEMPLATES_KEY) ?? "[]");
+    const existing: PackageTemplate[] = JSON.parse(localStorage.getItem(templatesKey(uid)) ?? "[]");
     const deduped = existing.filter((t) => t.label !== label);
     const updated = [{ ...pkg, label }, ...deduped].slice(0, MAX_TEMPLATES);
-    localStorage.setItem(TEMPLATES_KEY, JSON.stringify(updated));
+    localStorage.setItem(templatesKey(uid), JSON.stringify(updated));
   } catch {}
 }
 
@@ -699,10 +700,10 @@ export default function CreateLinkClient() {
       return;
     }
     // Restaurar link y templates solo si hay sesión activa
-    const saved = localStorage.getItem("ld_last_url");
+    const saved = localStorage.getItem(lastUrlKey(user.id));
     if (saved) setGeneratedUrl(saved);
     try {
-      const t: PackageTemplate[] = JSON.parse(localStorage.getItem(TEMPLATES_KEY) ?? "[]");
+      const t: PackageTemplate[] = JSON.parse(localStorage.getItem(templatesKey(user.id)) ?? "[]");
       if (t.length) setTemplates(t);
     } catch {}
     supabase
@@ -894,11 +895,11 @@ export default function CreateLinkClient() {
       const code = Number(id).toString(36);
       const base = slug ? `/${slug}/envio/${code}` : `/envio?id=${id}`;
       const newUrl = `${window.location.origin}${base}`;
-      localStorage.setItem("ld_last_url", newUrl);
+      localStorage.setItem(lastUrlKey(user!.id), newUrl);
       setGeneratedUrl(newUrl);
-      saveTemplate(pkg);
+      saveTemplate(pkg, user!.id);
       setTemplates(() => {
-        try { return JSON.parse(localStorage.getItem(TEMPLATES_KEY) ?? "[]"); } catch { return []; }
+        try { return JSON.parse(localStorage.getItem(templatesKey(user!.id)) ?? "[]"); } catch { return []; }
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
@@ -1385,7 +1386,7 @@ export default function CreateLinkClient() {
                 {generatedUrl && (
                   <div ref={generatedCardRef} style={{ padding: "4px 0 0" }}>
                     <button
-                      onClick={() => { localStorage.removeItem("ld_last_url"); setGeneratedUrl(""); setPkg(DEFAULT_PACKAGE); }}
+                      onClick={() => { if (user) localStorage.removeItem(lastUrlKey(user.id)); setGeneratedUrl(""); setPkg(DEFAULT_PACKAGE); }}
                       style={{
                         width: "100%", padding: "13px", borderRadius: 12,
                         border: "1.5px solid #E8E8E3", background: "transparent",

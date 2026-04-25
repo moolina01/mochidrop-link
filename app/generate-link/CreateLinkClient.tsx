@@ -571,6 +571,8 @@ function SettingsModal({
   onClose: () => void;
 }) {
   const [savingInsta, setSavingInsta] = useState(false);
+  const [dims, setDims] = useState(defaultDims);
+  const [savingDims, setSavingDims] = useState(false);
   const activeCount = couriersHabilitados.length;
 
   return (
@@ -644,13 +646,49 @@ function SettingsModal({
                   <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1A1A18" }}>Link permanente</p>
                   <p style={{ margin: "3px 0 0", fontSize: 12, color: "#9C9C95" }}>{linkFijoEnabled ? "Activo" : "Desactivado"}</p>
                 </div>
-                <Toggle active={linkFijoEnabled} onChange={async () => { await onSaveLinkFijo(!linkFijoEnabled, defaultDims); }} />
+                <Toggle active={linkFijoEnabled} onChange={async () => { await onSaveLinkFijo(!linkFijoEnabled, dims); }} />
               </div>
-              {linkFijoEnabled && pymeSlug && (
-                <div style={{ borderTop: "1px solid #F0F0EB", padding: "10px 16px", background: "#FAFAF7" }}>
-                  <p style={{ margin: 0, fontSize: 11, color: "#9C9C95", fontFamily: "ui-monospace, monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {typeof window !== "undefined" ? window.location.origin : ""}/{pymeSlug}
+
+              {/* Dimensiones por defecto — siempre visible para Pro (requerido para que funcione el link fijo) */}
+              {isPro && (
+                <div style={{ borderTop: "1px solid #F0F0EB", padding: "14px 16px", background: "#FAFAF7" }}>
+                  <p style={{ margin: "0 0 10px", fontSize: 12, fontWeight: 600, color: "#1A1A18" }}>
+                    Dimensiones por defecto del paquete
+                    <span style={{ fontWeight: 400, color: "#9C9C95", marginLeft: 4 }}>— requerido para el link fijo</span>
                   </p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    {(["largo", "alto", "ancho", "peso"] as const).map((field) => (
+                      <div key={field}>
+                        <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "#5C5C57", marginBottom: 4, textTransform: "capitalize" }}>
+                          {field} {field === "peso" ? "(kg)" : "(cm)"}
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={dims[field]}
+                          onChange={(e) => setDims((d) => ({ ...d, [field]: e.target.value }))}
+                          placeholder={field === "peso" ? "1" : "20"}
+                          style={{ width: "100%", border: "1px solid #E8E8E3", borderRadius: 8, padding: "8px 10px", fontSize: 13, color: "#1A1A18", background: "#fff", outline: "none", fontFamily: "inherit", boxSizing: "border-box" }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={async () => {
+                      setSavingDims(true);
+                      await onSaveLinkFijo(linkFijoEnabled, dims);
+                      setSavingDims(false);
+                    }}
+                    disabled={savingDims}
+                    style={{ marginTop: 10, width: "100%", padding: "10px", borderRadius: 8, border: "none", background: savingDims ? "#D1D1CC" : "#1A1A18", color: "#fff", fontSize: 13, fontWeight: 600, cursor: savingDims ? "not-allowed" : "pointer", fontFamily: "inherit" }}
+                  >
+                    {savingDims ? "Guardando…" : "Guardar dimensiones"}
+                  </button>
+                  {linkFijoEnabled && pymeSlug && (
+                    <p style={{ margin: "10px 0 0", fontSize: 11, color: "#9C9C95", fontFamily: "ui-monospace, monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {typeof window !== "undefined" ? window.location.origin : ""}/{pymeSlug}
+                    </p>
+                  )}
                 </div>
               )}
             </div>

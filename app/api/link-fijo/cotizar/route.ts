@@ -20,6 +20,21 @@ function parseId(raw: unknown): number | null {
   return null;
 }
 
+async function pollCotizaciones(envioId: number, attempts = 6, delayMs = 1200) {
+  for (let i = 0; i < attempts; i++) {
+    if (i > 0) await new Promise((r) => setTimeout(r, delayMs));
+    const { data } = await supabaseServer
+      .from("envios")
+      .select("cotizaciones")
+      .eq("id", envioId)
+      .single();
+    if (data?.cotizaciones && Object.keys(data.cotizaciones).length > 0) {
+      return data.cotizaciones as Record<string, unknown>;
+    }
+  }
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { pymeId, datos_destino } = await req.json();
@@ -40,7 +55,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!pyme.origen_comuna || !pyme.origen_calle || !pyme.origen_numero) {
-      return NextResponse.json({ error: "La tienda no tiene dirección de origen configurada. Completa tu perfil primero." }, { status: 400 });
+      return NextResponse.json({ error: "La tienda no tiene dirección de origen configurada." }, { status: 400 });
     }
 
     // 2. Crear el envío en N8N
@@ -69,7 +84,7 @@ export async function POST(req: NextRequest) {
     });
 
     const crearText = await crearRes.text();
-    console.log("[link-fijo/cotizar] N8N crear response:", crearRes.status, crearText?.slice(0, 300));
+    console.log("[link-fijo/cotizar] crear status:", crearRes.status, crearText?.slice(0, 200));
 
     if (!crearRes.ok || !crearText) {
       const msg = (() => { try { return JSON.parse(crearText)?.message ?? crearText; } catch { return crearText; } })();
@@ -77,16 +92,14 @@ export async function POST(req: NextRequest) {
     }
 
     let parsed: unknown;
-    try {
-      parsed = JSON.parse(crearText);
-    } catch {
-      return NextResponse.json({ error: `Respuesta inesperada de N8N: ${crearText?.slice(0, 100)}` }, { status: 502 });
+    try { parsed = JSON.parse(crearText); } catch {
+      return NextResponse.json({ error: `Respuesta inesperada de N8N: ${crearText?.slice(0, 80)}` }, { status: 502 });
     }
 
     const envioId = parseId(parsed);
     if (!envioId) {
-      console.error("[link-fijo/cotizar] No se pudo extraer el ID. Respuesta N8N:", crearText?.slice(0, 300));
-      return NextResponse.json({ error: `N8N no devolvió el ID del envío. Respuesta: ${crearText?.slice(0, 100)}` }, { status: 502 });
+      console.error("[link-fijo/cotizar] Sin ID. N8N respondió:", crearText?.slice(0, 200));
+      return NextResponse.json({ error: `N8N no devolvió el ID del envío. Respuesta: ${crearText?.slice(0, 80)}` }, { status: 502 });
     }
 
     // 3. Cotizar couriers
@@ -96,16 +109,23 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({ id: envioId, datos_destino }),
     });
 
-    console.log("[link-fijo/cotizar] N8N cotizar response status:", cotizarRes.status);
+    console.log("[link-fijo/cotizar] cotizar status:", cotizarRes.status);
 
     if (!cotizarRes.ok) {
       return NextResponse.json({ error: "Error al cotizar couriers" }, { status: cotizarRes.status });
     }
 
-    return NextResponse.json({ id: envioId });
+    // 4. Obtener cotizaciones desde Supabase (N8N las guarda ahí)
+    const cotizaciones = await pollCotizaciones(envioId);
+    if (!cotizaciones) {
+      return NextResponse.json({ error: "No se recibieron cotizaciones. Intenta de nuevo." }, { status: 502 });
+    }
+
+    // Retornar id + cotizaciones juntos, cliente no necesita consultar Supabase
+    return NextResponse.json({ id: envioId, cotizaciones });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Error desconocido";
-    console.error("[link-fijo/cotizar] Error inesperado:", msg);
+    console.error("[link-fijo/cotizar] Error:", msg);
     return NextResponse.json({ error: `Error de conexión: ${msg}` }, { status: 503 });
   }
 }

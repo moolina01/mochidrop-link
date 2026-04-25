@@ -289,23 +289,12 @@ export default function EnvioFijoClient({ pymeId, nombrePyme, logoPyme, askInsta
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? `Error ${res.status}`);
 
-      const id = data?.id;
+      const { id, cotizaciones: cots } = data as { id: number; cotizaciones: Record<string, CotizacionItem> };
       if (!id) throw new Error("No se recibió el ID del envío.");
+      if (!cots || Object.keys(cots).length === 0) throw new Error("No se recibieron cotizaciones. Intenta de nuevo.");
 
       setEnvioId(id);
-
-      // Fetch cotizaciones desde Supabase
-      const { data: envioData } = await supabase
-        .from("envios")
-        .select("cotizaciones")
-        .eq("id", Number(id))
-        .single();
-
-      if (!envioData?.cotizaciones || Object.keys(envioData.cotizaciones).length === 0) {
-        throw new Error("No se recibieron cotizaciones. Intenta de nuevo.");
-      }
-
-      setCotizaciones(envioData.cotizaciones);
+      setCotizaciones(cots);
       setTimeout(() => setCardsVisible(true), 50);
     } catch (err) {
       setErrorCotizar(err instanceof Error ? err.message : "No pudimos cotizar los couriers. Intenta de nuevo.");

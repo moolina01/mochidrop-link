@@ -30,6 +30,7 @@ type Props = {
   nombrePyme: string;
   logoPyme: string | null;
   askInstagram: boolean;
+  couriersHabilitados: string[] | null;
 };
 
 // ─── Config couriers ──────────────────────────────────────────────────────────
@@ -238,7 +239,7 @@ function InstagramField({ value, onChange }: { value: string; onChange: (v: stri
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
-export default function EnvioFijoClient({ pymeId, nombrePyme, logoPyme, askInstagram }: Props) {
+export default function EnvioFijoClient({ pymeId, nombrePyme, logoPyme, askInstagram, couriersHabilitados }: Props) {
   const router = useRouter();
 
   const [form, setForm] = useState({ nombre: "", telefono: "", comuna: "", calle: "", numero: "", depto: "", instagram: "" });
@@ -312,7 +313,12 @@ export default function EnvioFijoClient({ pymeId, nombrePyme, logoPyme, askInsta
     router.push(`/confirmacion?id=${envioId}&courier=${courier}`);
   }
 
-  const courierKeys = COURIER_ORDER.filter((k) => cotizaciones[k] && getPrice(cotizaciones[k]!) != null);
+  const couriersPermitidos = (couriersHabilitados?.length ?? 0) > 0 ? couriersHabilitados! : COURIER_ORDER;
+  const is99Allowed = couriersPermitidos.includes("noventa9Minutos") || couriersPermitidos.includes("99minutos");
+  const courierKeys = COURIER_ORDER.filter((k) => {
+    const allowed = (k === "noventa9Minutos" || k === "99minutos") ? is99Allowed : couriersPermitidos.includes(k);
+    return allowed && cotizaciones[k] && getPrice(cotizaciones[k]!) != null;
+  });
 
   const cheapestKey = courierKeys.length > 0
     ? courierKeys.reduce((min, curr) =>

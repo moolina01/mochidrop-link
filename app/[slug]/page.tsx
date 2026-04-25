@@ -25,7 +25,7 @@ export default async function PymeLandingPage({
 
   const { data: pyme, error } = await supabaseServer
     .from("pymes")
-    .select("auth_id, nombre_tienda, logo_url, ask_instagram, link_fijo_enabled, default_largo, default_alto, default_ancho, default_peso")
+    .select("auth_id, nombre_tienda, logo_url, ask_instagram, link_fijo_enabled, default_largo, default_alto, default_ancho, default_peso, couriers_habilitados")
     .eq("slug", slug)
     .single();
 
@@ -42,6 +42,7 @@ export default async function PymeLandingPage({
         nombrePyme={pyme.nombre_tienda ?? ""}
         logoPyme={pyme.logo_url ?? null}
         askInstagram={pyme.ask_instagram ?? false}
+        couriersHabilitados={pyme.couriers_habilitados ?? null}
       />
     </Suspense>
   );

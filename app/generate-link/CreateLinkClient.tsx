@@ -573,6 +573,7 @@ function SettingsModal({
   const [savingInsta, setSavingInsta] = useState(false);
   const [dims, setDims] = useState(defaultDims);
   const [savingDims, setSavingDims] = useState(false);
+  const [savedDims, setSavedDims] = useState(false);
   const activeCount = couriersHabilitados.length;
 
   return (
@@ -678,11 +679,13 @@ function SettingsModal({
                       setSavingDims(true);
                       await onSaveLinkFijo(linkFijoEnabled, dims);
                       setSavingDims(false);
+                      setSavedDims(true);
+                      setTimeout(() => setSavedDims(false), 2500);
                     }}
                     disabled={savingDims}
-                    style={{ marginTop: 10, width: "100%", padding: "10px", borderRadius: 8, border: "none", background: savingDims ? "#D1D1CC" : "#1A1A18", color: "#fff", fontSize: 13, fontWeight: 600, cursor: savingDims ? "not-allowed" : "pointer", fontFamily: "inherit" }}
+                    style={{ marginTop: 10, width: "100%", padding: "10px", borderRadius: 8, border: "none", background: savingDims ? "#D1D1CC" : savedDims ? "#2D8A56" : "#1A1A18", color: "#fff", fontSize: 13, fontWeight: 600, cursor: savingDims ? "not-allowed" : "pointer", fontFamily: "inherit", transition: "background 0.2s" }}
                   >
-                    {savingDims ? "Guardando…" : "Guardar dimensiones"}
+                    {savingDims ? "Guardando…" : savedDims ? "✓ Guardado exitosamente" : "Guardar dimensiones"}
                   </button>
                   {linkFijoEnabled && pymeSlug && (
                     <p style={{ margin: "10px 0 0", fontSize: 11, color: "#9C9C95", fontFamily: "ui-monospace, monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

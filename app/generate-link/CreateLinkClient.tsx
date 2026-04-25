@@ -1,38 +1,26 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { supabase } from "@/utils/supabase";
 import type { User } from "@supabase/supabase-js";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const N8N_CREATE_LINK = "/api/crear-envio";
-const templatesKey = (uid: string) => `ld_pkg_templates_${uid}`;
-const lastUrlKey = (uid: string) => `ld_last_url_${uid}`;
-
-const ALL_COURIERS = [
-  { key: "starken_domicilio", label: "Starken Domicilio" },
-  { key: "starken_sucursal",  label: "Starken Sucursal" },
-  { key: "chilexpress",       label: "Chilexpress" },
-  { key: "blueexpress",       label: "Blue Express" },
-  { key: "noventa9Minutos",   label: "99 Minutos" },
-] as const;
-
-const DEFAULT_COURIERS = ALL_COURIERS.map((c) => c.key);
+const TEMPLATES_KEY = "ld_pkg_templates";
 const MAX_TEMPLATES = 3;
 
 function templateLabel(pkg: PackageState): string {
   return `${pkg.largo}×${pkg.alto}×${pkg.ancho} cm · ${pkg.peso} kg`;
 }
 
-function saveTemplate(pkg: PackageState, uid: string) {
+function saveTemplate(pkg: PackageState) {
   try {
     const label = templateLabel(pkg);
-    const existing: PackageTemplate[] = JSON.parse(localStorage.getItem(templatesKey(uid)) ?? "[]");
+    const existing: PackageTemplate[] = JSON.parse(localStorage.getItem(TEMPLATES_KEY) ?? "[]");
     const deduped = existing.filter((t) => t.label !== label);
     const updated = [{ ...pkg, label }, ...deduped].slice(0, MAX_TEMPLATES);
-    localStorage.setItem(templatesKey(uid), JSON.stringify(updated));
+    localStorage.setItem(TEMPLATES_KEY, JSON.stringify(updated));
   } catch {}
 }
 
@@ -389,15 +377,7 @@ function LimitModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ─── SettingsModal + CouriersModal ────────────────────────────────────────────
-
-const COURIER_META: Record<string, { color: string; bg: string; desc: string }> = {
-  starken_domicilio: { color: "#00A651", bg: "#E8F8EE", desc: "Entrega a domicilio" },
-  starken_sucursal:  { color: "#00A651", bg: "#E8F8EE", desc: "Retiro en sucursal" },
-  chilexpress:       { color: "#E6A800", bg: "#FFFBE8", desc: "Entrega a domicilio" },
-  blueexpress:       { color: "#0055B8", bg: "#E8F0FA", desc: "Entrega a domicilio" },
-  noventa9Minutos:   { color: "#FF3B30", bg: "#FFF0EE", desc: "Entrega express" },
-};
+// ─── SettingsModal ────────────────────────────────────────────────────────────
 
 function Toggle({ active, onChange, disabled }: { active: boolean; onChange: () => void; disabled?: boolean }) {
   return (
@@ -416,162 +396,70 @@ function Toggle({ active, onChange, disabled }: { active: boolean; onChange: () 
   );
 }
 
-function CouriersModal({
-  couriersHabilitados, onSave, onClose,
-}: {
-  couriersHabilitados: string[];
-  onSave: (couriers: string[]) => Promise<void>;
-  onClose: () => void;
-}) {
-  const [local, setLocal] = useState<string[]>(couriersHabilitados);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-
-  function toggle(key: string) {
-    setLocal((prev) => prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]);
-    setSaved(false);
-  }
-
-  async function handleSave() {
-    if (local.length === 0) return;
-    setSaving(true);
-    await onSave(local);
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => { setSaved(false); onClose(); }, 1200);
-  }
-
-  return (
-    <ModalOverlay>
-      <div style={{
-        background: "#fff", borderRadius: 20, width: "100%", maxWidth: 420,
-        boxShadow: "0 24px 64px rgba(0,0,0,0.15)", position: "relative", overflow: "hidden",
-      }}>
-
-        {/* Navegación estilo Apple */}
-        <div style={{ display: "flex", alignItems: "center", padding: "18px 20px 0" }}>
-          <button onClick={onClose} style={{
-            display: "flex", alignItems: "center", gap: 4,
-            background: "none", border: "none", cursor: "pointer",
-            fontSize: 14, color: "#E8553D", fontFamily: "inherit", fontWeight: 500, padding: 0,
-          }}>
-            <svg width="9" height="15" viewBox="0 0 9 15" fill="none">
-              <path d="M8 1L1.5 7.5L8 14" stroke="#E8553D" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            Configuración
-          </button>
-        </div>
-
-        {/* Título + descripción estilo Apple */}
-        <div style={{ padding: "14px 20px 20px" }}>
-          <h2 style={{ margin: "0 0 6px", fontSize: 22, fontWeight: 700, color: "#1A1A18", letterSpacing: "-0.02em" }}>
-            Couriers
-          </h2>
-          <p style={{ margin: 0, fontSize: 13, color: "#9C9C95", lineHeight: 1.5 }}>
-            Activa o desactiva los couriers que aparecerán en tus links de envío. Tu cliente solo verá las opciones que tengas habilitadas.
-          </p>
-        </div>
-
-        {/* Lista estilo iOS — fila separada por línea interna */}
-        <div style={{ background: "#F5F5F0", margin: "0 0 8px", padding: "0 20px" }}>
-          <p style={{ margin: 0, padding: "8px 0", fontSize: 11, fontWeight: 600, color: "#9C9C95", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-            Disponibles
-          </p>
-        </div>
-
-        <div style={{ background: "#fff", border: "1px solid #F0F0EB", margin: "0 20px", borderRadius: 14, overflow: "hidden" }}>
-          {ALL_COURIERS.map(({ key, label }, i) => {
-            const active = local.includes(key);
-            const meta = COURIER_META[key] ?? { color: "#1A1A18", bg: "#F5F5F0", desc: "" };
-            const isLast = i === ALL_COURIERS.length - 1;
-            return (
-              <button
-                key={key}
-                onClick={() => toggle(key)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  padding: "13px 16px", width: "100%", textAlign: "left",
-                  background: "#fff", border: "none", cursor: "pointer", fontFamily: "inherit",
-                  borderBottom: isLast ? "none" : "1px solid #F5F5F0",
-                  transition: "background 0.1s",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "#FAFAF7"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; }}
-              >
-                {/* Dot de color del courier */}
-                <div style={{
-                  width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
-                  background: meta.color, opacity: active ? 1 : 0.3,
-                }} />
-
-                <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: active ? "#1A1A18" : "#9C9C95" }}>
-                    {label}
-                  </p>
-                  <p style={{ margin: "1px 0 0", fontSize: 11, color: "#C8C8C2" }}>{meta.desc}</p>
-                </div>
-
-                {/* Checkmark cuando activo */}
-                {active && (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8553D" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        <p style={{ margin: "10px 20px 0", fontSize: 11, color: "#C8C8C2", lineHeight: 1.5 }}>
-          Los cambios aplicarán a los links que generes a partir de ahora. Los links existentes no se modifican.
-        </p>
-
-        {/* Footer */}
-        <div style={{ padding: "16px 20px 24px" }}>
-          {local.length === 0 && (
-            <p style={{ margin: "0 0 10px", fontSize: 12, color: "#C23E28", textAlign: "center" }}>
-              Activa al menos un courier para continuar
-            </p>
-          )}
-          <button
-            onClick={handleSave}
-            disabled={saving || local.length === 0}
-            style={{
-              width: "100%", padding: "14px", borderRadius: 12, border: "none",
-              fontSize: 15, fontWeight: 600, color: "#fff", fontFamily: "inherit", cursor: "pointer",
-              background: saved ? "#2D8A56" : saving || local.length === 0 ? "#D1D1CC" : "#1A1A18",
-              transition: "background 0.2s",
-            }}
-          >
-            {saving ? "Guardando…" : saved ? "✓ Guardado" : "Guardar"}
-          </button>
-        </div>
-      </div>
-    </ModalOverlay>
-  );
-}
-
 function SettingsModal({
   askInstagram, onToggleInstagram,
-  couriersHabilitados,
-  onOpenCouriers,
+  pymeSlug, linkFijoEnabled, defaultDims,
+  onSaveLinkFijo,
   onClose,
 }: {
   askInstagram: boolean;
   onToggleInstagram: (val: boolean) => Promise<void>;
-  couriersHabilitados: string[];
-  onOpenCouriers: () => void;
+  pymeSlug: string;
+  linkFijoEnabled: boolean;
+  defaultDims: { largo: string; alto: string; ancho: string; peso: string };
+  onSaveLinkFijo: (enabled: boolean, dims: { largo: string; alto: string; ancho: string; peso: string }) => Promise<void>;
   onClose: () => void;
 }) {
-  const [savingInsta, setSavingInsta] = useState(false);
-  const activeCount = couriersHabilitados.length;
+  const [saving, setSaving] = useState(false);
+  const [savingFijo, setSavingFijo] = useState(false);
+  const [fijoEnabled, setFijoEnabled] = useState(linkFijoEnabled);
+  const [dims, setDims] = useState(defaultDims);
+  const [fijoSaved, setFijoSaved] = useState(false);
+
+  const dimsComplete = Number(dims.largo) > 0 && Number(dims.alto) > 0 && Number(dims.ancho) > 0 && Number(dims.peso) > 0;
+  const fijoUrl = pymeSlug ? `${typeof window !== "undefined" ? window.location.origin : ""}/${pymeSlug}` : "";
+
+  async function handleToggleInstagram() {
+    setSaving(true);
+    await onToggleInstagram(!askInstagram);
+    setSaving(false);
+  }
+
+  async function handleSaveLinkFijo() {
+    if (fijoEnabled && !dimsComplete) return;
+    setSavingFijo(true);
+    await onSaveLinkFijo(fijoEnabled, dims);
+    setSavingFijo(false);
+    setFijoSaved(true);
+    setTimeout(() => setFijoSaved(false), 2000);
+  }
+
+  const dimInput = (label: string, key: keyof typeof dims) => (
+    <div>
+      <p style={{ margin: "0 0 5px", fontSize: 12, fontWeight: 600, color: "#5C5C57" }}>{label}</p>
+      <input
+        type="number"
+        value={dims[key]}
+        placeholder="0"
+        onChange={(e) => setDims((s) => ({ ...s, [key]: e.target.value.replace(/[^\d.]/g, "") }))}
+        style={{
+          width: "100%", boxSizing: "border-box",
+          border: "1px solid #E8E8E3", borderRadius: 8,
+          padding: "9px 10px", fontSize: 13, color: "#1A1A18",
+          background: "#FAFAF7", outline: "none", fontFamily: "inherit",
+        }}
+        onFocus={(e) => { e.currentTarget.style.borderColor = "#E8553D"; }}
+        onBlur={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; }}
+      />
+    </div>
+  );
 
   return (
     <ModalOverlay>
       <div style={{
-        background: "#fff", borderRadius: 20, padding: "28px",
-        width: "100%", maxWidth: 400, boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-        position: "relative",
+        background: "#fff", borderRadius: 20, padding: "32px",
+        width: "100%", maxWidth: 420, boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+        position: "relative", maxHeight: "90vh", overflowY: "auto",
       }}>
         <button onClick={onClose} style={{ position: "absolute", top: 16, right: 16, background: "none", border: "none", cursor: "pointer", fontSize: 20, color: "#9C9C95", fontFamily: "inherit", lineHeight: 1 }}>✕</button>
 
@@ -588,45 +476,73 @@ function SettingsModal({
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {/* Instagram */}
-          <div style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            border: "1px solid", borderColor: askInstagram ? "#E8553D" : "#E8E8E3",
-            borderRadius: 12, padding: "14px 16px", transition: "border-color 0.2s",
-          }}>
+        {/* Instagram toggle */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          border: "1px solid", borderColor: askInstagram ? "#E8553D" : "#E8E8E3",
+          borderRadius: 12, padding: "14px 16px", transition: "border-color 0.2s", marginBottom: 12,
+        }}>
+          <div>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1A1A18" }}>Pedir Instagram al cliente</p>
+            <p style={{ margin: "3px 0 0", fontSize: 12, color: "#9C9C95" }}>El cliente ingresa su @usuario al llenar el formulario</p>
+          </div>
+          <Toggle active={askInstagram} onChange={handleToggleInstagram} disabled={saving} />
+        </div>
+
+        {/* Separador */}
+        <div style={{ height: 1, background: "#F0F0EB", margin: "20px 0" }} />
+
+        {/* Link fijo */}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
             <div>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1A1A18" }}>Pedir Instagram al cliente</p>
-              <p style={{ margin: "3px 0 0", fontSize: 12, color: "#9C9C95" }}>El cliente ingresa su @usuario al llenar el formulario</p>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1A1A18" }}>Link fijo de tu tienda</p>
+              <p style={{ margin: "3px 0 0", fontSize: 12, color: "#9C9C95" }}>Un link permanente con dimensiones fijas para todos tus envíos</p>
             </div>
-            <Toggle active={askInstagram} disabled={savingInsta} onChange={async () => {
-              setSavingInsta(true);
-              await onToggleInstagram(!askInstagram);
-              setSavingInsta(false);
-            }} />
+            <Toggle active={fijoEnabled} onChange={() => setFijoEnabled((v) => !v)} />
           </div>
 
-          {/* Couriers — navega al modal dedicado */}
-          <button
-            onClick={() => { onClose(); onOpenCouriers(); }}
-            style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              border: "1px solid #E8E8E3", borderRadius: 12, padding: "14px 16px",
-              background: "#FAFAF7", cursor: "pointer", width: "100%", textAlign: "left", fontFamily: "inherit",
-              transition: "border-color 0.18s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#1A1A18"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; }}
-          >
-            <div>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1A1A18" }}>Couriers disponibles</p>
-              <p style={{ margin: "3px 0 0", fontSize: 12, color: "#9C9C95" }}>
-                {activeCount === ALL_COURIERS.length ? "Todos activos" : `${activeCount} de ${ALL_COURIERS.length} activos`}
+          {fijoEnabled && (
+            <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+              <p style={{ margin: 0, fontSize: 12, color: "#5C5C57", fontWeight: 600 }}>
+                Dimensiones por defecto del paquete
               </p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                {dimInput("Largo (cm)", "largo")}
+                {dimInput("Alto (cm)", "alto")}
+                {dimInput("Ancho (cm)", "ancho")}
+                {dimInput("Peso (kg)", "peso")}
+              </div>
+
+              {fijoUrl && (
+                <div style={{ background: "#fdf3f0", borderRadius: 10, padding: "10px 12px" }}>
+                  <p style={{ margin: "0 0 3px", fontSize: 11, fontWeight: 600, color: "#9C9C95" }}>Tu link fijo será:</p>
+                  <p style={{ margin: 0, fontFamily: "ui-monospace, monospace", fontSize: 12, color: "#c0391b", wordBreak: "break-all" }}>
+                    {fijoUrl}
+                  </p>
+                </div>
+              )}
+
+              {!dimsComplete && (
+                <p style={{ margin: 0, fontSize: 12, color: "#9C9C95", textAlign: "center" }}>
+                  Completa las dimensiones para activar el link fijo
+                </p>
+              )}
             </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9C9C95" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
+          )}
+
+          <button
+            onClick={handleSaveLinkFijo}
+            disabled={savingFijo || (fijoEnabled && !dimsComplete)}
+            style={{
+              width: "100%", marginTop: 16, padding: "12px",
+              borderRadius: 10, border: "none", fontSize: 14, fontWeight: 700,
+              color: "#fff", fontFamily: "inherit", cursor: "pointer",
+              background: fijoSaved ? "#2D8A56" : savingFijo || (fijoEnabled && !dimsComplete) ? "#D1D1CC" : "#E8553D",
+              transition: "background 0.2s",
+            }}
+          >
+            {savingFijo ? "Guardando…" : fijoSaved ? "✓ Guardado" : "Guardar configuración"}
           </button>
         </div>
       </div>
@@ -649,6 +565,7 @@ export default function CreateLinkClient() {
   const [generatedUrl, setGeneratedUrl] = useState("");
   const [copied, setCopied] = useState(false);
   const [copiedMsg, setCopiedMsg] = useState(false);
+  const [copiedFijo, setCopiedFijo] = useState(false);
   const [error, setError] = useState("");
 
   const [templates, setTemplates] = useState<PackageTemplate[]>([]);
@@ -661,29 +578,35 @@ export default function CreateLinkClient() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [showCouriersModal, setShowCouriersModal] = useState(false);
   const [linksCount, setLinksCount] = useState<{ used: number; limit: number } | null>(null);
   const [askInstagram, setAskInstagram] = useState(false);
-  const [couriersHabilitados, setCouriersHabilitados] = useState<string[]>(DEFAULT_COURIERS);
+  const [pymeSlug, setPymeSlug] = useState("");
+  const [linkFijoEnabled, setLinkFijoEnabled] = useState(false);
+  const [defaultDims, setDefaultDims] = useState({ largo: "", alto: "", ancho: "", peso: "" });
+  const [showManual, setShowManual] = useState(false);
 
   const profileComplete = useMemo(() => isProfileComplete(profile), [profile]);
   const pkgComplete = useMemo(() => isPackageComplete(pkg), [pkg]);
   const canGenerate = profileComplete && pkgComplete;
+  const isPro = linksCount?.limit === 999;
 
   const allDims = pkg.largo && pkg.alto && pkg.ancho && pkg.peso
     ? `${pkg.largo}×${pkg.alto}×${pkg.ancho} cm · ${pkg.peso} kg`
     : null;
 
-  const searchParams = useSearchParams();
+  // Restaurar link generado y templates al recargar
+  useEffect(() => {
+    const saved = localStorage.getItem("ld_last_url");
+    if (saved) setGeneratedUrl(saved);
+    try {
+      const t: PackageTemplate[] = JSON.parse(localStorage.getItem(TEMPLATES_KEY) ?? "[]");
+      if (t.length) setTemplates(t);
+    } catch {}
+  }, []);
 
   // Auth listener
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-      if (!data.user && searchParams.get("login") === "1") {
-        setShowAuthModal(true);
-      }
-    });
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
@@ -692,30 +615,24 @@ export default function CreateLinkClient() {
 
   // Cargar perfil de pyme cuando hay usuario
   useEffect(() => {
-    if (!user) {
-      setLinksCount(null);
-      setAskInstagram(false);
-      setGeneratedUrl("");
-      setTemplates([]);
-      return;
-    }
-    // Restaurar link y templates solo si hay sesión activa
-    const saved = localStorage.getItem(lastUrlKey(user.id));
-    if (saved) setGeneratedUrl(saved);
-    try {
-      const t: PackageTemplate[] = JSON.parse(localStorage.getItem(templatesKey(user.id)) ?? "[]");
-      if (t.length) setTemplates(t);
-    } catch {}
+    if (!user) { setLinksCount(null); setAskInstagram(false); return; }
     supabase
       .from("pymes")
-      .select("links_creados, limite_links, ask_instagram, nombre_tienda, logo_url, origen_comuna, origen_calle, origen_numero, origen_depto, couriers_habilitados")
+      .select("links_creados, limite_links, ask_instagram, nombre_tienda, logo_url, origen_comuna, origen_calle, origen_numero, origen_depto, slug, link_fijo_enabled, default_largo, default_alto, default_ancho, default_peso")
       .eq("auth_id", user.id)
       .single()
       .then(({ data }) => {
         if (data) {
           setLinksCount({ used: data.links_creados, limit: data.limite_links });
           setAskInstagram(data.ask_instagram ?? false);
-          setCouriersHabilitados(data.couriers_habilitados ?? DEFAULT_COURIERS);
+          setPymeSlug(data.slug ?? "");
+          setLinkFijoEnabled(data.link_fijo_enabled ?? false);
+          setDefaultDims({
+            largo: String(data.default_largo ?? ""),
+            alto: String(data.default_alto ?? ""),
+            ancho: String(data.default_ancho ?? ""),
+            peso: String(data.default_peso ?? ""),
+          });
           const loadedProfile: ProfileState = {
             nombrePyme: data.nombre_tienda ?? "",
             logoFile: null,
@@ -778,6 +695,7 @@ export default function CreateLinkClient() {
         setProfile((p) => ({ ...p, logoUrl }));
       }
 
+      const newSlug = slugify(profile.nombrePyme);
       await supabase.from("pymes").update({
         nombre_tienda: profile.nombrePyme.trim(),
         logo_url: logoUrl || null,
@@ -785,7 +703,9 @@ export default function CreateLinkClient() {
         origen_calle: profile.origenCalle.trim(),
         origen_numero: profile.origenNumero.trim(),
         origen_depto: profile.origenDepto.trim() || null,
+        slug: newSlug || null,
       }).eq("auth_id", currentUser.id);
+      setPymeSlug(newSlug);
 
       setProfileSaved(true);
       setTimeout(() => {
@@ -874,6 +794,8 @@ export default function CreateLinkClient() {
       // Si el perfil local no está guardado en DB (usuario recién registrado), guardarlo ahora.
       const profileAlreadySaved = Boolean(pymeData?.nombre_tienda);
       const updates: Record<string, unknown> = { links_creados: newCount };
+      const newSlug = slugify(profile.nombrePyme);
+      updates.slug = newSlug || null;
       if (!profileAlreadySaved && isProfileComplete(profile)) {
         updates.nombre_tienda = profile.nombrePyme.trim();
         updates.logo_url = logoUrl || null;
@@ -882,24 +804,22 @@ export default function CreateLinkClient() {
         updates.origen_numero = profile.origenNumero.trim();
         updates.origen_depto = profile.origenDepto.trim() || null;
       }
+      setPymeSlug(newSlug);
       await supabase
         .from("pymes")
         .update(updates)
         .eq("auth_id", currentUser.id);
       setLinksCount((prev) => prev ? { ...prev, used: newCount } : prev);
 
-      // Guardar snapshot de couriers en el envío
-      await supabase.from("envios").update({ couriers_habilitados: couriersHabilitados }).eq("id", Number(id));
-
       const slug = slugify(profile.nombrePyme);
       const code = Number(id).toString(36);
       const base = slug ? `/${slug}/envio/${code}` : `/envio?id=${id}`;
       const newUrl = `${window.location.origin}${base}`;
-      localStorage.setItem(lastUrlKey(user!.id), newUrl);
+      localStorage.setItem("ld_last_url", newUrl);
       setGeneratedUrl(newUrl);
-      saveTemplate(pkg, user!.id);
+      saveTemplate(pkg);
       setTemplates(() => {
-        try { return JSON.parse(localStorage.getItem(templatesKey(user!.id)) ?? "[]"); } catch { return []; }
+        try { return JSON.parse(localStorage.getItem(TEMPLATES_KEY) ?? "[]"); } catch { return []; }
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
@@ -924,6 +844,30 @@ export default function CreateLinkClient() {
     await navigator.clipboard.writeText(generatedUrl).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  function linkFijoUrl() {
+    return `${typeof window !== "undefined" ? window.location.origin : ""}/${pymeSlug}`;
+  }
+
+  async function copyLinkFijo() {
+    await navigator.clipboard.writeText(linkFijoUrl()).catch(() => {});
+    setCopiedFijo(true);
+    setTimeout(() => setCopiedFijo(false), 2500);
+  }
+
+  async function handleSaveLinkFijo(enabled: boolean, dims: { largo: string; alto: string; ancho: string; peso: string }) {
+    setLinkFijoEnabled(enabled);
+    setDefaultDims(dims);
+    if (user) {
+      await supabase.from("pymes").update({
+        link_fijo_enabled: enabled,
+        default_largo: Number(dims.largo) || null,
+        default_alto: Number(dims.alto) || null,
+        default_ancho: Number(dims.ancho) || null,
+        default_peso: Number(dims.peso) || null,
+      }).eq("auth_id", user.id);
+    }
   }
 
   async function copyWhatsAppMsg() {
@@ -967,21 +911,15 @@ export default function CreateLinkClient() {
           askInstagram={askInstagram}
           onToggleInstagram={async (val) => {
             setAskInstagram(val);
-            if (user) await supabase.from("pymes").update({ ask_instagram: val }).eq("auth_id", user.id);
+            if (user) {
+              await supabase.from("pymes").update({ ask_instagram: val }).eq("auth_id", user.id);
+            }
           }}
-          couriersHabilitados={couriersHabilitados}
-          onOpenCouriers={() => setShowCouriersModal(true)}
+          pymeSlug={pymeSlug}
+          linkFijoEnabled={linkFijoEnabled}
+          defaultDims={defaultDims}
+          onSaveLinkFijo={handleSaveLinkFijo}
           onClose={() => setShowSettingsModal(false)}
-        />
-      )}
-      {showCouriersModal && (
-        <CouriersModal
-          couriersHabilitados={couriersHabilitados}
-          onSave={async (couriers) => {
-            setCouriersHabilitados(couriers);
-            if (user) await supabase.from("pymes").update({ couriers_habilitados: couriers }).eq("auth_id", user.id);
-          }}
-          onClose={() => setShowCouriersModal(false)}
         />
       )}
       {showAuthModal && (
@@ -1055,26 +993,9 @@ export default function CreateLinkClient() {
               </div>
             )}
             {!user && (
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <a href="/" style={{ fontSize: 13, color: "#5C5C57", textDecoration: "none", fontWeight: 500 }}>
-                  ← Volver al inicio
-                </a>
-                <button
-                  onClick={() => { setPendingAction(null); setShowAuthModal(true); }}
-                  title="Iniciar sesión"
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    width: 34, height: 34, borderRadius: "50%",
-                    background: "#F5F5F0", border: "1px solid #E8E8E3",
-                    cursor: "pointer", color: "#5C5C57", flexShrink: 0,
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                </button>
-              </div>
+              <a href="/" style={{ fontSize: 13, color: "#5C5C57", textDecoration: "none", fontWeight: 500 }}>
+                ← Volver al inicio
+              </a>
             )}
           </div>
         </div>
@@ -1308,95 +1229,209 @@ export default function CreateLinkClient() {
                   </div>
                 )}
 
-                {/* Paquete */}
-                <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "24px", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
-                  <SectionTitle n={1} label="Dimensiones del paquete" />
-                  {templates.length > 0 && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "-4px 0 16px" }}>
-                      {templates.map((t) => (
-                        <button
-                          key={t.label}
-                          onClick={() => setPkg({ largo: t.largo, alto: t.alto, ancho: t.ancho, peso: t.peso })}
-                          style={{
-                            background: "#F5F5F0", border: "1px solid #E8E8E3",
-                            borderRadius: 100, padding: "4px 11px",
-                            fontSize: 11, fontWeight: 500, color: "#5C5C57",
-                            cursor: "pointer", fontFamily: "inherit",
-                            transition: "border-color 0.15s, color 0.15s",
-                          }}
-                          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.color = "#E8553D"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; e.currentTarget.style.color = "#5C5C57"; }}
-                        >
-                          {t.label}
-                        </button>
-                      ))}
+                {/* ── Pro: hero link permanente ── */}
+                {isPro && linkFijoEnabled && pymeSlug && (
+                  <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E8E8E3", overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+                    {/* Identidad */}
+                    <div style={{ padding: "28px 24px 20px", textAlign: "center", borderBottom: "1px solid #F0F0EB" }}>
+                      <div style={{ width: 64, height: 64, borderRadius: 18, margin: "0 auto 14px", background: profile.logoPreview ? "transparent" : "#1A1A18", border: "1px solid #E8E8E3", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.1)" }}>
+                        {profile.logoPreview
+                          // eslint-disable-next-line @next/next/no-img-element
+                          ? <img src={profile.logoPreview} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          : <span style={{ fontSize: 26 }}>🏪</span>}
+                      </div>
+                      <p style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 700, color: "#1A1A18", letterSpacing: "-0.02em" }}>
+                        {profile.nombrePyme || "Tu Tienda"}
+                      </p>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: "#5C5C57", background: "#F5F5F0", border: "1px solid #E8E8E3", borderRadius: 100, padding: "3px 10px" }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#2D8A56", display: "inline-block" }} />
+                        Link permanente
+                      </span>
+                      <p style={{ margin: "10px 0 0", fontSize: 13, color: "#9C9C95", lineHeight: 1.4 }}>
+                        Compártelo con todos tus clientes — siempre lleva al mismo lugar.
+                      </p>
                     </div>
-                  )}
-                  <p style={{ margin: "-8px 0 18px", fontSize: 13, color: "#9C9C95" }}>
-                    Para cotizar el precio real de cada courier.
-                  </p>
-                  <div className="gen-grid-4col">
-                    <Field label="Largo (cm) *">
-                      <TextInput value={pkg.largo} onChange={(v) => setPkg_("largo", v.replace(/[^\d.]/g, ""))} placeholder="30" type="number" />
-                    </Field>
-                    <Field label="Alto (cm) *">
-                      <TextInput value={pkg.alto} onChange={(v) => setPkg_("alto", v.replace(/[^\d.]/g, ""))} placeholder="20" type="number" />
-                    </Field>
-                    <Field label="Ancho (cm) *">
-                      <TextInput value={pkg.ancho} onChange={(v) => setPkg_("ancho", v.replace(/[^\d.]/g, ""))} placeholder="15" type="number" />
-                    </Field>
-                    <Field label="Peso (kg) *">
-                      <TextInput value={pkg.peso} onChange={(v) => setPkg_("peso", v.replace(/[^\d.]/g, ""))} placeholder="1.5" type="number" />
-                    </Field>
-                  </div>
-                  <p style={{ margin: "12px 0 0", fontSize: 12, color: "#9C9C95" }}>
-                    Sin los datos exactos, estima por exceso.
-                  </p>
-                </div>
-
-                {/* Error */}
-                {error && (
-                  <div style={{ background: "#FFF0ED", border: "1px solid #E8553D", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#C23E28" }}>
-                    {error}
+                    {/* URL */}
+                    <div style={{ padding: "16px 20px 0" }}>
+                      <div style={{ background: "#F8F8F5", border: "1px solid #E8E8E3", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+                        <p style={{ margin: 0, flex: 1, fontSize: 12, color: "#5C5C57", fontFamily: "ui-monospace, monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {linkFijoUrl()}
+                        </p>
+                        <a href={linkFijoUrl()} target="_blank" rel="noreferrer" style={{ flexShrink: 0, color: "#9C9C95", display: "flex" }}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+                          </svg>
+                        </a>
+                      </div>
+                    </div>
+                    {/* Copiar */}
+                    <div style={{ padding: "10px 20px 16px" }}>
+                      <button
+                        onClick={copyLinkFijo}
+                        style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", fontSize: 15, fontWeight: 700, color: "#fff", fontFamily: "inherit", cursor: "pointer", transition: "background 0.2s", background: copiedFijo ? "#C23E28" : "#E8553D", boxShadow: copiedFijo ? "none" : "0 4px 16px rgba(232,85,61,0.35)" }}
+                      >
+                        {copiedFijo ? "✓ Copiado" : "Copiar link"}
+                      </button>
+                    </div>
+                    {/* Compartir */}
+                    <div style={{ borderTop: "1px solid #F0F0EB", padding: "12px 20px 16px", display: "flex", gap: 8 }}>
+                      <a
+                        href={`https://wa.me/?text=${encodeURIComponent(`¡Hola! Coordina tu envío directamente desde aquí: 👉 ${linkFijoUrl()} — ${profile.nombrePyme}`)}`}
+                        target="_blank" rel="noreferrer"
+                        style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 0", borderRadius: 10, border: "1px solid #E8E8E3", background: "#fff", fontSize: 13, fontWeight: 600, color: "#1A1A18", textDecoration: "none" }}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z" /></svg>
+                        WhatsApp
+                      </a>
+                      <button
+                        onClick={() => { if (typeof navigator !== "undefined" && navigator.share) { navigator.share({ title: profile.nombrePyme, url: linkFijoUrl() }); } else { copyLinkFijo(); } }}
+                        style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 0", borderRadius: 10, border: "1px solid #E8E8E3", background: "#fff", fontSize: 13, fontWeight: 600, color: "#1A1A18", cursor: "pointer", fontFamily: "inherit" }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5C5C57" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                          <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
+                        </svg>
+                        Compartir
+                      </button>
+                    </div>
                   </div>
                 )}
 
-                {/* Generate button */}
-                <button
-                  onClick={handleGenerate}
-                  disabled={!canGenerate || loading}
-                  style={{
-                    width: "100%", padding: "16px", borderRadius: 14, border: "none",
-                    fontSize: 16, fontWeight: 700, color: "#fff", fontFamily: "inherit",
-                    cursor: canGenerate && !loading ? "pointer" : "not-allowed",
-                    background: canGenerate && !loading ? "#E8553D" : "#D1D1CC",
-                    boxShadow: canGenerate && !loading ? "0 4px 20px rgba(232,85,61,0.3)" : "none",
-                    transition: "all 0.2s",
-                  }}
-                >
-                  {loading ? "Generando link…" : "Generar link de envío →"}
-                </button>
-
-                {!pkgComplete && profileComplete && !generatedUrl && (
-                  <p style={{ textAlign: "center", fontSize: 12, color: "#9C9C95", margin: "-8px 0 0" }}>
-                    Completa las dimensiones del paquete para continuar
-                  </p>
-                )}
-
-                {generatedUrl && (
-                  <div ref={generatedCardRef} style={{ padding: "4px 0 0" }}>
-                    <button
-                      onClick={() => { if (user) localStorage.removeItem(lastUrlKey(user.id)); setGeneratedUrl(""); setPkg(DEFAULT_PACKAGE); }}
-                      style={{
-                        width: "100%", padding: "13px", borderRadius: 12,
-                        border: "1.5px solid #E8E8E3", background: "transparent",
-                        fontSize: 14, fontWeight: 500, color: "#5C5C57",
-                        cursor: "pointer", fontFamily: "inherit",
-                      }}
-                    >
-                      Crear otro link
+                {/* Pro sin link fijo: CTA para activarlo */}
+                {isPro && !linkFijoEnabled && (
+                  <div style={{ background: "#F5FBF7", border: "1.5px dashed rgba(45,138,86,0.35)", borderRadius: 14, padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                    <div>
+                      <p style={{ margin: "0 0 2px", fontSize: 14, fontWeight: 700, color: "#1A1A18" }}>Activa tu link permanente</p>
+                      <p style={{ margin: 0, fontSize: 12, color: "#5C5C57" }}>Con tu plan Pro puedes tener un link fijo de tienda que nunca cambia.</p>
+                    </div>
+                    <button onClick={() => setShowSettingsModal(true)} style={{ flexShrink: 0, background: "#2D8A56", border: "none", borderRadius: 10, padding: "9px 14px", fontSize: 13, fontWeight: 700, color: "#fff", cursor: "pointer", fontFamily: "inherit" }}>
+                      Activar →
                     </button>
                   </div>
+                )}
+
+                {/* ── Sección colapsable: link manual (solo visible si Pro+linkFijo) ── */}
+                {isPro && linkFijoEnabled && pymeSlug ? (
+                  <>
+                    {/* Toggle colapsable */}
+                    <button
+                      onClick={() => { setShowManual((v) => !v); setGeneratedUrl(""); setPkg(DEFAULT_PACKAGE); }}
+                      style={{
+                        width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                        padding: "14px 18px", borderRadius: 12,
+                        border: "1px solid #E8E8E3", background: "#FAFAF7",
+                        fontSize: 14, fontWeight: 600, color: "#5C5C57",
+                        cursor: "pointer", fontFamily: "inherit", transition: "border-color 0.15s",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#D1D1CC"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; }}
+                    >
+                      <span>Generar link con dimensiones específicas</span>
+                      <span style={{ fontSize: 18, fontWeight: 400, color: "#9C9C95", transition: "transform 0.2s", display: "inline-block", transform: showManual ? "rotate(45deg)" : "rotate(0deg)" }}>+</span>
+                    </button>
+
+                    {/* Contenido colapsable */}
+                    {showManual && (
+                      <div className="link-slide-up" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                        <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "24px", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
+                          <SectionTitle n={1} label="Dimensiones del paquete" />
+                          {templates.length > 0 && (
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "-4px 0 16px" }}>
+                              {templates.map((t) => (
+                                <button key={t.label} onClick={() => setPkg({ largo: t.largo, alto: t.alto, ancho: t.ancho, peso: t.peso })}
+                                  style={{ background: "#F5F5F0", border: "1px solid #E8E8E3", borderRadius: 100, padding: "4px 11px", fontSize: 11, fontWeight: 500, color: "#5C5C57", cursor: "pointer", fontFamily: "inherit", transition: "border-color 0.15s, color 0.15s" }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.color = "#E8553D"; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; e.currentTarget.style.color = "#5C5C57"; }}
+                                >{t.label}</button>
+                              ))}
+                            </div>
+                          )}
+                          <p style={{ margin: "-8px 0 18px", fontSize: 13, color: "#9C9C95" }}>Para cotizar el precio real de cada courier.</p>
+                          <div className="gen-grid-4col">
+                            <Field label="Largo (cm) *"><TextInput value={pkg.largo} onChange={(v) => setPkg_("largo", v.replace(/[^\d.]/g, ""))} placeholder="30" type="number" /></Field>
+                            <Field label="Alto (cm) *"><TextInput value={pkg.alto} onChange={(v) => setPkg_("alto", v.replace(/[^\d.]/g, ""))} placeholder="20" type="number" /></Field>
+                            <Field label="Ancho (cm) *"><TextInput value={pkg.ancho} onChange={(v) => setPkg_("ancho", v.replace(/[^\d.]/g, ""))} placeholder="15" type="number" /></Field>
+                            <Field label="Peso (kg) *"><TextInput value={pkg.peso} onChange={(v) => setPkg_("peso", v.replace(/[^\d.]/g, ""))} placeholder="1.5" type="number" /></Field>
+                          </div>
+                          <p style={{ margin: "12px 0 0", fontSize: 12, color: "#9C9C95" }}>Sin los datos exactos, estima por exceso.</p>
+                        </div>
+
+                        {error && (
+                          <div style={{ background: "#FFF0ED", border: "1px solid #E8553D", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#C23E28" }}>{error}</div>
+                        )}
+
+                        <button onClick={handleGenerate} disabled={!canGenerate || loading} style={{ width: "100%", padding: "16px", borderRadius: 14, border: "none", fontSize: 16, fontWeight: 700, color: "#fff", fontFamily: "inherit", cursor: canGenerate && !loading ? "pointer" : "not-allowed", background: canGenerate && !loading ? "#E8553D" : "#D1D1CC", boxShadow: canGenerate && !loading ? "0 4px 20px rgba(232,85,61,0.3)" : "none", transition: "all 0.2s" }}>
+                          {loading ? "Generando link…" : "Generar link de envío →"}
+                        </button>
+
+                        {generatedUrl && (
+                          <div ref={generatedCardRef} className="link-slide-up" style={{ background: "#fff", borderRadius: 16, border: "1px solid #F0F0EB", overflow: "hidden" }}>
+                            <div style={{ padding: "14px 20px" }}>
+                              <button onClick={() => { localStorage.removeItem("ld_last_url"); setGeneratedUrl(""); setPkg(DEFAULT_PACKAGE); }} style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1.5px solid #E8E8E3", background: "transparent", fontSize: 14, fontWeight: 500, color: "#5C5C57", cursor: "pointer", fontFamily: "inherit" }}>
+                                + Crear otro link
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  /* ── Flujo normal (no Pro o sin link fijo) ── */
+                  <>
+                    {/* Paquete */}
+                    <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "24px", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
+                      <SectionTitle n={1} label="Dimensiones del paquete" />
+                      {templates.length > 0 && (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "-4px 0 16px" }}>
+                          {templates.map((t) => (
+                            <button key={t.label} onClick={() => setPkg({ largo: t.largo, alto: t.alto, ancho: t.ancho, peso: t.peso })}
+                              style={{ background: "#F5F5F0", border: "1px solid #E8E8E3", borderRadius: 100, padding: "4px 11px", fontSize: 11, fontWeight: 500, color: "#5C5C57", cursor: "pointer", fontFamily: "inherit", transition: "border-color 0.15s, color 0.15s" }}
+                              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.color = "#E8553D"; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; e.currentTarget.style.color = "#5C5C57"; }}
+                            >{t.label}</button>
+                          ))}
+                        </div>
+                      )}
+                      <p style={{ margin: "-8px 0 18px", fontSize: 13, color: "#9C9C95" }}>Para cotizar el precio real de cada courier.</p>
+                      <div className="gen-grid-4col">
+                        <Field label="Largo (cm) *"><TextInput value={pkg.largo} onChange={(v) => setPkg_("largo", v.replace(/[^\d.]/g, ""))} placeholder="30" type="number" /></Field>
+                        <Field label="Alto (cm) *"><TextInput value={pkg.alto} onChange={(v) => setPkg_("alto", v.replace(/[^\d.]/g, ""))} placeholder="20" type="number" /></Field>
+                        <Field label="Ancho (cm) *"><TextInput value={pkg.ancho} onChange={(v) => setPkg_("ancho", v.replace(/[^\d.]/g, ""))} placeholder="15" type="number" /></Field>
+                        <Field label="Peso (kg) *"><TextInput value={pkg.peso} onChange={(v) => setPkg_("peso", v.replace(/[^\d.]/g, ""))} placeholder="1.5" type="number" /></Field>
+                      </div>
+                      <p style={{ margin: "12px 0 0", fontSize: 12, color: "#9C9C95" }}>Sin los datos exactos, estima por exceso.</p>
+                    </div>
+
+                    {error && (
+                      <div style={{ background: "#FFF0ED", border: "1px solid #E8553D", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#C23E28" }}>{error}</div>
+                    )}
+
+                    <button onClick={handleGenerate} disabled={!canGenerate || loading} style={{ width: "100%", padding: "16px", borderRadius: 14, border: "none", fontSize: 16, fontWeight: 700, color: "#fff", fontFamily: "inherit", cursor: canGenerate && !loading ? "pointer" : "not-allowed", background: canGenerate && !loading ? "#E8553D" : "#D1D1CC", boxShadow: canGenerate && !loading ? "0 4px 20px rgba(232,85,61,0.3)" : "none", transition: "all 0.2s" }}>
+                      {loading ? "Generando link…" : "Generar link de envío →"}
+                    </button>
+
+                    {!pkgComplete && profileComplete && !generatedUrl && (
+                      <p style={{ textAlign: "center", fontSize: 12, color: "#9C9C95", margin: "-8px 0 0" }}>Completa las dimensiones del paquete para continuar</p>
+                    )}
+
+                    {generatedUrl && (
+                      <div ref={generatedCardRef} className="link-slide-up" style={{ background: "#fff", borderRadius: 16, border: "1px solid #F0F0EB", overflow: "hidden" }}>
+                        <div style={{ padding: "28px 24px 20px", textAlign: "center" }}>
+                          <div className="confirm-icon" style={{ width: 48, height: 48, borderRadius: "50%", background: "#fdf3f0", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E84B2A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                          </div>
+                          <p style={{ margin: "0 0 4px", fontSize: 18, fontWeight: 600, color: "#1A1A18" }}>¡Link listo!</p>
+                          <p style={{ margin: 0, fontSize: 13, color: "#9C9C95" }}>Cópialo desde el panel derecho y compártelo.</p>
+                        </div>
+                        <div style={{ padding: "4px 20px 20px" }}>
+                          <button onClick={() => { localStorage.removeItem("ld_last_url"); setGeneratedUrl(""); setPkg(DEFAULT_PACKAGE); }} style={{ width: "100%", padding: "12px", borderRadius: 12, border: "1.5px solid #E8E8E3", background: "transparent", fontSize: 14, fontWeight: 500, color: "#5C5C57", cursor: "pointer", fontFamily: "inherit" }}>
+                            + Crear otro link
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
@@ -1405,7 +1440,9 @@ export default function CreateLinkClient() {
           {/* ── RIGHT: Preview / Link generado ─────────────────────────────── */}
           <div style={{ position: "sticky", top: 76, height: "fit-content" }}>
             <p style={{ margin: "0 0 12px", fontSize: 11, fontWeight: 700, color: "#9C9C95", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-              {generatedUrl ? "Tu link" : "Así lo ve tu cliente"}
+              {generatedUrl
+                ? (isPro && linkFijoEnabled && pymeSlug ? "Link puntual · 48h" : "Tu link")
+                : (isPro && linkFijoEnabled && pymeSlug ? "Tu cuenta" : "Así lo ve tu cliente")}
             </p>
 
             {/* ── Link generado en el panel derecho ── */}
@@ -1414,23 +1451,6 @@ export default function CreateLinkClient() {
                 background: "#fff", borderRadius: 16,
                 border: "1px solid #F0F0EB", overflow: "hidden",
               }}>
-                {/* Confirmación */}
-                <div style={{ padding: "24px 20px 16px", textAlign: "center", borderBottom: "1px solid #F0F0EB" }}>
-                  <div style={{
-                    width: 44, height: 44, borderRadius: "50%",
-                    background: "#fdf3f0",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    margin: "0 auto 12px",
-                  }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E84B2A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  </div>
-                  <p style={{ margin: 0, fontSize: 17, fontWeight: 500, color: "#1A1A18", letterSpacing: "-0.02em" }}>
-                    ¡Link listo para compartir!
-                  </p>
-                </div>
-
                 {/* URL card */}
                 <div style={{ padding: "16px 16px 12px" }}>
                   <div style={{
@@ -1466,7 +1486,7 @@ export default function CreateLinkClient() {
                   </div>
                   {allDims && (
                     <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginTop: 10 }}>
-                      {[allDims, `${couriersHabilitados.length} courier${couriersHabilitados.length !== 1 ? "s" : ""}`, "Válido 48h"].map((chip) => (
+                      {[allDims, "4 couriers", "Válido 48h"].map((chip) => (
                         <span key={chip} style={{
                           background: "#F5F5F0", borderRadius: 100,
                           padding: "3px 10px", fontSize: 10, color: "#5C5C57",
@@ -1533,85 +1553,121 @@ export default function CreateLinkClient() {
               </div>
             )}
 
-            {/* ── Preview del formulario (cuando no hay link generado) ── */}
-            {!generatedUrl && <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E8E8E3", overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
-              {/* Header de la tienda */}
-              <div style={{ background: "#FAFAF7", padding: "14px 16px", borderBottom: "1px solid #E8E8E3", display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{
-                  width: 36, height: 36, borderRadius: 10,
-                  background: profile.logoPreview ? "transparent" : "#E8553D",
-                  display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0,
-                }}>
-                  {profile.logoPreview ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={profile.logoPreview} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  ) : (
-                    <svg width="20" height="20" viewBox="0 0 64 64" fill="none">
-                      <g transform="translate(32,32) rotate(-42) scale(0.58)">
-                        <rect x="-30" y="-16" width="48" height="28" rx="14" stroke="#fff" strokeWidth="7" />
-                        <rect x="8" y="-4" width="48" height="28" rx="14" stroke="#fff" strokeWidth="7" />
-                      </g>
-                    </svg>
-                  )}
-                </div>
-                <div>
-                  <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#1A1A18" }}>
-                    {profile.nombrePyme || "Tu Tienda"}
-                  </p>
-                  <p style={{ margin: 0, fontSize: 11, color: "#9C9C95" }}>Link de envío seguro</p>
-                </div>
-              </div>
+            {/* ── Panel derecho: dashboard si Pro+linkFijo, preview si no ── */}
+            {!generatedUrl && (
+              isPro && linkFijoEnabled && pymeSlug ? (
+                /* Dashboard Pro */
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
-              <div style={{ padding: "16px" }}>
-                {/* Destinatario placeholder */}
-                <div style={{ background: "#FAFAF7", border: "1px solid #E8E8E3", borderRadius: 10, padding: "10px 12px", marginBottom: 14, display: "flex", gap: 8, alignItems: "center" }}>
-                  <span style={{ fontSize: 18 }}>📋</span>
-                  <div>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#1A1A18" }}>Tu cliente completará sus datos aquí</p>
-                    <p style={{ margin: 0, fontSize: 12, color: "#9C9C95" }}>Nombre, dirección y comuna de destino</p>
-                  </div>
-                </div>
-
-                {/* Dimensiones */}
-                {allDims && (
-                  <div style={{ background: "#F5F5F0", borderRadius: 8, padding: "8px 12px", marginBottom: 14, display: "flex", gap: 6, alignItems: "center" }}>
-                    <span style={{ fontSize: 12 }}>📦</span>
-                    <p style={{ margin: 0, fontSize: 11, color: "#5C5C57" }}>{allDims}</p>
-                  </div>
-                )}
-
-                {/* Couriers */}
-                <p style={{ margin: "0 0 8px", fontSize: 10, fontWeight: 600, color: "#9C9C95", textTransform: "uppercase", letterSpacing: "0.08em" }}>Elige tu courier</p>
-                {[
-                  { name: "Starken", days: "2-3 días", highlight: false },
-                  { name: "Chilexpress", days: "1-2 días", highlight: false },
-                  { name: "Blue Express", days: "3-4 días", highlight: true },
-                ].map((c, i) => (
-                  <div key={i} style={{
-                    border: c.highlight ? "1.5px solid #E8553D" : "1px solid #E8E8E3",
-                    background: c.highlight ? "#FFF0ED" : "#fff",
-                    borderRadius: 8, padding: "8px 12px", marginBottom: 6,
-                    display: "flex", justifyContent: "space-between", alignItems: "center",
-                  }}>
-                    <div>
-                      <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "#1A1A18" }}>{c.name}</p>
-                      <p style={{ margin: 0, fontSize: 10, color: "#9C9C95" }}>{c.days}</p>
+                  {/* Tienda */}
+                  <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", overflow: "hidden" }}>
+                    <div style={{ padding: "12px 16px", borderBottom: "1px solid #F0F0EB" }}>
+                      <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: "#9C9C95", textTransform: "uppercase", letterSpacing: "0.08em" }}>Tu tienda</p>
                     </div>
-                    <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: c.highlight ? "#E8553D" : "#9C9C95" }}>
-                      {c.highlight ? "precio real" : "—"}
-                    </p>
+                    <div style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+                      <div style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0, background: profile.logoPreview ? "transparent" : "#F5F5F0", border: "1px solid #E8E8E3", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                        {profile.logoPreview
+                          // eslint-disable-next-line @next/next/no-img-element
+                          ? <img src={profile.logoPreview} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          : <span style={{ fontSize: 20 }}>🏪</span>}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ margin: "0 0 2px", fontSize: 15, fontWeight: 700, color: "#1A1A18" }}>{profile.nombrePyme || "—"}</p>
+                        <p style={{ margin: 0, fontSize: 12, color: "#9C9C95", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {profile.origenComuna ? `📍 ${profile.origenCalle} ${profile.origenNumero}, ${profile.origenComuna}` : "Sin dirección guardada"}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                ))}
 
-                <div style={{ background: "#E8553D", color: "#fff", textAlign: "center", borderRadius: 10, padding: "11px", marginTop: 8, fontSize: 13, fontWeight: 700 }}>
-                  Pagar envío →
+                  {/* Uso */}
+                  {linksCount && (
+                    <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "14px 16px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: "#9C9C95", textTransform: "uppercase", letterSpacing: "0.08em" }}>Links generados</p>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#1A1A18" }}>{linksCount.used}</p>
+                      </div>
+                      <div style={{ height: 4, background: "#F0F0EB", borderRadius: 100, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${Math.min((linksCount.used / linksCount.limit) * 100, 100)}%`, background: "#E8553D", borderRadius: 100, transition: "width 0.4s ease" }} />
+                      </div>
+                      <p style={{ margin: "8px 0 0", fontSize: 11, color: "#9C9C95" }}>Links ilimitados · Plan Pro</p>
+                    </div>
+                  )}
+
+                  {/* Ajustes rápidos */}
+                  <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", overflow: "hidden" }}>
+                    <div style={{ padding: "12px 16px", borderBottom: "1px solid #F0F0EB" }}>
+                      <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: "#9C9C95", textTransform: "uppercase", letterSpacing: "0.08em" }}>Ajustes rápidos</p>
+                    </div>
+                    {/* Instagram */}
+                    <div style={{ padding: "13px 16px", borderBottom: "1px solid #F0F0EB", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Pedir Instagram</p>
+                        <p style={{ margin: 0, fontSize: 11, color: "#9C9C95" }}>El cliente ingresa su @usuario</p>
+                      </div>
+                      <button
+                        onClick={async () => { const val = !askInstagram; setAskInstagram(val); if (user) await supabase.from("pymes").update({ ask_instagram: val }).eq("auth_id", user.id); }}
+                        style={{ flexShrink: 0, width: 40, height: 22, borderRadius: 100, background: askInstagram ? "#E8553D" : "#D1D1CC", border: "none", cursor: "pointer", position: "relative", transition: "background 0.2s" }}
+                      >
+                        <div style={{ position: "absolute", top: 3, width: 16, height: 16, borderRadius: "50%", background: "#fff", transition: "left 0.2s", left: askInstagram ? 21 : 3, boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+                      </button>
+                    </div>
+                    {/* Configuración completa */}
+                    <button
+                      onClick={() => setShowSettingsModal(true)}
+                      style={{ width: "100%", padding: "13px 16px", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", fontFamily: "inherit" }}
+                    >
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Configuración completa</span>
+                      <span style={{ fontSize: 16, color: "#9C9C95" }}>→</span>
+                    </button>
+                  </div>
+
                 </div>
-
-                <p style={{ textAlign: "center", fontSize: 11, color: "#9C9C95", margin: "10px 0 0" }}>
-                  🔒 Pago seguro con FLOW
-                </p>
-              </div>
-            </div>}
+              ) : (
+                /* Preview formulario cliente (no Pro) */
+                <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E8E8E3", overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+                  <div style={{ background: "#FAFAF7", padding: "14px 16px", borderBottom: "1px solid #E8E8E3", display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: profile.logoPreview ? "transparent" : "#E8553D", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
+                      {profile.logoPreview
+                        // eslint-disable-next-line @next/next/no-img-element
+                        ? <img src={profile.logoPreview} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        : <svg width="20" height="20" viewBox="0 0 64 64" fill="none"><g transform="translate(32,32) rotate(-42) scale(0.58)"><rect x="-30" y="-16" width="48" height="28" rx="14" stroke="#fff" strokeWidth="7" /><rect x="8" y="-4" width="48" height="28" rx="14" stroke="#fff" strokeWidth="7" /></g></svg>}
+                    </div>
+                    <div>
+                      <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#1A1A18" }}>{profile.nombrePyme || "Tu Tienda"}</p>
+                      <p style={{ margin: 0, fontSize: 11, color: "#9C9C95" }}>Link de envío seguro</p>
+                    </div>
+                  </div>
+                  <div style={{ padding: "16px" }}>
+                    <div style={{ background: "#FAFAF7", border: "1px solid #E8E8E3", borderRadius: 10, padding: "10px 12px", marginBottom: 14, display: "flex", gap: 8, alignItems: "center" }}>
+                      <span style={{ fontSize: 18 }}>📋</span>
+                      <div>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#1A1A18" }}>Tu cliente completará sus datos aquí</p>
+                        <p style={{ margin: 0, fontSize: 12, color: "#9C9C95" }}>Nombre, dirección y comuna de destino</p>
+                      </div>
+                    </div>
+                    {allDims && (
+                      <div style={{ background: "#F5F5F0", borderRadius: 8, padding: "8px 12px", marginBottom: 14, display: "flex", gap: 6, alignItems: "center" }}>
+                        <span style={{ fontSize: 12 }}>📦</span>
+                        <p style={{ margin: 0, fontSize: 11, color: "#5C5C57" }}>{allDims}</p>
+                      </div>
+                    )}
+                    <p style={{ margin: "0 0 8px", fontSize: 10, fontWeight: 600, color: "#9C9C95", textTransform: "uppercase", letterSpacing: "0.08em" }}>Elige tu courier</p>
+                    {[{ name: "Starken", days: "2-3 días", highlight: false }, { name: "Chilexpress", days: "1-2 días", highlight: false }, { name: "Blue Express", days: "3-4 días", highlight: true }].map((c, i) => (
+                      <div key={i} style={{ border: c.highlight ? "1.5px solid #E8553D" : "1px solid #E8E8E3", background: c.highlight ? "#FFF0ED" : "#fff", borderRadius: 8, padding: "8px 12px", marginBottom: 6, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div>
+                          <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "#1A1A18" }}>{c.name}</p>
+                          <p style={{ margin: 0, fontSize: 10, color: "#9C9C95" }}>{c.days}</p>
+                        </div>
+                        <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: c.highlight ? "#E8553D" : "#9C9C95" }}>{c.highlight ? "precio real" : "—"}</p>
+                      </div>
+                    ))}
+                    <div style={{ background: "#E8553D", color: "#fff", textAlign: "center", borderRadius: 10, padding: "11px", marginTop: 8, fontSize: 13, fontWeight: 700 }}>Pagar envío →</div>
+                    <p style={{ textAlign: "center", fontSize: 11, color: "#9C9C95", margin: "10px 0 0" }}>🔒 Pago seguro con FLOW</p>
+                  </div>
+                </div>
+              )
+            )}
 
             {/* Info pills — solo cuando no hay link generado */}
             {!generatedUrl && (

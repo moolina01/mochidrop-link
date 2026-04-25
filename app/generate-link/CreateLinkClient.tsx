@@ -555,7 +555,7 @@ function SettingsModal({
   askInstagram, onToggleInstagram,
   couriersHabilitados,
   onOpenCouriers,
-  pymeSlug, linkFijoEnabled, defaultDims,
+  isPro, pymeSlug, linkFijoEnabled, defaultDims,
   onSaveLinkFijo,
   onClose,
 }: {
@@ -563,6 +563,7 @@ function SettingsModal({
   onToggleInstagram: (val: boolean) => Promise<void>;
   couriersHabilitados: string[];
   onOpenCouriers: () => void;
+  isPro: boolean;
   pymeSlug: string;
   linkFijoEnabled: boolean;
   defaultDims: { largo: string; alto: string; ancho: string; peso: string };
@@ -635,8 +636,8 @@ function SettingsModal({
             </svg>
           </button>
 
-          {/* Link fijo */}
-          {pymeSlug && (
+          {/* Link fijo — visible para todos los Pro */}
+          {isPro && (
             <div style={{ border: "1px solid #E8E8E3", borderRadius: 12, overflow: "hidden" }}>
               <div style={{ padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div>
@@ -645,7 +646,7 @@ function SettingsModal({
                 </div>
                 <Toggle active={linkFijoEnabled} onChange={async () => { await onSaveLinkFijo(!linkFijoEnabled, defaultDims); }} />
               </div>
-              {linkFijoEnabled && (
+              {linkFijoEnabled && pymeSlug && (
                 <div style={{ borderTop: "1px solid #F0F0EB", padding: "10px 16px", background: "#FAFAF7" }}>
                   <p style={{ margin: 0, fontSize: 11, color: "#9C9C95", fontFamily: "ui-monospace, monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {typeof window !== "undefined" ? window.location.origin : ""}/{pymeSlug}
@@ -980,13 +981,22 @@ export default function CreateLinkClient() {
     setLinkFijoEnabled(enabled);
     setDefaultDims(dims);
     if (user) {
-      await supabase.from("pymes").update({
+      const updates: Record<string, unknown> = {
         link_fijo_enabled: enabled,
         default_largo: Number(dims.largo) || null,
         default_alto: Number(dims.alto) || null,
         default_ancho: Number(dims.ancho) || null,
         default_peso: Number(dims.peso) || null,
-      }).eq("auth_id", user.id);
+      };
+      // Auto-generate slug on first enable if account doesn't have one yet
+      if (enabled && !pymeSlug && profile.nombrePyme) {
+        const generatedSlug = slugify(profile.nombrePyme);
+        if (generatedSlug) {
+          updates.slug = generatedSlug;
+          setPymeSlug(generatedSlug);
+        }
+      }
+      await supabase.from("pymes").update(updates).eq("auth_id", user.id);
     }
   }
 
@@ -1035,6 +1045,7 @@ export default function CreateLinkClient() {
           }}
           couriersHabilitados={couriersHabilitados}
           onOpenCouriers={() => setShowCouriersModal(true)}
+          isPro={isPro}
           pymeSlug={pymeSlug}
           linkFijoEnabled={linkFijoEnabled}
           defaultDims={defaultDims}

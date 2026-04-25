@@ -1033,6 +1033,11 @@ export default function CreateLinkClient() {
         }
         .link-slide-up { animation: link-slide-up 0.3s ease both; }
         .confirm-icon { animation: confirm-pop 0.3s ease-out both; }
+        @keyframes pulse-live {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(45,138,86,0.5); }
+          50% { box-shadow: 0 0 0 5px rgba(45,138,86,0); }
+        }
+        .dot-live { animation: pulse-live 1.8s ease-in-out infinite; }
       `}</style>
 
       {/* Modales */}
@@ -1399,8 +1404,8 @@ export default function CreateLinkClient() {
                       </div>
                       <p style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 700, color: "#1A1A18", letterSpacing: "-0.02em" }}>{profile.nombrePyme || "Tu Tienda"}</p>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: "#5C5C57", background: "#F5F5F0", border: "1px solid #E8E8E3", borderRadius: 100, padding: "3px 10px" }}>
-                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#2D8A56", display: "inline-block" }} />
-                        Link permanente
+                        <span className="dot-live" style={{ width: 7, height: 7, borderRadius: "50%", background: "#2D8A56", display: "inline-block", flexShrink: 0 }} />
+                        Activo
                       </span>
                       <p style={{ margin: "10px 0 0", fontSize: 13, color: "#9C9C95", lineHeight: 1.4 }}>Compártelo con todos tus clientes — siempre lleva al mismo lugar.</p>
                     </div>
@@ -1683,8 +1688,85 @@ export default function CreateLinkClient() {
               </div>
             )}
 
-            {/* ── Preview del formulario (cuando no hay link generado) ── */}
-            {!generatedUrl && <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E8E8E3", overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+            {/* ── Panel derecho: Pro dashboard o preview ── */}
+            {!generatedUrl && isPro && linkFijoEnabled && pymeSlug ? (
+              /* Pro dashboard — reemplaza el preview */
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+                {/* Estado del link fijo */}
+                <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", overflow: "hidden" }}>
+                  <div style={{ padding: "16px 18px", borderBottom: "1px solid #F0F0EB", display: "flex", alignItems: "center", gap: 10 }}>
+                    <span className="dot-live" style={{ width: 8, height: 8, borderRadius: "50%", background: "#2D8A56", display: "inline-block", flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#1A1A18" }}>Tu link está activo</p>
+                      <p style={{ margin: "2px 0 0", fontSize: 11, color: "#9C9C95", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "ui-monospace, monospace" }}>
+                        {linkFijoUrl()}
+                      </p>
+                    </div>
+                    <a href={linkFijoUrl()} target="_blank" rel="noreferrer" style={{ flexShrink: 0, color: "#9C9C95", display: "flex" }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
+                    </a>
+                  </div>
+                  <button onClick={copyLinkFijo} style={{ width: "100%", padding: "13px 18px", border: "none", background: copiedFijo ? "#C23E28" : "#E8553D", fontSize: 14, fontWeight: 700, color: "#fff", cursor: "pointer", fontFamily: "inherit", transition: "background 0.15s" }}>
+                    {copiedFijo ? "✓ Copiado" : "Copiar link"}
+                  </button>
+                </div>
+
+                {/* Couriers activos — acceso rápido */}
+                <button
+                  onClick={() => setShowCouriersModal(true)}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 14, border: "1px solid #E8E8E3", background: "#fff", cursor: "pointer", fontFamily: "inherit", width: "100%", textAlign: "left" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#1A1A18"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; }}
+                >
+                  <div>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Couriers</p>
+                    <p style={{ margin: "2px 0 0", fontSize: 11, color: "#9C9C95" }}>
+                      {couriersHabilitados.length === ALL_COURIERS.length ? "Todos activos" : `${couriersHabilitados.length} de ${ALL_COURIERS.length} activos`}
+                    </p>
+                  </div>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9C9C95" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
+
+                {/* Configuración rápida */}
+                <button
+                  onClick={() => setShowSettingsModal(true)}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 14, border: "1px solid #E8E8E3", background: "#fff", cursor: "pointer", fontFamily: "inherit", width: "100%", textAlign: "left" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#1A1A18"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; }}
+                >
+                  <div>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Configuración</p>
+                    <p style={{ margin: "2px 0 0", fontSize: 11, color: "#9C9C95" }}>Instagram, link permanente y más</p>
+                  </div>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9C9C95" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
+
+                {/* Links usados */}
+                {linksCount && (
+                  <div style={{ padding: "14px 16px", borderRadius: 14, border: "1px solid #E8E8E3", background: "#fff" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Links manuales usados</p>
+                      <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: linksCount.used >= linksCount.limit ? "#E84B2A" : "#5C5C57" }}>
+                        {linksCount.used} / {linksCount.limit}
+                      </p>
+                    </div>
+                    <div style={{ height: 3, background: "#F0F0EB", borderRadius: 100, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${Math.min((linksCount.used / linksCount.limit) * 100, 100)}%`, background: linksCount.used >= linksCount.limit ? "#E84B2A" : "#2D8A56", borderRadius: 100, transition: "width 0.4s ease" }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : !generatedUrl ? (
+              /* Preview normal (no Pro o sin link fijo) */
+              <>
+              <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E8E8E3", overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
               {/* Header de la tienda */}
               <div style={{ background: "#FAFAF7", padding: "14px 16px", borderBottom: "1px solid #E8E8E3", display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{
@@ -1761,23 +1843,23 @@ export default function CreateLinkClient() {
                   🔒 Pago seguro con FLOW
                 </p>
               </div>
-            </div>}
+            </div>
 
-            {/* Info pills — solo cuando no hay link generado */}
-            {!generatedUrl && (
-              <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
-                {[
-                  "Los precios de courier se calculan en tiempo real al generar el link",
-                  "Tu cliente paga con tarjeta — sin transferencias",
-                  "La guía de despacho llega a tu correo automáticamente",
-                ].map((tip, i) => (
-                  <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                    <span style={{ fontSize: 12, flexShrink: 0, marginTop: 1 }}>✓</span>
-                    <p style={{ margin: 0, fontSize: 12, color: "#5C5C57" }}>{tip}</p>
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* Info pills */}
+            <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+              {[
+                "Los precios de courier se calculan en tiempo real al generar el link",
+                "Tu cliente paga con tarjeta — sin transferencias",
+                "La guía de despacho llega a tu correo automáticamente",
+              ].map((tip, i) => (
+                <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                  <span style={{ fontSize: 12, flexShrink: 0, marginTop: 1 }}>✓</span>
+                  <p style={{ margin: 0, fontSize: 12, color: "#5C5C57" }}>{tip}</p>
+                </div>
+              ))}
+            </div>
+            </>
+            ) : null}
           </div>
 
         </div>

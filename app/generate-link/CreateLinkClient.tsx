@@ -1093,6 +1093,12 @@ export default function CreateLinkClient() {
           100% { opacity: 1; transform: translateX(0) scale(1); }
         }
         .link-reveal { animation: link-reveal 0.42s cubic-bezier(0.22,1,0.36,1) both; }
+        @keyframes url-flash {
+          0%   { background: #fdf3f0; }
+          30%  { background: #ffd5cc; box-shadow: 0 0 0 3px rgba(232,85,61,0.18); }
+          100% { background: #fdf3f0; box-shadow: none; }
+        }
+        .url-flash { animation: url-flash 0.9s ease both; animation-delay: 0.3s; }
       `}</style>
 
       {/* Modales */}
@@ -1709,7 +1715,7 @@ export default function CreateLinkClient() {
 
                 {/* URL card */}
                 <div style={{ padding: "16px 16px 12px" }}>
-                  <div style={{
+                  <div className="url-flash" style={{
                     background: "#fdf3f0", borderRadius: 12,
                     padding: "12px 14px",
                     display: "flex", alignItems: "center", gap: 10,

@@ -1086,11 +1086,13 @@ export default function CreateLinkClient() {
           100% { opacity: 1; transform: translateY(0) scale(1); }
         }
         .hero-enter { animation: hero-enter 0.45s cubic-bezier(0.34,1.56,0.64,1) both; }
-        @keyframes manual-link-drop {
-          0%   { opacity: 0; transform: translateY(-10px); }
-          100% { opacity: 1; transform: translateY(0); }
+        @keyframes link-reveal {
+          0%   { opacity: 0; transform: translateX(32px) scale(0.96); }
+          55%  { opacity: 1; transform: translateX(-6px) scale(1.01); }
+          75%  { transform: translateX(3px) scale(0.995); }
+          100% { opacity: 1; transform: translateX(0) scale(1); }
         }
-        .manual-link-drop { animation: manual-link-drop 0.35s ease both; }
+        .link-reveal { animation: link-reveal 0.42s cubic-bezier(0.22,1,0.36,1) both; }
       `}</style>
 
       {/* Modales */}
@@ -1170,7 +1172,7 @@ export default function CreateLinkClient() {
                       ✦ Plan Pro
                     </span>
                   ) : isEmprende ? (
-                    <span className="gen-links-count" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: "#B45309", background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 100, padding: "3px 10px" }}>
+                    <span className="gen-links-count" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: "#2D8A56", background: "#F0FAF4", border: "1px solid #B8E2C8", borderRadius: 100, padding: "3px 10px" }}>
                       ✦ Plan Emprende
                     </span>
                   ) : (
@@ -1684,7 +1686,7 @@ export default function CreateLinkClient() {
 
             {/* ── Link manual generado (Pro: aparece debajo del dashboard; no Pro: reemplaza preview) ── */}
             {generatedUrl && (
-              <div className="manual-link-drop" style={{
+              <div className="link-reveal" style={{
                 background: "#fff", borderRadius: 16,
                 border: "1px solid #F0F0EB", overflow: "hidden",
               }}>
@@ -1790,7 +1792,7 @@ export default function CreateLinkClient() {
                   <div style={{ borderTop: "1px solid #F0F0EB", padding: "12px 16px" }}>
                     {isEmprende && (
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: "#B45309", background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 100, padding: "2px 10px" }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: "#2D8A56", background: "#F0FAF4", border: "1px solid #B8E2C8", borderRadius: 100, padding: "2px 10px" }}>
                           ✦ Plan Emprende
                         </span>
                         <span style={{ fontSize: 11, color: "#9C9C95" }}>{linksCount.used} / {linksCount.limit} links</span>
@@ -1808,7 +1810,7 @@ export default function CreateLinkClient() {
                       <div style={{
                         height: "100%",
                         width: `${Math.min((linksCount.used / linksCount.limit) * 100, 100)}%`,
-                        background: linksCount.used >= linksCount.limit ? "#E84B2A" : isEmprende ? "#B45309" : "#1A1A18",
+                        background: linksCount.used >= linksCount.limit ? "#E84B2A" : isEmprende ? "#2D8A56" : "#1A1A18",
                         borderRadius: 100, transition: "width 0.4s ease",
                       }} />
                     </div>

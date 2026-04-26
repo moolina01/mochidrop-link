@@ -742,6 +742,7 @@ export default function CreateLinkClient() {
   const profileComplete = useMemo(() => isProfileComplete(profile), [profile]);
   const pkgComplete = useMemo(() => isPackageComplete(pkg), [pkg]);
   const isPro = linksCount?.limit === 999;
+  const isEmprende = !isPro && (linksCount?.limit ?? 0) >= 40;
   const canGenerate = profileComplete && pkgComplete;
 
   const allDims = pkg.largo && pkg.alto && pkg.ancho && pkg.peso
@@ -1167,6 +1168,10 @@ export default function CreateLinkClient() {
                   isPro ? (
                     <span className="gen-links-count" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: "#2D8A56", background: "#F0FAF4", border: "1px solid #B8E2C8", borderRadius: 100, padding: "3px 10px" }}>
                       ✦ Plan Pro
+                    </span>
+                  ) : isEmprende ? (
+                    <span className="gen-links-count" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: "#B45309", background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 100, padding: "3px 10px" }}>
+                      ✦ Plan Emprende
                     </span>
                   ) : (
                     <span className="gen-links-count" style={{ fontSize: 12, color: "#5C5C57", fontWeight: 500 }}>
@@ -1780,20 +1785,30 @@ export default function CreateLinkClient() {
                   </div>
                 </div>
 
-                {/* Cuota */}
+                {/* Plan / Cuota */}
                 {linksCount && !isPro && (
                   <div style={{ borderTop: "1px solid #F0F0EB", padding: "12px 16px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                      <p style={{ margin: 0, fontSize: 11, color: "#9C9C95" }}>Links usados</p>
-                      <p style={{ margin: 0, fontSize: 11, fontWeight: 500, color: linksCount.used >= linksCount.limit ? "#E84B2A" : "#1A1A18" }}>
-                        {linksCount.used} / {linksCount.limit}
-                      </p>
-                    </div>
+                    {isEmprende && (
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: "#B45309", background: "#FFFBEB", border: "1px solid #FCD34D", borderRadius: 100, padding: "2px 10px" }}>
+                          ✦ Plan Emprende
+                        </span>
+                        <span style={{ fontSize: 11, color: "#9C9C95" }}>{linksCount.used} / {linksCount.limit} links</span>
+                      </div>
+                    )}
+                    {!isEmprende && (
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                        <p style={{ margin: 0, fontSize: 11, color: "#9C9C95" }}>Links usados</p>
+                        <p style={{ margin: 0, fontSize: 11, fontWeight: 500, color: linksCount.used >= linksCount.limit ? "#E84B2A" : "#1A1A18" }}>
+                          {linksCount.used} / {linksCount.limit}
+                        </p>
+                      </div>
+                    )}
                     <div style={{ height: 3, background: "#F0F0EB", borderRadius: 100, overflow: "hidden" }}>
                       <div style={{
                         height: "100%",
                         width: `${Math.min((linksCount.used / linksCount.limit) * 100, 100)}%`,
-                        background: linksCount.used >= linksCount.limit ? "#E84B2A" : "#1A1A18",
+                        background: linksCount.used >= linksCount.limit ? "#E84B2A" : isEmprende ? "#B45309" : "#1A1A18",
                         borderRadius: 100, transition: "width 0.4s ease",
                       }} />
                     </div>

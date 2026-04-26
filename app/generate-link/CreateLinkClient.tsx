@@ -1153,12 +1153,18 @@ export default function CreateLinkClient() {
             {user && (
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 {linksCount && (
-                  <span className="gen-links-count" style={{ fontSize: 12, color: "#5C5C57", fontWeight: 500 }}>
-                    <span style={{ fontWeight: 700, color: linksCount.used >= linksCount.limit ? "#C23E28" : "#1A1A18" }}>
-                      {linksCount.used}
+                  isPro ? (
+                    <span className="gen-links-count" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, fontWeight: 600, color: "#2D8A56", background: "#F0FAF4", border: "1px solid #B8E2C8", borderRadius: 100, padding: "3px 10px" }}>
+                      ✦ Plan Pro
                     </span>
-                    <span style={{ color: "#9C9C95" }}> / {linksCount.limit} links</span>
-                  </span>
+                  ) : (
+                    <span className="gen-links-count" style={{ fontSize: 12, color: "#5C5C57", fontWeight: 500 }}>
+                      <span style={{ fontWeight: 700, color: linksCount.used >= linksCount.limit ? "#C23E28" : "#1A1A18" }}>
+                        {linksCount.used}
+                      </span>
+                      <span style={{ color: "#9C9C95" }}> / {linksCount.limit} links</span>
+                    </span>
+                  )
                 )}
                 <span className="gen-header-email" style={{ fontSize: 12, color: "#9C9C95" }}>{user.email}</span>
                 <button
@@ -1708,7 +1714,7 @@ export default function CreateLinkClient() {
                 </div>
 
                 {/* Cuota */}
-                {linksCount && (
+                {linksCount && !isPro && (
                   <div style={{ borderTop: "1px solid #F0F0EB", padding: "12px 16px" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                       <p style={{ margin: 0, fontSize: 11, color: "#9C9C95" }}>Links usados</p>
@@ -1789,20 +1795,16 @@ export default function CreateLinkClient() {
                   </svg>
                 </button>
 
-                {/* Links usados */}
-                {linksCount && (
-                  <div style={{ padding: "14px 16px", borderRadius: 14, border: "1px solid #E8E8E3", background: "#fff" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Links manuales usados</p>
-                      <p style={{ margin: 0, fontSize: 12, fontWeight: 500, color: linksCount.used >= linksCount.limit ? "#E84B2A" : "#5C5C57" }}>
-                        {linksCount.used} / {linksCount.limit}
-                      </p>
+                {/* Plan / Links usados */}
+                <div style={{ padding: "14px 16px", borderRadius: 14, border: "1px solid #B8E2C8", background: "#F0FAF4" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#1A1A18" }}>Plan Pro</p>
+                      <p style={{ margin: "2px 0 0", fontSize: 11, color: "#2D8A56" }}>Links ilimitados · sin restricciones</p>
                     </div>
-                    <div style={{ height: 3, background: "#F0F0EB", borderRadius: 100, overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${Math.min((linksCount.used / linksCount.limit) * 100, 100)}%`, background: linksCount.used >= linksCount.limit ? "#E84B2A" : "#2D8A56", borderRadius: 100, transition: "width 0.4s ease" }} />
-                    </div>
+                    <span style={{ fontSize: 16 }}>✦</span>
                   </div>
-                )}
+                </div>
               </div>
             ) : !generatedUrl ? (
               /* Preview normal (no Pro o sin link fijo) */

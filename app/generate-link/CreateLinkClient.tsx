@@ -1079,6 +1079,17 @@ export default function CreateLinkClient() {
           50% { box-shadow: 0 0 0 5px rgba(45,138,86,0); }
         }
         .dot-live { animation: pulse-live 1.8s ease-in-out infinite; }
+        @keyframes hero-enter {
+          0%   { opacity: 0; transform: translateY(20px) scale(0.97); }
+          60%  { opacity: 1; transform: translateY(-4px) scale(1.005); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .hero-enter { animation: hero-enter 0.45s cubic-bezier(0.34,1.56,0.64,1) both; }
+        @keyframes manual-link-drop {
+          0%   { opacity: 0; transform: translateY(-10px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        .manual-link-drop { animation: manual-link-drop 0.35s ease both; }
       `}</style>
 
       {/* Modales */}
@@ -1441,7 +1452,7 @@ export default function CreateLinkClient() {
 
                 {/* ── Pro: hero link permanente ── */}
                 {isPro && linkFijoEnabled && pymeSlug && (
-                  <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E8E8E3", overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
+                  <div className="hero-enter" style={{ background: "#fff", borderRadius: 20, border: "1px solid #E8E8E3", overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
                     <div style={{ padding: "28px 24px 20px", textAlign: "center", borderBottom: "1px solid #F0F0EB" }}>
                       <div style={{ width: 64, height: 64, borderRadius: 18, margin: "0 auto 14px", background: profile.logoPreview ? "transparent" : "#1A1A18", border: "1px solid #E8E8E3", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.1)" }}>
                         {profile.logoPreview
@@ -1602,17 +1613,73 @@ export default function CreateLinkClient() {
             )}
           </div>
 
-          {/* ── RIGHT: Preview / Link generado ─────────────────────────────── */}
-          <div style={{ position: "sticky", top: 76, height: "fit-content" }}>
-            <p style={{ margin: "0 0 12px", fontSize: 11, fontWeight: 700, color: "#9C9C95", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-              {generatedUrl
-                ? (isPro && linkFijoEnabled && pymeSlug ? "Link puntual · 48h" : "Tu link")
-                : (isPro && linkFijoEnabled && pymeSlug ? "Tu cuenta" : "Así lo ve tu cliente")}
+          {/* ── RIGHT: Panel fijo ─────────────────────────────── */}
+          <div style={{ position: "sticky", top: 76, height: "fit-content", display: "flex", flexDirection: "column", gap: 10 }}>
+            <p style={{ margin: "0 0 4px", fontSize: 11, fontWeight: 700, color: "#9C9C95", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+              {isPro && linkFijoEnabled && pymeSlug ? "Tu cuenta" : (generatedUrl ? "Tu link" : "Así lo ve tu cliente")}
             </p>
 
-            {/* ── Link generado en el panel derecho ── */}
+            {/* ── Pro dashboard (siempre visible cuando Pro + link fijo) ── */}
+            {isPro && linkFijoEnabled && pymeSlug && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {/* Estado del link fijo */}
+                <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", overflow: "hidden" }}>
+                  <div style={{ padding: "16px 18px", borderBottom: "1px solid #F0F0EB", display: "flex", alignItems: "center", gap: 10 }}>
+                    <span className="dot-live" style={{ width: 8, height: 8, borderRadius: "50%", background: "#2D8A56", display: "inline-block", flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#1A1A18" }}>Tu link está activo</p>
+                      <p style={{ margin: "2px 0 0", fontSize: 11, color: "#9C9C95", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "ui-monospace, monospace" }}>
+                        {linkFijoUrl()}
+                      </p>
+                    </div>
+                    <a href={linkFijoUrl()} target="_blank" rel="noreferrer" style={{ flexShrink: 0, color: "#9C9C95", display: "flex" }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
+                    </a>
+                  </div>
+                  <button onClick={copyLinkFijo} style={{ width: "100%", padding: "13px 18px", border: "none", background: copiedFijo ? "#C23E28" : "#E8553D", fontSize: 14, fontWeight: 700, color: "#fff", cursor: "pointer", fontFamily: "inherit", transition: "background 0.15s" }}>
+                    {copiedFijo ? "✓ Copiado" : "Copiar link"}
+                  </button>
+                </div>
+                {/* Couriers */}
+                <button onClick={() => setShowCouriersModal(true)}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 14, border: "1px solid #E8E8E3", background: "#fff", cursor: "pointer", fontFamily: "inherit", width: "100%", textAlign: "left" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#1A1A18"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; }}>
+                  <div>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Couriers</p>
+                    <p style={{ margin: "2px 0 0", fontSize: 11, color: "#9C9C95" }}>{couriersHabilitados.length === ALL_COURIERS.length ? "Todos activos" : `${couriersHabilitados.length} de ${ALL_COURIERS.length} activos`}</p>
+                  </div>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9C9C95" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                </button>
+                {/* Configuración */}
+                <button onClick={() => setShowSettingsModal(true)}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 14, border: "1px solid #E8E8E3", background: "#fff", cursor: "pointer", fontFamily: "inherit", width: "100%", textAlign: "left" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#1A1A18"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; }}>
+                  <div>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Configuración</p>
+                    <p style={{ margin: "2px 0 0", fontSize: 11, color: "#9C9C95" }}>Instagram, link permanente y más</p>
+                  </div>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9C9C95" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+                </button>
+                {/* Plan Pro */}
+                <div style={{ padding: "14px 16px", borderRadius: 14, border: "1px solid #B8E2C8", background: "#F0FAF4" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#1A1A18" }}>Plan Pro</p>
+                      <p style={{ margin: "2px 0 0", fontSize: 11, color: "#2D8A56" }}>Links ilimitados · sin restricciones</p>
+                    </div>
+                    <span style={{ fontSize: 16 }}>✦</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── Link manual generado (Pro: aparece debajo del dashboard; no Pro: reemplaza preview) ── */}
             {generatedUrl && (
-              <div className="link-slide-up" style={{
+              <div className="manual-link-drop" style={{
                 background: "#fff", borderRadius: 16,
                 border: "1px solid #F0F0EB", overflow: "hidden",
               }}>
@@ -1735,78 +1802,8 @@ export default function CreateLinkClient() {
               </div>
             )}
 
-            {/* ── Panel derecho: Pro dashboard o preview ── */}
-            {!generatedUrl && isPro && linkFijoEnabled && pymeSlug ? (
-              /* Pro dashboard — reemplaza el preview */
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-
-                {/* Estado del link fijo */}
-                <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", overflow: "hidden" }}>
-                  <div style={{ padding: "16px 18px", borderBottom: "1px solid #F0F0EB", display: "flex", alignItems: "center", gap: 10 }}>
-                    <span className="dot-live" style={{ width: 8, height: 8, borderRadius: "50%", background: "#2D8A56", display: "inline-block", flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#1A1A18" }}>Tu link está activo</p>
-                      <p style={{ margin: "2px 0 0", fontSize: 11, color: "#9C9C95", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontFamily: "ui-monospace, monospace" }}>
-                        {linkFijoUrl()}
-                      </p>
-                    </div>
-                    <a href={linkFijoUrl()} target="_blank" rel="noreferrer" style={{ flexShrink: 0, color: "#9C9C95", display: "flex" }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
-                      </svg>
-                    </a>
-                  </div>
-                  <button onClick={copyLinkFijo} style={{ width: "100%", padding: "13px 18px", border: "none", background: copiedFijo ? "#C23E28" : "#E8553D", fontSize: 14, fontWeight: 700, color: "#fff", cursor: "pointer", fontFamily: "inherit", transition: "background 0.15s" }}>
-                    {copiedFijo ? "✓ Copiado" : "Copiar link"}
-                  </button>
-                </div>
-
-                {/* Couriers activos — acceso rápido */}
-                <button
-                  onClick={() => setShowCouriersModal(true)}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 14, border: "1px solid #E8E8E3", background: "#fff", cursor: "pointer", fontFamily: "inherit", width: "100%", textAlign: "left" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#1A1A18"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; }}
-                >
-                  <div>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Couriers</p>
-                    <p style={{ margin: "2px 0 0", fontSize: 11, color: "#9C9C95" }}>
-                      {couriersHabilitados.length === ALL_COURIERS.length ? "Todos activos" : `${couriersHabilitados.length} de ${ALL_COURIERS.length} activos`}
-                    </p>
-                  </div>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9C9C95" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </button>
-
-                {/* Configuración rápida */}
-                <button
-                  onClick={() => setShowSettingsModal(true)}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderRadius: 14, border: "1px solid #E8E8E3", background: "#fff", cursor: "pointer", fontFamily: "inherit", width: "100%", textAlign: "left" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#1A1A18"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; }}
-                >
-                  <div>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Configuración</p>
-                    <p style={{ margin: "2px 0 0", fontSize: 11, color: "#9C9C95" }}>Instagram, link permanente y más</p>
-                  </div>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9C9C95" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
-                </button>
-
-                {/* Plan / Links usados */}
-                <div style={{ padding: "14px 16px", borderRadius: 14, border: "1px solid #B8E2C8", background: "#F0FAF4" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div>
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#1A1A18" }}>Plan Pro</p>
-                      <p style={{ margin: "2px 0 0", fontSize: 11, color: "#2D8A56" }}>Links ilimitados · sin restricciones</p>
-                    </div>
-                    <span style={{ fontSize: 16 }}>✦</span>
-                  </div>
-                </div>
-              </div>
-            ) : !generatedUrl ? (
+            {/* ── Preview normal (no Pro o sin link fijo activo) ── */}
+            {!generatedUrl && !(isPro && linkFijoEnabled && pymeSlug) ? (
               /* Preview normal (no Pro o sin link fijo) */
               <>
               <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E8E8E3", overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.07)" }}>
@@ -1907,6 +1904,7 @@ export default function CreateLinkClient() {
 
         </div>
       </div>
+
 
       <style>{`
         @media (min-width: 768px) {

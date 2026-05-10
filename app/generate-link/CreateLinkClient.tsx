@@ -188,7 +188,6 @@ function ComunaAutocomplete({ value, onChange, placeholder = "Ej: Las Condes" }:
         autoComplete="off"
         placeholder={placeholder}
         onChange={(e) => { setQuery(e.target.value); onChange(""); setOpen(true); }}
-        onFocus={() => { if (query.length >= 2) setOpen(true); }}
         style={inputStyle}
         onFocus={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.1)"; if (query.length >= 2) setOpen(true); }}
         onBlur={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; e.currentTarget.style.boxShadow = "none"; }}

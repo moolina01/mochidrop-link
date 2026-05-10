@@ -60,6 +60,16 @@ type EnvioType = {
   tracking_url?: string;
   ask_instagram?: boolean;
   couriers_habilitados?: string[] | null;
+  delivery_propio?: {
+    enabled: boolean;
+    precio: number;
+    telefono: string;
+    banco: string;
+    cuenta: string;
+    titular: string;
+    rut: string;
+    email: string;
+  } | null;
 };
 
 const COMUNAS_CHILE = [
@@ -97,6 +107,17 @@ const COMUNAS_CHILE = [
   "Torres del Paine","Traiguén","Trehuaco","Tucapel","Valdivia","Vallenar","Valparaíso","Victoria","Vicuña",
   "Villa Alegre","Villa Alemana","Villarrica","Viña del Mar","Vitacura","Yerbas Buenas","Yumbel","Yungay","Zapallar",
 ];
+
+const COMUNAS_SANTIAGO = new Set([
+  "santiago","providencia","ñuñoa","las condes","vitacura","lo barnechea","la reina",
+  "peñalolén","macul","san joaquín","la granja","la florida","puente alto","la pintana",
+  "san bernardo","el bosque","pedro aguirre cerda","lo espejo","cerrillos","maipú",
+  "pudahuel","quinta normal","cerro navia","renca","quilicura","conchalí","huechuraba",
+  "recoleta","independencia","estación central","padre hurtado","peñaflor","lampa",
+  "colina","buin","paine","pirque","calera de tango","talagante","el monte","isla de maipo",
+  "melipilla","curacaví","til til","lo prado","san ramón","la cisterna","san miguel",
+  "lo espejo","el monte",
+]);
 
 // ─── Helpers de cotización ────────────────────────────────────────────────────
 
@@ -394,7 +415,42 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
   const [cotizando, setCotizando] = useState(false);
   const [errorCotizar, setErrorCotizar] = useState("");
 
+  const [showDeliveryPropioPanel, setShowDeliveryPropioPanel] = useState(false);
+  const [comprobante, setComprobante] = useState<File | null>(null);
+  const [enviandoComprobante, setEnviandoComprobante] = useState(false);
+  const [comprobanteSent, setComprobanteSent] = useState(false);
+  const [comprobanteError, setComprobanteError] = useState("");
+
   const router = useRouter();
+
+  async function enviarComprobante() {
+    if (!envio?.delivery_propio) return;
+    setEnviandoComprobante(true);
+    setComprobanteError("");
+    try {
+      const form = new FormData();
+      form.append("pymeEmail", envio.delivery_propio.email);
+      form.append("pymeName", envio.nombre_pyme);
+      form.append("clientName", envio.datos_destino?.nombre ?? "");
+      form.append("clientPhone", envio.datos_destino?.telefono ?? "");
+      form.append("address", `${envio.datos_destino?.calle ?? ""} ${envio.datos_destino?.numero ?? ""}`.trim());
+      form.append("comuna", envio.datos_destino?.comuna ?? "");
+      form.append("precio", envio.delivery_propio.precio.toString());
+      form.append("envioId", id ?? "");
+      if (comprobante) form.append("comprobante", comprobante);
+
+      const res = await fetch("/api/delivery-propio", { method: "POST", body: form });
+      if (!res.ok) throw new Error("Error al enviar");
+      if (id) {
+        await supabase.from("envios").update({ estado: "delivery_pendiente" }).eq("id", Number(id));
+      }
+      setComprobanteSent(true);
+    } catch {
+      setComprobanteError("No pudimos enviar el comprobante. Inténtalo de nuevo.");
+    } finally {
+      setEnviandoComprobante(false);
+    }
+  }
 
   async function elegir(courier: string) {
     setTransitioning(true);
@@ -415,6 +471,7 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
         .from("envios").select("*").eq("id", Number(id)).single();
       if (error) { setLoading(false); return; }
       if (data.estado === "Creado ") { router.push(`/final?id=${id}`); return; }
+      if (data.estado === "delivery_pendiente") { setComprobanteSent(true); }
       setEnvio(data);
       setLoading(false);
       if (data.cotizaciones && Object.keys(data.cotizaciones).length > 0) {
@@ -532,8 +589,12 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
     return allowed && cotizaciones[k] && getPrice(cotizaciones[k]!) != null;
   });
 
-  // Si no hay couriers válidos, mostrar el formulario de nuevo
-  const mostrarFormulario = courierKeys.length === 0;
+  const dp = envio?.delivery_propio;
+  const comunaCliente = (envio?.datos_destino?.comuna ?? "").toLowerCase().trim();
+  const showDeliveryPropio = !!(dp?.enabled && dp.precio && COMUNAS_SANTIAGO.has(comunaCliente));
+
+  // Si no hay couriers válidos ni delivery propio, mostrar el formulario de nuevo
+  const mostrarFormulario = courierKeys.length === 0 && !showDeliveryPropio;
 
   // El más barato
   const cheapestKey = courierKeys.length > 0
@@ -553,6 +614,81 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
     selectedCourier === "starken_sucursal"
       ? (cotizaciones["starken_sucursal"]?.sucursales ?? [])
       : [];
+
+  // Si ya se envió comprobante, mostrar pantalla de confirmación permanente
+  if (comprobanteSent && envio) {
+    const dp = envio.delivery_propio;
+    return (
+      <div className="min-h-screen bg-[#FAFAF7]">
+        <StoreHeader envio={envio} />
+        <div className="max-w-md mx-auto px-4 py-6 pb-16 flex flex-col gap-4">
+          <div className="bg-[#1A1A18] rounded-2xl overflow-hidden">
+            <div className="px-6 py-8 text-center">
+              <div className="w-16 h-16 rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center mx-auto mb-4">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <p className="text-white font-bold text-xl mb-1">¡Comprobante enviado!</p>
+              <p className="text-white/50 text-sm mt-1">
+                {envio.nombre_pyme} coordinará contigo la entrega
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-[#E8E8E3] shadow-sm px-5 py-4">
+            <p className="text-xs font-bold text-[#9C9C95] uppercase tracking-wider mb-3">Tu pedido</p>
+            {[
+              { label: "Destinatario", value: envio.datos_destino?.nombre },
+              { label: "Dirección", value: `${envio.datos_destino?.calle ?? ""} ${envio.datos_destino?.numero ?? ""}`.trim() },
+              { label: "Comuna", value: envio.datos_destino?.comuna },
+              { label: "Teléfono", value: envio.datos_destino?.telefono },
+              { label: "Monto pagado", value: dp?.precio ? `$${dp.precio.toLocaleString("es-CL")}` : null },
+            ].filter(r => r.value).map(({ label, value }) => (
+              <div key={label} className="flex justify-between py-2.5 border-b border-[#F5F5F0] last:border-0">
+                <span className="text-xs text-[#9C9C95]">{label}</span>
+                <span className="text-xs font-semibold text-[#1A1A18] text-right max-w-[55%]">{value}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-white rounded-2xl border border-[#E8E8E3] shadow-sm px-5 py-4">
+            <p className="text-xs font-bold text-[#9C9C95] uppercase tracking-wider mb-3">¿Qué sigue?</p>
+            <div className="flex flex-col gap-3">
+              {[
+                { emoji: "📩", text: `${envio.nombre_pyme} revisará tu comprobante de pago` },
+                { emoji: "📞", text: "Te contactarán para coordinar el horario de entrega" },
+                { emoji: "📦", text: "Recibirás tu pedido en la dirección indicada" },
+              ].map(({ emoji, text }) => (
+                <div key={emoji} className="flex gap-3 items-start">
+                  <div className="w-7 h-7 rounded-full bg-[#FFF0ED] flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-sm">{emoji}</span>
+                  </div>
+                  <p className="text-sm text-[#5C5C57] leading-snug">{text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {dp?.telefono && (
+            <div className="bg-[#FFF0ED] rounded-2xl border border-[#F5D5CE] px-5 py-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-[#1A1A18]">¿Tienes dudas?</p>
+                <p className="text-xs text-[#9C9C95] mt-0.5">Contacta a {envio.nombre_pyme}</p>
+              </div>
+              <a href={`tel:${dp.telefono}`} className="bg-[#E8553D] text-white text-sm font-bold px-4 py-2 rounded-xl no-underline">
+                {dp.telefono}
+              </a>
+            </div>
+          )}
+
+          <p className="text-center text-[11px] text-[#9C9C95]">
+            Powered by <span className="font-semibold text-[#5C5C57]">LinkDrop</span>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FAFAF7]">
@@ -735,7 +871,76 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
               <p className="text-xs text-[#9C9C95] mt-0.5">Opciones verificadas y aseguradas</p>
             </div>
 
+            {/* Panel comprobante delivery propio */}
+            {showDeliveryPropioPanel && dp && !comprobanteSent && (
+              <div className="bg-white rounded-2xl border border-[#E8E8E3] shadow-sm overflow-hidden mb-4">
+                <div className="px-4 py-4 border-b border-[#F0F0EB]">
+                  <p className="font-bold text-[15px] text-[#1A1A18] mb-1">Datos para transferencia</p>
+                  <p className="text-xs text-[#9C9C95]">Transfiere el monto y sube el comprobante</p>
+                </div>
+                <div className="px-4 py-4 flex flex-col gap-2">
+                  {[
+                    { label: "Monto", value: `$${dp.precio.toLocaleString("es-CL")}` },
+                    { label: "Banco", value: dp.banco },
+                    { label: "Cuenta", value: dp.cuenta },
+                    { label: "Titular", value: dp.titular },
+                    { label: "RUT", value: dp.rut },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex justify-between items-center py-1 border-b border-[#F5F5F0] last:border-0">
+                      <span className="text-xs font-semibold text-[#9C9C95] uppercase tracking-wide">{label}</span>
+                      <span className="text-sm font-semibold text-[#1A1A18]">{value}</span>
+                    </div>
+                  ))}
+                  {dp.telefono && (
+                    <div className="mt-2 bg-[#F5F5F0] rounded-xl px-3 py-2 flex items-center gap-2">
+                      <span className="text-xs text-[#5C5C57]">¿Dudas sobre tu pedido?</span>
+                      <a href={`tel:${dp.telefono}`} className="text-xs font-bold text-[#E8553D]">{dp.telefono}</a>
+                    </div>
+                  )}
+                </div>
+                <div className="px-4 pb-4 flex flex-col gap-3">
+                  <label className="block text-sm font-semibold text-[#1A1A18]">
+                    Sube tu comprobante de pago
+                  </label>
+                  <label className="flex flex-col items-center justify-center border-2 border-dashed border-[#E8E8E3] rounded-xl py-6 cursor-pointer hover:border-[#E8553D] transition-colors bg-[#FAFAF7]">
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      className="hidden"
+                      onChange={(e) => setComprobante(e.target.files?.[0] ?? null)}
+                    />
+                    {comprobante ? (
+                      <p className="text-sm font-semibold text-[#2D8A56]">✓ {comprobante.name}</p>
+                    ) : (
+                      <>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9C9C95" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mb-2">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <p className="text-xs text-[#9C9C95]">Foto o PDF del comprobante</p>
+                      </>
+                    )}
+                  </label>
+                  {comprobanteError && <p className="text-xs text-red-500">{comprobanteError}</p>}
+                  <button
+                    onClick={enviarComprobante}
+                    disabled={enviandoComprobante}
+                    className="w-full py-4 rounded-xl font-bold text-[15px] text-white transition-all disabled:opacity-50"
+                    style={{ background: "#1A1A18" }}
+                  >
+                    {enviandoComprobante ? "Enviando..." : "Enviar comprobante →"}
+                  </button>
+                  <button
+                    onClick={() => { setShowDeliveryPropioPanel(false); setSelectedCourier(null); }}
+                    className="text-xs text-[#9C9C95] text-center"
+                  >
+                    ← Volver a elegir courier
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Lista de couriers */}
+            {!showDeliveryPropioPanel && !comprobanteSent && (
             <div className="bg-white rounded-2xl border border-[#E8E8E3] shadow-sm overflow-hidden">
               {courierKeys.map((key, index) => {
                 const cot = cotizaciones[key]!;
@@ -819,7 +1024,35 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
                   </button>
                 );
               })}
+
+              {/* Opción delivery propio al final */}
+              {showDeliveryPropio && dp && (
+                <button
+                  onClick={() => { setSelectedCourier("delivery_propio"); setSelectedSucursal(null); }}
+                  className="w-full text-left flex items-center gap-3 px-4 py-3.5 border-t border-[#F0F0EB] transition-all"
+                  style={{ backgroundColor: selectedCourier === "delivery_propio" ? "#FFF0ED" : "transparent" }}
+                >
+                  <div className="flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
+                    style={{ borderColor: selectedCourier === "delivery_propio" ? "#E8553D" : "#D1D1CC", backgroundColor: selectedCourier === "delivery_propio" ? "#E8553D" : "transparent" }}>
+                    {selectedCourier === "delivery_propio" && <div className="w-2 h-2 rounded-full bg-white" />}
+                  </div>
+                  <div className="flex-shrink-0 w-1 self-stretch rounded-full" style={{ backgroundColor: "#E8553D", opacity: selectedCourier === "delivery_propio" ? 1 : 0.35 }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-[15px] text-[#1A1A18]">Delivery Propio</span>
+                      <span className="text-[10px] font-bold text-[#E8553D] bg-red-50 border border-red-200 px-1.5 py-0.5 rounded-full">Solo Santiago</span>
+                    </div>
+                    <p className="text-xs text-[#888] mt-0.5">Pago por transferencia</p>
+                  </div>
+                  <div className="flex-shrink-0 text-right">
+                    <span className="font-bold text-base" style={{ color: selectedCourier === "delivery_propio" ? "#E8553D" : "#1A1A18" }}>
+                      ${dp.precio.toLocaleString("es-CL")}
+                    </span>
+                  </div>
+                </button>
+              )}
             </div>
+            )}
 
             {/* Selector de sucursales — aparece si eligió Starken Sucursal */}
             {selectedCourier === "starken_sucursal" && sucursalesDisponibles.length > 0 && (
@@ -831,18 +1064,26 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
             )}
 
             {/* Botón continuar */}
-            {selectedCourier && (
+            {selectedCourier && !showDeliveryPropioPanel && !comprobanteSent && (
               <button
-                onClick={() => canContinue && elegir(selectedCourier)}
-                disabled={!canContinue || transitioning}
+                onClick={() => {
+                  if (selectedCourier === "delivery_propio") {
+                    setShowDeliveryPropioPanel(true);
+                  } else if (canContinue) {
+                    elegir(selectedCourier);
+                  }
+                }}
+                disabled={(selectedCourier !== "delivery_propio" && !canContinue) || transitioning}
                 className="w-full font-bold py-4 rounded-xl text-[15px] mt-4 transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0"
                 style={{
-                  background: canContinue ? "#1A1A18" : "#D1D1CC",
+                  background: (canContinue || (selectedCourier as string) === "delivery_propio") ? "#1A1A18" : "#D1D1CC",
                   color: "#fff",
                 }}
               >
                 {selectedCourier === "starken_sucursal" && !selectedSucursal
                   ? "Selecciona una sucursal para continuar"
+                  : selectedCourier === "delivery_propio"
+                  ? "Continuar con Delivery Propio →"
                   : `Continuar con ${COURIER_CONFIG[selectedCourier]?.label ?? selectedCourier} →`}
               </button>
             )}

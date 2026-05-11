@@ -1836,117 +1836,103 @@ function Pricing() {
 
 // ─── Integrations ─────────────────────────────────────────────────────────────
 
-const PARTNER_LOGOS: { name: string; logo: React.ReactNode }[] = [
+const COURIERS_GRID = [
+  {
+    name: "Starken",
+    tag: "Domicilio y sucursal",
+    img: "/starken_2014.jpg.webp",
+    color: "#00A651",
+    colorLight: "#E8F8EE",
+  },
   {
     name: "Chilexpress",
-    logo: (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src="/chilexpress.png" alt="Chilexpress" style={{ height: 36, width: "auto", objectFit: "contain", display: "block" }} />
-    ),
+    tag: "Cobertura nacional",
+    img: "/chilexpress.png",
+    color: "#FFC600",
+    colorLight: "#FFFBE8",
   },
   {
     name: "Blue Express",
-    logo: (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src="/bluexpress.png" alt="Blue Express" style={{ height: 36, width: "auto", objectFit: "contain", display: "block" }} />
-    ),
+    tag: "Rápido y confiable",
+    img: "/bluexpress.png",
+    color: "#0057B8",
+    colorLight: "#E8F0FB",
   },
   {
     name: "99 Minutos",
-    logo: (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src="/99minutos.png" alt="99 Minutos" style={{ height: 36, width: "auto", objectFit: "contain", display: "block" }} />
-    ),
-  },
-  {
-    name: "FLOW",
-    logo: (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src="/flow.png" alt="FLOW" style={{ height: 36, width: "auto", objectFit: "contain", display: "block" }} />
-    ),
-  },
-  {
-    name: "Starken",
-    logo: (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src="/starken_2014.jpg.webp" alt="Starken" style={{ height: 36, width: "auto", objectFit: "contain", display: "block" }} />
-    ),
+    tag: "Same day en Santiago",
+    img: "/99minutos.png",
+    color: "#E8553D",
+    colorLight: "#FFF0ED",
   },
 ];
 
 function Integrations() {
-  // Triplica para que el loop sea siempre suave sin importar el ancho
-  const track = [...PARTNER_LOGOS, ...PARTNER_LOGOS, ...PARTNER_LOGOS];
-
   return (
-    <section style={{ backgroundColor: "#FAFAF7", padding: "64px 0 72px" }}>
+    <section style={{ backgroundColor: "#FAFAF7", padding: "80px 24px" }}>
+      <div style={{ maxWidth: 860, margin: "0 auto" }}>
 
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 24px" }}>
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.7 }}
-          style={{ textAlign: "center", marginBottom: 52 }}
+          transition={{ duration: 0.6 }}
+          style={{ textAlign: "center", marginBottom: 48 }}
         >
-          <p style={{
-            fontSize: 12, fontWeight: 600, textTransform: "uppercase",
-            letterSpacing: "0.12em", color: "#E8553D", marginBottom: 16,
-          }}>
-            Sin coordinación manual
-          </p>  
-          <h2 style={{
-            fontSize: "clamp(22px, 3vw, 32px)", fontWeight: 700,
-            color: "#1A1A18", letterSpacing: "-0.02em", marginBottom: 12,
-          }}>
-            El link cotiza, cobra y genera la guía 
+          <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#E8553D", marginBottom: 14 }}>
+            Integrado con los couriers que ya usas
+          </p>
+          <h2 style={{ fontSize: "clamp(22px, 3vw, 34px)", fontWeight: 800, color: "#1A1A18", letterSpacing: "-0.03em", marginBottom: 14, lineHeight: 1.15 }}>
+            Tu cliente ve precios reales<br />y elige el courier en segundos
           </h2>
-          <p style={{
-            fontSize: 15, color: "#5C5C57", maxWidth: 480,
-            margin: "0 auto", lineHeight: 1.7,
-          }}>
-            Tu cliente abre el link y ve precios reales de los couriers más usados en Chile, Elige, paga con tarjeta y recibe el tracking, Tú no haces nada.
+          <p style={{ fontSize: 15, color: "#5C5C57", maxWidth: 460, margin: "0 auto", lineHeight: 1.7 }}>
+            Sin que tengas que cotizar, el link lo hace solo. El cliente paga con tarjeta y recibe su tracking automáticamente.
           </p>
         </motion.div>
 
-      </div>
-
-      {/* Marquee — full width */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.7, delay: 0.2 }}
-        style={{
-          overflow: "hidden", marginBottom: 20, position: "relative",
-          maskImage: "linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)",
-          WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)",
-        }}
-      >
-        <div className="ld-marquee-track">
-          {track.map((p, i) => (
-            <div
-              key={i}
+        {/* Grid couriers */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 32 }}>
+          {COURIERS_GRID.map((c, i) => (
+            <motion.div
+              key={c.name}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: i * 0.08 }}
               style={{
-                display: "inline-flex", alignItems: "center",
                 background: "#fff", border: "1px solid #E8E8E3",
-                borderRadius: 12, padding: "14px 20px",
-                margin: "0 10px", flexShrink: 0,
-                boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-                transition: "box-shadow 0.2s",
+                borderRadius: 16, padding: "24px 16px",
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 14,
+                boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
+                transition: "box-shadow 0.2s, transform 0.2s",
               }}
+              whileHover={{ y: -3, boxShadow: "0 8px 28px rgba(0,0,0,0.09)" }}
             >
-              {p.logo}
-            </div>
+              {/* Logo container — mismo tamaño siempre */}
+              <div style={{ width: 80, height: 48, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={c.img} alt={c.name} style={{ maxWidth: 80, maxHeight: 44, width: "auto", height: "auto", objectFit: "contain" }} />
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 700, color: "#1A1A18" }}>{c.name}</p>
+                <span style={{ fontSize: 11, fontWeight: 600, color: c.color, background: c.colorLight, borderRadius: 100, padding: "3px 10px" }}>
+                  {c.tag}
+                </span>
+              </div>
+            </motion.div>
           ))}
         </div>
-      </motion.div>
 
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 24px" }}>
-        <p style={{ textAlign: "center", fontSize: 13, color: "#9C9C95" }}>
-          Precios en tiempo real según el destino · Pago con tarjeta vía FLOW · Tracking automático
-        </p>
+        {/* Footer pills */}
+        <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 8 }}>
+          {["Precios en tiempo real", "Pago con tarjeta vía FLOW", "Tracking automático", "Guía generada al instante"].map((pill) => (
+            <span key={pill} style={{ fontSize: 12, fontWeight: 500, color: "#5C5C57", background: "#EFEFEB", borderRadius: 100, padding: "6px 14px" }}>
+              {pill}
+            </span>
+          ))}
+        </div>
+
       </div>
     </section>
   );

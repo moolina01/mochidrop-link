@@ -112,6 +112,14 @@ const DEFAULT_PACKAGE: PackageState = {
   peso: "",
 };
 
+const PKG_PRESETS = [
+  { id: "sobre",  label: "Sobre",    desc: "docs, joyería",    largo: "30", alto: "20", ancho: "3",  peso: "0.3", w: 28, h: 20, d: 4  },
+  { id: "ropa_s", label: "Ropa S",   desc: "polera, accesorio",largo: "35", alto: "25", ancho: "10", peso: "0.7", w: 32, h: 24, d: 10 },
+  { id: "ropa_m", label: "Ropa M",   desc: "pantalón, zapatos",largo: "40", alto: "30", ancho: "15", peso: "1.5", w: 38, h: 28, d: 14 },
+  { id: "caja_m", label: "Caja M",   desc: "varias prendas",   largo: "45", alto: "35", ancho: "20", peso: "3",   w: 44, h: 34, d: 18 },
+  { id: "caja_g", label: "Caja G",   desc: "artíc. del hogar", largo: "55", alto: "45", ancho: "30", peso: "8",   w: 50, h: 40, d: 24 },
+] as const;
+
 const COMUNAS_CHILE = [
   "Alhué","Alto Biobío","Alto del Carmen","Alto Hospicio","Ancud","Andacollo","Angol","Antofagasta","Antuco","Arauco",
   "Arica","Aysén","Buin","Bulnes","Cabildo","Cabrero","Calama","Caldera","Calera","Calera de Tango","Calle Larga",
@@ -2222,6 +2230,8 @@ export default function CreateLinkClient() {
   const [codigoPostalOrigen, setCodigoPostalOrigen] = useState<string | null>(null);
   const [copiedFijo, setCopiedFijo] = useState(false);
   const [showManual, setShowManual] = useState(false);
+  const [pkgMode, setPkgMode] = useState<"preset" | "custom">("preset");
+  const [activePreset, setActivePreset] = useState<string | null>(null);
   const [linksCount, setLinksCount] = useState<{ used: number; limit: number } | null>(null);
   const [proStats, setProStats] = useState<{ pagados: number; pendientes: number; topCourier: string | null } | null>(null);
   const [enviosPendientesCount, setEnviosPendientesCount] = useState(0);
@@ -3221,47 +3231,137 @@ export default function CreateLinkClient() {
                 {(!(isPro && linkFijoEnabled && pymeSlug) || showManual) && (
                 <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }} className="gen-section-pad">
                   <SectionTitle n={1} label="Dimensiones del paquete" />
-                  {templates.length > 0 && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, margin: "-4px 0 16px" }}>
-                      {templates.map((t) => (
+                  <p style={{ margin: "-8px 0 16px", fontSize: 13, color: "#9C9C95" }}>
+                    Elige el tamaño aproximado o ingresa las medidas exactas.
+                  </p>
+
+                  {/* Preset cards */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 8 }}>
+                    {PKG_PRESETS.map((preset) => {
+                      const isActive = activePreset === preset.id && pkgMode === "preset";
+                      return (
                         <button
-                          key={t.label}
-                          onClick={() => setPkg({ largo: t.largo, alto: t.alto, ancho: t.ancho, peso: t.peso })}
-                          style={{
-                            background: "#F5F5F0", border: "1px solid #E8E8E3",
-                            borderRadius: 100, padding: "4px 11px",
-                            fontSize: 11, fontWeight: 500, color: "#5C5C57",
-                            cursor: "pointer", fontFamily: "inherit",
-                            transition: "border-color 0.15s, color 0.15s",
+                          key={preset.id}
+                          onClick={() => {
+                            setActivePreset(preset.id);
+                            setPkgMode("preset");
+                            setPkg({ largo: preset.largo, alto: preset.alto, ancho: preset.ancho, peso: preset.peso });
                           }}
-                          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.color = "#E8553D"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; e.currentTarget.style.color = "#5C5C57"; }}
+                          style={{
+                            border: `1.5px solid ${isActive ? "#1A1A18" : "#E8E8E3"}`,
+                            borderRadius: 14, padding: "14px 10px 12px",
+                            background: isActive ? "#1A1A18" : "#FAFAF7",
+                            cursor: "pointer", fontFamily: "inherit",
+                            display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+                            transition: "all 0.15s",
+                          }}
+                          onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.borderColor = "#9C9C95"; e.currentTarget.style.background = "#F5F5F0"; } }}
+                          onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.borderColor = "#E8E8E3"; e.currentTarget.style.background = "#FAFAF7"; } }}
                         >
-                          {t.label}
+                          {/* Caja isométrica SVG */}
+                          <svg width={preset.w + 10} height={preset.h + 14} viewBox={`0 0 ${preset.w + 10} ${preset.h + 14}`} fill="none">
+                            {/* Cara top */}
+                            <path
+                              d={`M${(preset.w + 10) / 2} 2 L${preset.w + 8} ${preset.d / 2 + 2} L${(preset.w + 10) / 2} ${preset.d + 2} L2 ${preset.d / 2 + 2} Z`}
+                              fill={isActive ? "rgba(255,255,255,0.15)" : "#E8E8E3"}
+                              stroke={isActive ? "rgba(255,255,255,0.3)" : "#D0D0C8"}
+                              strokeWidth="1"
+                            />
+                            {/* Cara izquierda */}
+                            <path
+                              d={`M2 ${preset.d / 2 + 2} L${(preset.w + 10) / 2} ${preset.d + 2} L${(preset.w + 10) / 2} ${preset.h + 12} L2 ${preset.h - preset.d / 2 + 12} Z`}
+                              fill={isActive ? "rgba(255,255,255,0.08)" : "#F0F0EB"}
+                              stroke={isActive ? "rgba(255,255,255,0.2)" : "#D0D0C8"}
+                              strokeWidth="1"
+                            />
+                            {/* Cara derecha */}
+                            <path
+                              d={`M${(preset.w + 10) / 2} ${preset.d + 2} L${preset.w + 8} ${preset.d / 2 + 2} L${preset.w + 8} ${preset.h - preset.d / 2 + 12} L${(preset.w + 10) / 2} ${preset.h + 12} Z`}
+                              fill={isActive ? "rgba(255,255,255,0.05)" : "#E0E0D8"}
+                              stroke={isActive ? "rgba(255,255,255,0.2)" : "#D0D0C8"}
+                              strokeWidth="1"
+                            />
+                          </svg>
+                          <div style={{ textAlign: "center" }}>
+                            <p style={{ margin: "0 0 2px", fontSize: 12, fontWeight: 700, color: isActive ? "#fff" : "#1A1A18" }}>{preset.label}</p>
+                            <p style={{ margin: 0, fontSize: 10, color: isActive ? "rgba(255,255,255,0.55)" : "#9C9C95" }}>{preset.desc}</p>
+                          </div>
                         </button>
-                      ))}
+                      );
+                    })}
+
+                    {/* Card personalizar */}
+                    <button
+                      onClick={() => { setPkgMode("custom"); setActivePreset(null); }}
+                      style={{
+                        border: `1.5px solid ${pkgMode === "custom" ? "#E8553D" : "#E8E8E3"}`,
+                        borderRadius: 14, padding: "14px 10px 12px",
+                        background: pkgMode === "custom" ? "#FFF0ED" : "#FAFAF7",
+                        cursor: "pointer", fontFamily: "inherit",
+                        display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+                        transition: "all 0.15s",
+                      }}
+                      onMouseEnter={(e) => { if (pkgMode !== "custom") { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.background = "#FFF8F6"; } }}
+                      onMouseLeave={(e) => { if (pkgMode !== "custom") { e.currentTarget.style.borderColor = "#E8E8E3"; e.currentTarget.style.background = "#FAFAF7"; } }}
+                    >
+                      <div style={{ width: 36, height: 36, borderRadius: 10, background: pkgMode === "custom" ? "#E8553D" : "#F0F0EB", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s" }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={pkgMode === "custom" ? "#fff" : "#9C9C95"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                      </div>
+                      <div style={{ textAlign: "center" }}>
+                        <p style={{ margin: "0 0 2px", fontSize: 12, fontWeight: 700, color: pkgMode === "custom" ? "#E8553D" : "#1A1A18" }}>Personalizar</p>
+                        <p style={{ margin: 0, fontSize: 10, color: pkgMode === "custom" ? "#E8553D" : "#9C9C95" }}>medidas exactas</p>
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* Dimensiones seleccionadas o inputs custom */}
+                  {pkgMode === "preset" && activePreset && (() => {
+                    const p = PKG_PRESETS.find((x) => x.id === activePreset)!;
+                    return (
+                      <div style={{ background: "#F5F5F0", borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                        <div style={{ display: "flex", gap: 16 }}>
+                          {[["Largo", `${p.largo} cm`], ["Alto", `${p.alto} cm`], ["Ancho", `${p.ancho} cm`], ["Peso", `${p.peso} kg`]].map(([label, val]) => (
+                            <div key={label}>
+                              <p style={{ margin: 0, fontSize: 10, color: "#9C9C95" }}>{label}</p>
+                              <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: "#1A1A18" }}>{val}</p>
+                            </div>
+                          ))}
+                        </div>
+                        <button onClick={() => { setPkgMode("custom"); setActivePreset(null); }}
+                          style={{ fontSize: 11, color: "#9C9C95", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}>
+                          Editar
+                        </button>
+                      </div>
+                    );
+                  })()}
+
+                  {pkgMode === "custom" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      <div className="gen-grid-4col">
+                        <Field label="Largo (cm) *">
+                          <TextInput value={pkg.largo} onChange={(v) => setPkg_("largo", v.replace(/[^\d.]/g, ""))} placeholder="30" type="number" />
+                        </Field>
+                        <Field label="Alto (cm) *">
+                          <TextInput value={pkg.alto} onChange={(v) => setPkg_("alto", v.replace(/[^\d.]/g, ""))} placeholder="20" type="number" />
+                        </Field>
+                        <Field label="Ancho (cm) *">
+                          <TextInput value={pkg.ancho} onChange={(v) => setPkg_("ancho", v.replace(/[^\d.]/g, ""))} placeholder="15" type="number" />
+                        </Field>
+                        <Field label="Peso (kg) *">
+                          <TextInput value={pkg.peso} onChange={(v) => setPkg_("peso", v.replace(/[^\d.]/g, ""))} placeholder="1.5" type="number" />
+                        </Field>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 11, color: "#9C9C95" }}>Sin las medidas exactas, estima por exceso.</p>
                     </div>
                   )}
-                  <p style={{ margin: "-8px 0 18px", fontSize: 13, color: "#9C9C95" }}>
-                    Para cotizar el precio real de cada courier.
-                  </p>
-                  <div className="gen-grid-4col">
-                    <Field label="Largo (cm) *">
-                      <TextInput value={pkg.largo} onChange={(v) => setPkg_("largo", v.replace(/[^\d.]/g, ""))} placeholder="30" type="number" />
-                    </Field>
-                    <Field label="Alto (cm) *">
-                      <TextInput value={pkg.alto} onChange={(v) => setPkg_("alto", v.replace(/[^\d.]/g, ""))} placeholder="20" type="number" />
-                    </Field>
-                    <Field label="Ancho (cm) *">
-                      <TextInput value={pkg.ancho} onChange={(v) => setPkg_("ancho", v.replace(/[^\d.]/g, ""))} placeholder="15" type="number" />
-                    </Field>
-                    <Field label="Peso (kg) *">
-                      <TextInput value={pkg.peso} onChange={(v) => setPkg_("peso", v.replace(/[^\d.]/g, ""))} placeholder="1.5" type="number" />
-                    </Field>
-                  </div>
-                  <p style={{ margin: "12px 0 0", fontSize: 12, color: "#9C9C95" }}>
-                    Sin los datos exactos, estima por exceso.
-                  </p>
+
+                  {!activePreset && pkgMode === "preset" && (
+                    <p style={{ margin: "4px 0 0", fontSize: 12, color: "#9C9C95", textAlign: "center" }}>
+                      Selecciona el tamaño más cercano a tu paquete
+                    </p>
+                  )}
                 </div>
                 )}
 

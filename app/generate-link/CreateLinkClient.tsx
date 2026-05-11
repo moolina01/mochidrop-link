@@ -117,7 +117,7 @@ const PKG_PRESETS = [
   { id: "xs",     label: "Pequeño",     desc: "hasta 0.7 kg", largo: "35", alto: "25", ancho: "10", peso: "0.7", w: 32, h: 24, d: 10 },
   { id: "m",      label: "Mediano",     desc: "hasta 1.5 kg", largo: "40", alto: "30", ancho: "15", peso: "1.5", w: 38, h: 28, d: 14 },
   { id: "l",      label: "Grande",      desc: "hasta 3 kg",   largo: "45", alto: "35", ancho: "20", peso: "3",   w: 44, h: 34, d: 18 },
-  { id: "xl",     label: "Extra grande",desc: "hasta 8 kg",   largo: "55", alto: "45", ancho: "30", peso: "8",   w: 50, h: 40, d: 24 },
+  { id: "xl",     label: "Caja grande", desc: "hasta 8 kg",   largo: "55", alto: "45", ancho: "30", peso: "8",   w: 50, h: 40, d: 24 },
 ] as const;
 
 const COMUNAS_CHILE = [

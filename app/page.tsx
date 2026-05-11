@@ -147,7 +147,30 @@ function Navbar() {
         }}
       >
         <LinkDropLogo />
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          {[
+            { label: "Cómo funciona", href: "#como-funciona" },
+            { label: "Precios", href: "#precios" },
+          ].map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              onClick={(e) => {
+                e.preventDefault();
+                document.querySelector(item.href)?.scrollIntoView({ behavior: "smooth" });
+              }}
+              style={{
+                fontSize: 14, fontWeight: 500, color: "#5C5C57",
+                textDecoration: "none", padding: "8px 14px", borderRadius: 100,
+                transition: "color 0.15s, background 0.15s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "#1A1A18"; e.currentTarget.style.background = "rgba(0,0,0,0.04)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "#5C5C57"; e.currentTarget.style.background = "transparent"; }}
+            >
+              {item.label}
+            </a>
+          ))}
+          <div style={{ width: 1, height: 20, background: "#E8E8E3", margin: "0 6px" }} />
           <a
             href="/generate-link?login=1"
             onClick={() => posthog.capture("cta_click", { location: "navbar_login" })}

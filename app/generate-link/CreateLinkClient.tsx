@@ -1167,7 +1167,7 @@ type PickupResult = {
   total_packages: number;
 };
 
-function MisEnviosView({ userId, isPro, origenComuna, onPendientesCount }: { userId: string; isPro: boolean; origenComuna: string; onPendientesCount?: (n: number) => void }) {
+function MisEnviosView({ userId, isPro, origenComuna, onPendientesCount, onCreateLink }: { userId: string; isPro: boolean; origenComuna: string; onPendientesCount?: (n: number) => void; onCreateLink?: () => void }) {
   const [envios, setEnvios] = useState<EnvioResumen[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -1396,6 +1396,89 @@ function MisEnviosView({ userId, isPro, origenComuna, onPendientesCount }: { use
     return (
       <div style={{ display: "flex", justifyContent: "center", padding: "60px 0" }}>
         <div style={{ width: 32, height: 32, border: "3px solid #E8E8E3", borderTopColor: "#E8553D", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+      </div>
+    );
+  }
+
+  if (envios.length === 0) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+        {/* Hero vacío */}
+        <div style={{
+          background: "linear-gradient(145deg, #F5F3EE 0%, #EEE9DF 100%)",
+          borderRadius: 20, padding: "40px 24px 36px", textAlign: "center",
+          border: "1px solid #E2DDD4",
+        }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: "50%",
+            background: "#fff", border: "1px solid #E2DDD4",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            margin: "0 auto 20px",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9C9C95" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+            </svg>
+          </div>
+          <h2 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700, color: "#1A1A18", letterSpacing: "-0.01em" }}>
+            Aún no tienes envíos
+          </h2>
+          <p style={{ margin: "0 0 24px", fontSize: 13, color: "#7C7C75", lineHeight: 1.6, maxWidth: 260, marginLeft: "auto", marginRight: "auto" }}>
+            Crea tu primer link, compártelo con tu cliente y aquí verás todos tus envíos.
+          </p>
+          <button onClick={onCreateLink} style={{
+            background: "#1A1A18", color: "#fff", border: "none",
+            borderRadius: 12, padding: "13px 24px",
+            fontSize: 14, fontWeight: 700, cursor: "pointer",
+            fontFamily: "inherit", letterSpacing: "-0.01em",
+          }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "#E8553D"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "#1A1A18"; }}
+          >
+            Crear mi primer link →
+          </button>
+        </div>
+
+        {/* 3 pasos */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+          {[
+            {
+              n: "1",
+              title: "Crea un link",
+              body: "Ingresa las dimensiones de tu paquete y genera el link en segundos",
+              accent: "#E8553D",
+            },
+            {
+              n: "2",
+              title: "Compártelo",
+              body: "Envíalo por WhatsApp o email directamente a tu cliente",
+              accent: "#6B5CE7",
+            },
+            {
+              n: "3",
+              title: "Tu cliente paga",
+              body: "Elige el courier, paga y agenda el retiro desde tu dirección",
+              accent: "#2D8A56",
+            },
+          ].map((step, i) => (
+            <div key={i} style={{
+              background: "#fff", border: "1px solid #EBEBEB",
+              borderRadius: 14, padding: "14px 12px",
+            }}>
+              <div style={{
+                width: 24, height: 24, borderRadius: "50%",
+                background: `${step.accent}18`, border: `1px solid ${step.accent}30`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 11, fontWeight: 800, color: step.accent,
+                marginBottom: 10,
+              }}>{step.n}</div>
+              <p style={{ margin: "0 0 5px", fontSize: 12, fontWeight: 700, color: "#1A1A18" }}>{step.title}</p>
+              <p style={{ margin: 0, fontSize: 11, color: "#9C9C95", lineHeight: 1.55 }}>{step.body}</p>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -2997,7 +3080,7 @@ export default function CreateLinkClient() {
 
             {/* ════ TAB 3: Mis Envíos ════ */}
             {activeTab === "envios" && user && (
-              <MisEnviosView userId={user.id} isPro={isPro} origenComuna={profile.origenComuna} onPendientesCount={setEnviosPendientesCount} />
+              <MisEnviosView userId={user.id} isPro={isPro} origenComuna={profile.origenComuna} onPendientesCount={setEnviosPendientesCount} onCreateLink={() => switchTab("crear")} />
             )}
 
             {/* ════ TAB 2: Crear Link ════ */}

@@ -1488,8 +1488,7 @@ function MisEnviosView({ userId, isPro, origenComuna, onPendientesCount }: { use
       {/* ── Pendientes de agendar ── */}
       {pendientes.length === 0 ? (
         <div style={{ background: "#fff", border: "1px solid #E8E8E3", borderRadius: 16, padding: "32px 24px", textAlign: "center", marginBottom: 24 }}>
-          <p style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 700, color: "#1A1A18" }}>Sin envíos pendientes</p>
-          <p style={{ margin: 0, fontSize: 13, color: "#9C9C95" }}>No hay guías generadas sin retiro agendado.</p>
+          <p style={{ margin: 0, fontSize: 13, color: "#9C9C95" }}>No hay guías generadas.</p>
         </div>
       ) : (
         <div style={{ background: "#fff", border: "1px solid #E8E8E3", borderRadius: 16, overflow: "hidden", marginBottom: 24 }}>
@@ -3292,15 +3291,20 @@ export default function CreateLinkClient() {
                   {[
                     { n: "01", title: "Un link, un pedido", body: "Tu cliente elige el courier y paga solo, tú solo preparas el paquete", accent: "#E8553D" },
                     { n: "02", title: "La dirección define el precio", body: "Los couriers calculan desde tu origen, mantenla siempre actualizada", accent: "#6B5CE7" },
-                    { n: "03", title: "Menos couriers, más claridad", body: "Activa solo los que usas, menos opciones es mejor experiencia para tu cliente", accent: "#2D8A56" },
+                    { n: "03", title: "¿Quieres limitar las opciones de envío?", body: "Elige qué couriers ven tus clientes — menos opciones, mejor experiencia", accent: "#2D8A56", action: () => { switchTab("crear"); setShowCouriersModal(true); } },
                   ].map((tip, i) => (
-                    <div key={i} className="tip-card" style={{
-                      background: "#fff", border: "1px solid #EBEBEB",
-                      borderRadius: 14, padding: "14px 16px",
-                      animation: `tip-card 0.4s cubic-bezier(0.16,1,0.3,1) ${0.08 + i * 0.07}s both`,
-                      transition: "transform 0.2s ease, box-shadow 0.2s ease",
-                      cursor: "default",
-                    }}>
+                    <div key={i} className="tip-card"
+                      onClick={(tip as { action?: () => void }).action}
+                      style={{
+                        background: "#fff", border: "1px solid #EBEBEB",
+                        borderRadius: 14, padding: "14px 16px",
+                        animation: `tip-card 0.4s cubic-bezier(0.16,1,0.3,1) ${0.08 + i * 0.07}s both`,
+                        transition: "transform 0.2s ease, box-shadow 0.2s ease",
+                        cursor: (tip as { action?: () => void }).action ? "pointer" : "default",
+                      }}
+                      onMouseEnter={(e) => { if ((tip as { action?: () => void }).action) { e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.08)"; e.currentTarget.style.transform = "translateY(-1px)"; } }}
+                      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "none"; }}
+                    >
                       <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
                         <span style={{
                           fontSize: 11, fontWeight: 800, color: tip.accent,
@@ -3311,10 +3315,11 @@ export default function CreateLinkClient() {
                           <p style={{ margin: "0 0 3px", fontSize: 13, fontWeight: 700, color: "#1A1A18" }}>{tip.title}</p>
                           <p style={{ margin: 0, fontSize: 12, color: "#9C9C95", lineHeight: 1.55 }}>{tip.body}</p>
                         </div>
-                        <div style={{
-                          width: 4, height: 4, borderRadius: "50%",
-                          background: tip.accent, flexShrink: 0, marginTop: 6,
-                        }} />
+                        {(tip as { action?: () => void }).action ? (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9C9C95" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 3 }}><polyline points="9 18 15 12 9 6" /></svg>
+                        ) : (
+                          <div style={{ width: 4, height: 4, borderRadius: "50%", background: tip.accent, flexShrink: 0, marginTop: 6 }} />
+                        )}
                       </div>
                     </div>
                   ))}
@@ -3468,6 +3473,20 @@ export default function CreateLinkClient() {
                         </svg>
                       )}
                     </button>
+                    <a href={generatedUrl} target="_blank" rel="noopener noreferrer" title="Ver link" style={{
+                      flexShrink: 0, width: 28, height: 28, borderRadius: 8,
+                      border: "1px solid rgba(255,255,255,0.15)",
+                      background: "rgba(255,255,255,0.08)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      transition: "all 0.15s", textDecoration: "none",
+                    }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.15)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+                      </svg>
+                    </a>
                   </div>
 
                   {/* CTA cuando pagado */}

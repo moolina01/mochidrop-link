@@ -37,9 +37,9 @@ async function pollCotizaciones(envioId: number, attempts = 6, delayMs = 1200) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { pymeId, comunaDestino, largo, alto, ancho, peso } = await req.json();
+    const { pymeId, datosDestino, largo, alto, ancho, peso } = await req.json();
 
-    if (!pymeId || !comunaDestino || !largo || !alto || !ancho || !peso) {
+    if (!pymeId || !datosDestino?.comuna || !largo || !alto || !ancho || !peso) {
       return NextResponse.json({ error: "Faltan datos requeridos" }, { status: 400 });
     }
 
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     const cotizarRes = await fetch(N8N_COTIZAR, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: envioId, datos_destino: { comuna: comunaDestino } }),
+      body: JSON.stringify({ id: envioId, datos_destino: datosDestino }),
     });
 
     console.log("[cotizar-publico] cotizar status:", cotizarRes.status);

@@ -244,7 +244,11 @@ export default function HubClient({ slug, pymeId, nombrePyme, logoPyme, couriers
 // ─── Tab Cotizar ──────────────────────────────────────────────────────────────
 
 function TabCotizar({ pymeId, couriersHabilitados, defaultDims }: { pymeId: string; couriersHabilitados: string[] | null; defaultDims: HubProps["defaultDims"] }) {
+  const [nombre, setNombre] = useState("");
   const [comuna, setComuna] = useState("");
+  const [calle, setCalle] = useState("");
+  const [numero, setNumero] = useState("");
+  const [depto, setDepto] = useState("");
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [cotizando, setCotizando] = useState(false);
   const [resultados, setResultados] = useState<Record<string, CotizacionItem> | null>(null);
@@ -252,11 +256,16 @@ function TabCotizar({ pymeId, couriersHabilitados, defaultDims }: { pymeId: stri
 
   const hasDims = defaultDims.largo && defaultDims.alto && defaultDims.ancho && defaultDims.peso;
 
+  const canCotizar = nombre.trim() && comuna && calle.trim() && numero.trim();
+
   async function handleCotizar() {
+    if (!nombre.trim()) { setError("Ingresa tu nombre"); return; }
     if (!comuna) { setError("Ingresa tu comuna de destino"); return; }
+    if (!calle.trim()) { setError("Ingresa tu calle"); return; }
+    if (!numero.trim()) { setError("Ingresa el número de tu dirección"); return; }
     const preset = selectedPreset ? PKG_PRESETS.find((p) => p.id === selectedPreset) : null;
     const dims = preset ?? (hasDims ? { largo: defaultDims.largo!, alto: defaultDims.alto!, ancho: defaultDims.ancho!, peso: defaultDims.peso! } : null);
-    if (!dims) { setError("Esta tienda aún no tiene dimensiones configuradas"); return; }
+    if (!dims) { setError("Selecciona un tamaño de paquete"); return; }
 
     setError("");
     setCotizando(true);
@@ -265,7 +274,11 @@ function TabCotizar({ pymeId, couriersHabilitados, defaultDims }: { pymeId: stri
       const res = await fetch("/api/cotizar-publico", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pymeId, comunaDestino: comuna, largo: dims.largo, alto: dims.alto, ancho: dims.ancho, peso: dims.peso }),
+        body: JSON.stringify({
+          pymeId,
+          largo: dims.largo, alto: dims.alto, ancho: dims.ancho, peso: dims.peso,
+          datosDestino: { nombre: nombre.trim(), comuna, calle: calle.trim(), numero: numero.trim(), depto: depto.trim() },
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Error al cotizar");
@@ -277,6 +290,8 @@ function TabCotizar({ pymeId, couriersHabilitados, defaultDims }: { pymeId: stri
     }
   }
 
+  const inputStyle: React.CSSProperties = { width: "100%", boxSizing: "border-box", border: "1.5px solid #E8E8E3", borderRadius: 12, padding: "13px 16px", fontSize: 15, color: "#1A1A18", background: "#fff", outline: "none", fontFamily: "inherit" };
+
   const allowed = couriersHabilitados ?? Object.keys(COURIER_CONFIG);
   const resultKeys = resultados ? Object.keys(resultados).filter((k) => allowed.includes(k) && resultados![k]?.price != null) : [];
   const cheapest = resultKeys.length > 0 ? resultKeys.reduce((a, b) => (resultados![a]!.price! < resultados![b]!.price! ? a : b)) : null;
@@ -286,13 +301,41 @@ function TabCotizar({ pymeId, couriersHabilitados, defaultDims }: { pymeId: stri
       {/* Intro */}
       <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "18px 20px" }}>
         <p style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 700, color: "#1A1A18" }}>¿Cuánto sale enviar a tu dirección?</p>
-        <p style={{ margin: 0, fontSize: 13, color: "#9C9C95", lineHeight: 1.6 }}>Ingresa tu comuna y elige el tamaño del paquete para ver el precio aproximado de cada courier.</p>
+        <p style={{ margin: 0, fontSize: 13, color: "#9C9C95", lineHeight: 1.6 }}>Ingresa tu dirección y elige el tamaño del paquete para ver el precio aproximado de cada courier.</p>
       </div>
 
-      {/* Comuna */}
-      <div>
-        <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Tu comuna de destino</p>
-        <ComunaAutocomplete value={comuna} onChange={setComuna} />
+      {/* Datos destino */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div>
+          <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Tu nombre</p>
+          <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej: María González" style={inputStyle}
+            onFocus={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.1)"; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; e.currentTarget.style.boxShadow = "none"; }} />
+        </div>
+        <div>
+          <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Tu comuna de destino</p>
+          <ComunaAutocomplete value={comuna} onChange={setComuna} />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
+          <div>
+            <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Calle</p>
+            <input value={calle} onChange={(e) => setCalle(e.target.value)} placeholder="Ej: Av. Providencia" style={inputStyle}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.1)"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; e.currentTarget.style.boxShadow = "none"; }} />
+          </div>
+          <div>
+            <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Número</p>
+            <input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="123" style={{ ...inputStyle, width: 90 }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.1)"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; e.currentTarget.style.boxShadow = "none"; }} />
+          </div>
+        </div>
+        <div>
+          <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Depto / Piso <span style={{ fontWeight: 400, color: "#9C9C95" }}>(opcional)</span></p>
+          <input value={depto} onChange={(e) => setDepto(e.target.value)} placeholder="Ej: Depto 301" style={inputStyle}
+            onFocus={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.1)"; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; e.currentTarget.style.boxShadow = "none"; }} />
+        </div>
       </div>
 
       {/* Tamaño del paquete */}
@@ -332,10 +375,10 @@ function TabCotizar({ pymeId, couriersHabilitados, defaultDims }: { pymeId: stri
       {error && <p style={{ margin: 0, fontSize: 13, color: "#C23E28", background: "#FFF0ED", padding: "10px 14px", borderRadius: 10 }}>{error}</p>}
 
       {/* Botón */}
-      <button onClick={handleCotizar} disabled={cotizando || !comuna} style={{
+      <button onClick={handleCotizar} disabled={cotizando || !canCotizar} style={{
         width: "100%", padding: "15px", borderRadius: 14, border: "none",
-        background: cotizando || !comuna ? "#D1D1CC" : "#E8553D",
-        color: "#fff", fontSize: 15, fontWeight: 700, cursor: cotizando || !comuna ? "not-allowed" : "pointer",
+        background: cotizando || !canCotizar ? "#D1D1CC" : "#E8553D",
+        color: "#fff", fontSize: 15, fontWeight: 700, cursor: cotizando || !canCotizar ? "not-allowed" : "pointer",
         fontFamily: "inherit", transition: "all 0.2s",
       }}>
         {cotizando ? "Cotizando…" : "Ver precios de envío →"}

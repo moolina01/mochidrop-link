@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import EnvioFijoClient from "./EnvioFijoClient";
+import HubClient from "./HubClient";
 
 const supabaseServer = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,24 +25,31 @@ export default async function PymeLandingPage({
 
   const { data: pyme, error } = await supabaseServer
     .from("pymes")
-    .select("auth_id, nombre_tienda, logo_url, ask_instagram, link_fijo_enabled, default_largo, default_alto, default_ancho, default_peso, couriers_habilitados")
+    .select("auth_id, nombre_tienda, logo_url, couriers_habilitados, default_largo, default_alto, default_ancho, default_peso, info_envios")
     .eq("slug", slug)
     .single();
 
-  console.log("[link-fijo] slug:", slug, "| pyme:", pyme, "| error:", error);
+  console.log("[hub] slug:", slug, "| pyme:", pyme, "| error:", error);
 
-  if (!pyme || !pyme.link_fijo_enabled) {
+  if (!pyme || error) {
     notFound();
   }
 
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <EnvioFijoClient
+      <HubClient
+        slug={slug}
         pymeId={pyme.auth_id}
         nombrePyme={pyme.nombre_tienda ?? ""}
         logoPyme={pyme.logo_url ?? null}
-        askInstagram={pyme.ask_instagram ?? false}
         couriersHabilitados={pyme.couriers_habilitados ?? null}
+        defaultDims={{
+          largo: pyme.default_largo ?? null,
+          alto: pyme.default_alto ?? null,
+          ancho: pyme.default_ancho ?? null,
+          peso: pyme.default_peso ?? null,
+        }}
+        infoEnvios={pyme.info_envios ?? null}
       />
     </Suspense>
   );

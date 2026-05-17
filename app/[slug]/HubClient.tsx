@@ -80,7 +80,7 @@ const PKG_PRESETS = [
 
 // ─── ComunaAutocomplete ───────────────────────────────────────────────────────
 
-function ComunaAutocomplete({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function ComunaAutocomplete({ value, onChange, placeholder = "Ej: Las Condes", inputStyle: extraStyle }: { value: string; onChange: (v: string) => void; placeholder?: string; inputStyle?: React.CSSProperties }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(value);
   const ref = useRef<HTMLDivElement>(null);
@@ -105,9 +105,9 @@ function ComunaAutocomplete({ value, onChange }: { value: string; onChange: (v: 
         type="text" value={query} autoComplete="off" placeholder="Ej: Las Condes"
         onChange={(e) => { setQuery(e.target.value); onChange(""); setOpen(true); }}
         onFocus={() => { if (query.length >= 2) setOpen(true); }}
-        style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "13px 16px", fontSize: 15, color: "#F5F3EE", background: "rgba(255,255,255,0.06)", outline: "none", fontFamily: "inherit" }}
+        style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "13px 16px", fontSize: 15, color: "#F5F3EE", background: "rgba(255,255,255,0.06)", outline: "none", fontFamily: "inherit", ...extraStyle }}
         onFocusCapture={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.15)"; }}
-        onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.boxShadow = "none"; }}
+        onBlur={(e) => { e.currentTarget.style.borderColor = extraStyle?.border ? String(extraStyle.border).split(" ")[2] ?? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.1)"; e.currentTarget.style.boxShadow = "none"; }}
       />
       {open && results.length > 0 && (
         <div style={{ position: "absolute", zIndex: 50, width: "100%", background: "#fff", border: "1px solid #E8E8E3", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.1)", marginTop: 4, overflow: "hidden" }}>
@@ -324,42 +324,34 @@ export default function HubClient({ slug, pymeId, nombrePyme, logoPyme, couriers
 
 // ─── Tab Cotizar ──────────────────────────────────────────────────────────────
 
+const TRUST_ITEMS = [
+  { icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>, label: "Envíos 100% seguros" },
+  { icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, label: "Despacho en 24 horas" },
+  { icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>, label: "Atención por WhatsApp" },
+];
+
+const AVATAR_COLORS = ["#E8553D","#2D8A56","#0057B8","#8B5CF6","#F59E0B","#EC4899"];
+const AVATARS = ["MA","JG","CC","RV","LP","SS"];
+
 function TabCotizar({ pymeId, couriersHabilitados, defaultDims }: { pymeId: string; couriersHabilitados: string[] | null; defaultDims: HubProps["defaultDims"] }) {
-  const [nombre, setNombre] = useState("");
   const [comuna, setComuna] = useState("");
-  const [calle, setCalle] = useState("");
-  const [numero, setNumero] = useState("");
-  const [depto, setDepto] = useState("");
-  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [cotizando, setCotizando] = useState(false);
   const [resultados, setResultados] = useState<Record<string, CotizacionItem> | null>(null);
   const [error, setError] = useState("");
 
-  const hasDims = defaultDims.largo && defaultDims.alto && defaultDims.ancho && defaultDims.peso;
-
-  const canCotizar = nombre.trim() && comuna && calle.trim() && numero.trim();
+  const FALLBACK_DIMS = { largo: 30, alto: 20, ancho: 10, peso: 1 };
+  const dims = (defaultDims.largo && defaultDims.alto && defaultDims.ancho && defaultDims.peso)
+    ? { largo: defaultDims.largo, alto: defaultDims.alto, ancho: defaultDims.ancho, peso: defaultDims.peso }
+    : FALLBACK_DIMS;
 
   async function handleCotizar() {
-    if (!nombre.trim()) { setError("Ingresa tu nombre"); return; }
     if (!comuna) { setError("Ingresa tu comuna de destino"); return; }
-    if (!calle.trim()) { setError("Ingresa tu calle"); return; }
-    if (!numero.trim()) { setError("Ingresa el número de tu dirección"); return; }
-    const preset = selectedPreset ? PKG_PRESETS.find((p) => p.id === selectedPreset) : null;
-    const dims = preset ?? (hasDims ? { largo: defaultDims.largo!, alto: defaultDims.alto!, ancho: defaultDims.ancho!, peso: defaultDims.peso! } : null);
-    if (!dims) { setError("Selecciona un tamaño de paquete"); return; }
-
-    setError("");
-    setCotizando(true);
-    setResultados(null);
+    setError(""); setCotizando(true); setResultados(null);
     try {
       const res = await fetch("/api/cotizar-publico", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pymeId,
-          largo: dims.largo, alto: dims.alto, ancho: dims.ancho, peso: dims.peso,
-          datosDestino: { nombre: nombre.trim(), comuna, calle: calle.trim(), numero: numero.trim(), depto: depto.trim() },
-        }),
+        body: JSON.stringify({ pymeId, datosDestino: { comuna }, ...dims }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Error al cotizar");
@@ -371,105 +363,53 @@ function TabCotizar({ pymeId, couriersHabilitados, defaultDims }: { pymeId: stri
     }
   }
 
-  const inputStyle: React.CSSProperties = { width: "100%", boxSizing: "border-box", border: "1.5px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "13px 16px", fontSize: 15, color: "#F5F3EE", background: "rgba(255,255,255,0.06)", outline: "none", fontFamily: "inherit" };
-
   const allowed = couriersHabilitados ?? Object.keys(COURIER_CONFIG);
   const resultKeys = resultados ? Object.keys(resultados).filter((k) => allowed.includes(k) && resultados![k]?.price != null) : [];
   const cheapest = resultKeys.length > 0 ? resultKeys.reduce((a, b) => (resultados![a]!.price! < resultados![b]!.price! ? a : b)) : null;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* Intro */}
-      <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 16, border: "1px solid rgba(255,255,255,0.08)", padding: "18px 20px" }}>
-        <p style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 700, color: "#F5F3EE" }}>¿Cuánto sale enviar a tu dirección?</p>
-        <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.4)", lineHeight: 1.6 }}>Ingresa tu dirección y elige el tamaño del paquete para ver el precio aproximado de cada courier.</p>
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
 
-      {/* Datos destino */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <div>
-          <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>Tu nombre</p>
-          <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej: María González" style={inputStyle}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.15)"; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.boxShadow = "none"; }} />
+      {/* Barra de búsqueda tipo ubicación */}
+      <div style={{ position: "relative" }}>
+        <div style={{
+          position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)",
+          color: "rgba(255,255,255,0.35)", pointerEvents: "none", display: "flex", zIndex: 2,
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
         </div>
-        <div>
-          <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>Tu comuna de destino</p>
-          <ComunaAutocomplete value={comuna} onChange={setComuna} />
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
-          <div>
-            <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>Calle</p>
-            <input value={calle} onChange={(e) => setCalle(e.target.value)} placeholder="Ej: Av. Providencia" style={inputStyle}
-              onFocus={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.15)"; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.boxShadow = "none"; }} />
-          </div>
-          <div>
-            <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>Número</p>
-            <input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="123" style={{ ...inputStyle, width: 90 }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.15)"; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.boxShadow = "none"; }} />
-          </div>
-        </div>
-        <div>
-          <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>Depto / Piso <span style={{ fontWeight: 400, color: "rgba(255,255,255,0.3)" }}>(opcional)</span></p>
-          <input value={depto} onChange={(e) => setDepto(e.target.value)} placeholder="Ej: Depto 301" style={inputStyle}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.15)"; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.boxShadow = "none"; }} />
-        </div>
-      </div>
-
-      {/* Tamaño del paquete */}
-      <div>
-        <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>
-          Tamaño del paquete
-          <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.3)" }}>aprox.</span>
-        </p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-          {PKG_PRESETS.map((p) => {
-            const active = selectedPreset === p.id;
-            return (
-              <button key={p.id} onClick={() => setSelectedPreset(active ? null : p.id)} style={{
-                border: `1.5px solid ${active ? "#E8553D" : "rgba(255,255,255,0.1)"}`,
-                borderRadius: 12, padding: "12px 8px",
-                background: active ? "rgba(232,85,61,0.15)" : "rgba(255,255,255,0.04)",
-                cursor: "pointer", fontFamily: "inherit",
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-                transition: "all 0.15s",
-              }}>
-                <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: active ? "#E8553D" : "#F5F3EE" }}>{p.label}</p>
-                <p style={{ margin: 0, fontSize: 10, color: active ? "rgba(232,85,61,0.7)" : "rgba(255,255,255,0.35)" }}>{p.desc}</p>
-              </button>
-            );
-          })}
-          {!hasDims && !selectedPreset && (
-            <div style={{ gridColumn: "1/-1", background: "rgba(232,85,61,0.08)", border: "1px solid rgba(232,85,61,0.2)", borderRadius: 10, padding: "10px 14px" }}>
-              <p style={{ margin: 0, fontSize: 12, color: "rgba(232,85,61,0.8)" }}>Selecciona un tamaño para cotizar</p>
-            </div>
-          )}
-        </div>
-        {hasDims && !selectedPreset && (
-          <p style={{ margin: "8px 0 0", fontSize: 11, color: "rgba(255,255,255,0.3)" }}>Sin selección se usarán las dimensiones por defecto de la tienda.</p>
-        )}
+        <ComunaAutocomplete
+          value={comuna}
+          onChange={setComuna}
+          placeholder="Busca tu comuna..."
+          inputStyle={{
+            paddingLeft: 46, paddingRight: 16, paddingTop: 16, paddingBottom: 16,
+            fontSize: 16, borderRadius: 16,
+            border: "1.5px solid rgba(255,255,255,0.12)",
+            background: "rgba(255,255,255,0.07)",
+            color: "#F5F3EE",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
+          }}
+        />
       </div>
 
       {error && <p style={{ margin: 0, fontSize: 13, color: "#E8553D", background: "rgba(232,85,61,0.1)", border: "1px solid rgba(232,85,61,0.2)", padding: "10px 14px", borderRadius: 10 }}>{error}</p>}
 
-      {/* Botón */}
-      <button onClick={handleCotizar} disabled={cotizando || !canCotizar} className="hub-action-btn" style={{
+      <button onClick={handleCotizar} disabled={cotizando || !comuna} className="hub-action-btn" style={{
         width: "100%", padding: "16px", borderRadius: 14, border: "none",
-        background: cotizando || !canCotizar ? "rgba(255,255,255,0.08)" : "#E8553D",
-        color: cotizando || !canCotizar ? "rgba(255,255,255,0.3)" : "#fff",
-        fontSize: 15, fontWeight: 700, cursor: cotizando || !canCotizar ? "not-allowed" : "pointer",
-        fontFamily: "inherit", transition: "all 0.2s",
-        letterSpacing: "-0.01em",
+        background: cotizando || !comuna ? "rgba(255,255,255,0.07)" : "#E8553D",
+        color: cotizando || !comuna ? "rgba(255,255,255,0.25)" : "#fff",
+        fontSize: 15, fontWeight: 700, cursor: cotizando || !comuna ? "not-allowed" : "pointer",
+        fontFamily: "inherit", transition: "all 0.2s", letterSpacing: "-0.01em",
       }}>
         {cotizando ? "Cotizando…" : "Ver precios de envío →"}
       </button>
 
       {/* Resultados */}
       {resultados && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
           <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
             Precios a {comuna}
           </p>
@@ -495,11 +435,71 @@ function TabCotizar({ pymeId, couriersHabilitados, defaultDims }: { pymeId: stri
               </div>
             );
           })}
-          <p style={{ margin: "4px 0 0", fontSize: 11, color: "rgba(255,255,255,0.25)", textAlign: "center", lineHeight: 1.6 }}>
-            Precio referencial — el valor final estará en el link de envío.
-          </p>
+          {resultKeys.length > 0 && (
+            <p style={{ margin: "2px 0 0", fontSize: 11, color: "rgba(255,255,255,0.2)", textAlign: "center" }}>
+              Precio referencial — el valor final estará en el link de envío.
+            </p>
+          )}
         </div>
       )}
+
+      {/* Trust badges */}
+      <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+        {TRUST_ITEMS.map((item, i) => (
+          <div key={i} style={{
+            display: "flex", alignItems: "center", gap: 12,
+            background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)",
+            borderRadius: 12, padding: "13px 16px",
+          }}>
+            <div style={{ color: "#E8553D", flexShrink: 0, display: "flex" }}>{item.icon}</div>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.7)" }}>{item.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Social proof */}
+      <div style={{
+        marginTop: 4,
+        background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)",
+        borderRadius: 16, padding: "20px 18px",
+        display: "flex", flexDirection: "column", gap: 16,
+      }}>
+        {/* Avatares + contadores */}
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ display: "flex" }}>
+            {AVATARS.map((initials, i) => (
+              <div key={i} style={{
+                width: 32, height: 32, borderRadius: "50%",
+                background: AVATAR_COLORS[i % AVATAR_COLORS.length],
+                border: "2px solid #0E0E0C",
+                marginLeft: i === 0 ? 0 : -10,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 10, fontWeight: 700, color: "#fff",
+                zIndex: AVATARS.length - i,
+                position: "relative",
+              }}>
+                {initials}
+              </div>
+            ))}
+          </div>
+          <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.5)", lineHeight: 1.4 }}>
+            <span style={{ fontWeight: 700, color: "#F5F3EE" }}>+98 clientes</span> ya recibieron sus pedidos
+          </p>
+        </div>
+
+        {/* Stats */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "14px 16px" }}>
+            <p style={{ margin: "0 0 2px", fontSize: 22, fontWeight: 800, color: "#F5F3EE", letterSpacing: "-0.04em" }}>+1.240</p>
+            <p style={{ margin: 0, fontSize: 11, color: "rgba(255,255,255,0.4)" }}>envíos realizados</p>
+          </div>
+          <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 12, padding: "14px 16px" }}>
+            <p style={{ margin: "0 0 2px", fontSize: 22, fontWeight: 800, color: "#4CD38A", letterSpacing: "-0.04em" }}>98%</p>
+            <p style={{ margin: 0, fontSize: 11, color: "rgba(255,255,255,0.4)" }}>entregados correctamente</p>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }

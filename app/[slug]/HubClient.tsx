@@ -105,9 +105,9 @@ function ComunaAutocomplete({ value, onChange }: { value: string; onChange: (v: 
         type="text" value={query} autoComplete="off" placeholder="Ej: Las Condes"
         onChange={(e) => { setQuery(e.target.value); onChange(""); setOpen(true); }}
         onFocus={() => { if (query.length >= 2) setOpen(true); }}
-        style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #E8E8E3", borderRadius: 12, padding: "13px 16px", fontSize: 15, color: "#1A1A18", background: "#fff", outline: "none", fontFamily: "inherit" }}
-        onFocusCapture={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.1)"; }}
-        onBlur={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; e.currentTarget.style.boxShadow = "none"; }}
+        style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "13px 16px", fontSize: 15, color: "#F5F3EE", background: "rgba(255,255,255,0.06)", outline: "none", fontFamily: "inherit" }}
+        onFocusCapture={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.15)"; }}
+        onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.boxShadow = "none"; }}
       />
       {open && results.length > 0 && (
         <div style={{ position: "absolute", zIndex: 50, width: "100%", background: "#fff", border: "1px solid #E8E8E3", borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.1)", marginTop: 4, overflow: "hidden" }}>
@@ -130,8 +130,10 @@ export default function HubClient({ slug, pymeId, nombrePyme, logoPyme, couriers
   const [activeTab, setActiveTab] = useState<Tab>("cotizar");
   const [isOwner, setIsOwner] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     supabase.auth.getUser().then(({ data }) => {
       if (data.user?.id === pymeId) setIsOwner(true);
     });
@@ -141,99 +143,142 @@ export default function HubClient({ slug, pymeId, nombrePyme, logoPyme, couriers
     return () => subscription.unsubscribe();
   }, [pymeId]);
 
-  const tabs: { id: Tab; label: string; icon: string }[] = [
-    { id: "cotizar",  label: "Cotizar",      icon: "📦" },
-    { id: "rastrear", label: "Rastrear",     icon: "🔍" },
-    { id: "info",     label: "Info",         icon: "💬" },
-    ...(isOwner ? [{ id: "crear" as Tab, label: "Crear envío", icon: "✦" }] : []),
+  const tabs: { id: Tab; label: string }[] = [
+    { id: "cotizar",  label: "Cotizar"     },
+    { id: "rastrear", label: "Rastrear"    },
+    { id: "info",     label: "Info"        },
+    ...(isOwner ? [{ id: "crear" as Tab, label: "Crear envío" }] : []),
   ];
 
+  const tabIndex = tabs.findIndex(t => t.id === activeTab);
+  const initials = nombrePyme.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
+
   return (
-    <div style={{ minHeight: "100vh", background: "linear-gradient(160deg, #F2EDE4 0%, #EBE4D8 40%, #E8E0D2 100%)", fontFamily: "'Instrument Sans', system-ui, sans-serif" }}>
+    <div style={{ minHeight: "100vh", fontFamily: "'Instrument Sans', system-ui, sans-serif", background: "#0E0E0C", position: "relative", overflow: "hidden" }}>
       <style>{`
-        @keyframes fade-up {
-          from { opacity: 0; transform: translateY(14px); }
+        @keyframes hub-mount {
+          from { opacity: 0; transform: translateY(20px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        .hub-tab-content { animation: fade-up 0.22s ease both; }
-        .hub-tab-btn:hover { opacity: 0.85; }
+        @keyframes hub-glow {
+          0%, 100% { opacity: 0.4; transform: scale(1); }
+          50%       { opacity: 0.6; transform: scale(1.08); }
+        }
+        @keyframes hub-content {
+          from { opacity: 0; transform: translateY(12px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .hub-mounted { animation: hub-mount 0.5s cubic-bezier(0.16,1,0.3,1) both; }
+        .hub-tab-content { animation: hub-content 0.28s cubic-bezier(0.16,1,0.3,1) both; }
+        .hub-action-btn { transition: transform 0.14s ease, opacity 0.14s ease; }
+        .hub-action-btn:active { transform: scale(0.97); opacity: 0.85; }
+        .hub-tab-trigger { transition: color 0.2s ease; }
+        .hub-tab-trigger:hover { opacity: 0.75; }
+        .hub-card { transition: transform 0.15s ease; }
+        .hub-card:active { transform: scale(0.995); }
       `}</style>
 
-      <div style={{ maxWidth: 460, margin: "0 auto", padding: "0 20px 80px" }}>
+      {/* Ambient glow blobs */}
+      <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
+        <div style={{
+          position: "absolute", top: "-10%", left: "50%", transform: "translateX(-50%)",
+          width: 480, height: 480, borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(232,85,61,0.18) 0%, transparent 70%)",
+          animation: "hub-glow 6s ease-in-out infinite",
+        }} />
+        <div style={{
+          position: "absolute", bottom: "10%", right: "-10%",
+          width: 320, height: 320, borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(120,100,200,0.1) 0%, transparent 70%)",
+          animation: "hub-glow 8s ease-in-out infinite 2s",
+        }} />
+      </div>
 
-        {/* Profile hero */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 56, paddingBottom: 32, gap: 0 }}>
+      <div className={mounted ? "hub-mounted" : ""} style={{ position: "relative", zIndex: 1, maxWidth: 440, margin: "0 auto", padding: "0 20px 100px" }}>
+
+        {/* Hero */}
+        <div style={{ paddingTop: 64, paddingBottom: 36, display: "flex", flexDirection: "column", alignItems: "center" }}>
 
           {/* Avatar */}
           <div style={{
-            width: 88, height: 88, borderRadius: "50%",
-            background: "#fff",
-            boxShadow: "0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06)",
+            width: 80, height: 80, borderRadius: "50%", marginBottom: 20,
+            background: logoPyme ? "#000" : "#1A1A18",
+            border: "1.5px solid rgba(255,255,255,0.1)",
+            boxShadow: "0 0 0 6px rgba(255,255,255,0.04), 0 8px 32px rgba(0,0,0,0.5)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            overflow: "hidden", marginBottom: 16, flexShrink: 0,
+            overflow: "hidden", flexShrink: 0,
           }}>
             {logoPyme
               // eslint-disable-next-line @next/next/no-img-element
               ? <img src={logoPyme} alt={nombrePyme} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              : <span style={{ fontSize: 36 }}>🏪</span>
+              : <span style={{ fontSize: 26, fontWeight: 800, color: "rgba(255,255,255,0.85)", letterSpacing: "-0.03em" }}>{initials}</span>
             }
           </div>
 
-          {/* Name */}
-          <h1 style={{ margin: "0 0 6px", fontSize: 22, fontWeight: 800, color: "#1A1A18", letterSpacing: "-0.03em", textAlign: "center" }}>
+          <h1 style={{
+            margin: "0 0 8px", textAlign: "center",
+            fontSize: 26, fontWeight: 800, letterSpacing: "-0.04em",
+            color: "#F5F3EE", lineHeight: 1.1,
+          }}>
             {nombrePyme}
           </h1>
-          <p style={{ margin: "0 0 20px", fontSize: 13, color: "#7A7A72", textAlign: "center" }}>
+
+          <p style={{ margin: "0 0 24px", fontSize: 12, color: "rgba(255,255,255,0.3)", letterSpacing: "0.02em" }}>
             linkdrop.cl/{slug}
           </p>
 
-          {/* Owner / Login badge */}
           {isOwner ? (
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#2D8A56", background: "rgba(255,255,255,0.7)", border: "1px solid #B8E2C8", borderRadius: 100, padding: "5px 14px", backdropFilter: "blur(4px)" }}>
-              ✓ Mi tienda
+            <span style={{
+              fontSize: 11, fontWeight: 700, letterSpacing: "0.04em",
+              color: "#4CD38A", background: "rgba(76,211,138,0.1)",
+              border: "1px solid rgba(76,211,138,0.25)",
+              borderRadius: 100, padding: "5px 14px",
+            }}>
+              ✓ MI TIENDA
             </span>
           ) : (
-            <button onClick={() => setShowLogin(true)} style={{
-              fontSize: 12, fontWeight: 600, color: "#5C5C57",
-              background: "rgba(255,255,255,0.65)", border: "1px solid rgba(255,255,255,0.9)",
-              borderRadius: 100, padding: "7px 18px", cursor: "pointer",
-              fontFamily: "inherit", backdropFilter: "blur(4px)",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+            <button onClick={() => setShowLogin(true)} className="hub-action-btn" style={{
+              fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.5)",
+              background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 100, padding: "7px 18px", cursor: "pointer", fontFamily: "inherit",
             }}>
-              Soy la tienda →
+              Soy la tienda
             </button>
           )}
         </div>
 
-        {/* Tab pills */}
+        {/* Sliding tabs */}
         <div style={{
-          display: "flex", gap: 8, marginBottom: 24,
-          background: "rgba(255,255,255,0.5)", borderRadius: 18,
-          padding: 6, backdropFilter: "blur(8px)",
-          border: "1px solid rgba(255,255,255,0.8)",
-          boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+          position: "relative", display: "flex",
+          background: "rgba(255,255,255,0.05)",
+          border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: 16, padding: 4, marginBottom: 20,
         }}>
-          {tabs.map((tab) => {
+          {/* Sliding pill */}
+          <div style={{
+            position: "absolute", top: 4, bottom: 4,
+            left: `calc(${tabIndex} * (100% / ${tabs.length}) + 4px)`,
+            width: `calc(100% / ${tabs.length} - 8px)`,
+            background: "#fff",
+            borderRadius: 12,
+            boxShadow: "0 2px 12px rgba(0,0,0,0.3)",
+            transition: "left 0.3s cubic-bezier(0.16,1,0.3,1)",
+            zIndex: 0,
+          }} />
+          {tabs.map((tab, i) => {
             const active = activeTab === tab.id;
             return (
-              <button
-                key={tab.id}
-                className="hub-tab-btn"
-                onClick={() => setActiveTab(tab.id)}
-                style={{
-                  flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
-                  padding: "10px 6px", borderRadius: 13, border: "none",
-                  background: active ? "#fff" : "transparent",
-                  boxShadow: active ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
-                  cursor: "pointer", fontFamily: "inherit", transition: "all 0.18s",
-                }}
-              >
-                <span style={{ fontSize: tab.id === "crear" ? 13 : 16 }}>{tab.icon}</span>
-                <span style={{ fontSize: 11, fontWeight: active ? 700 : 500, color: active ? "#1A1A18" : "#9C9C95", whiteSpace: "nowrap" }}>
-                  {tab.label}
-                </span>
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="hub-tab-trigger" style={{
+                flex: 1, position: "relative", zIndex: 1,
+                padding: "10px 4px", background: "none", border: "none",
+                fontSize: 12, fontWeight: active ? 700 : 500,
+                color: active ? "#1A1A18" : "rgba(255,255,255,0.4)",
+                cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+              }}>
+                {tab.label}
                 {tab.id === "crear" && (
-                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#E8553D", display: "block" }} />
+                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: active ? "#E8553D" : "#E8553D", display: "inline-block", opacity: active ? 1 : 0.6 }} />
                 )}
               </button>
             );
@@ -265,8 +310,8 @@ export default function HubClient({ slug, pymeId, nombrePyme, logoPyme, couriers
         </div>
 
         {/* Footer */}
-        <p style={{ textAlign: "center", marginTop: 40, fontSize: 11, color: "#B0A898" }}>
-          Powered by <span style={{ fontWeight: 700, color: "#9A9088" }}>LinkDrop</span>
+        <p style={{ textAlign: "center", marginTop: 48, fontSize: 11, color: "rgba(255,255,255,0.15)", letterSpacing: "0.06em" }}>
+          LINKDROP
         </p>
       </div>
 
@@ -326,7 +371,7 @@ function TabCotizar({ pymeId, couriersHabilitados, defaultDims }: { pymeId: stri
     }
   }
 
-  const inputStyle: React.CSSProperties = { width: "100%", boxSizing: "border-box", border: "1.5px solid #E8E8E3", borderRadius: 12, padding: "13px 16px", fontSize: 15, color: "#1A1A18", background: "#fff", outline: "none", fontFamily: "inherit" };
+  const inputStyle: React.CSSProperties = { width: "100%", boxSizing: "border-box", border: "1.5px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "13px 16px", fontSize: 15, color: "#F5F3EE", background: "rgba(255,255,255,0.06)", outline: "none", fontFamily: "inherit" };
 
   const allowed = couriersHabilitados ?? Object.keys(COURIER_CONFIG);
   const resultKeys = resultados ? Object.keys(resultados).filter((k) => allowed.includes(k) && resultados![k]?.price != null) : [];
@@ -335,87 +380,89 @@ function TabCotizar({ pymeId, couriersHabilitados, defaultDims }: { pymeId: stri
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* Intro */}
-      <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "18px 20px" }}>
-        <p style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 700, color: "#1A1A18" }}>¿Cuánto sale enviar a tu dirección?</p>
-        <p style={{ margin: 0, fontSize: 13, color: "#9C9C95", lineHeight: 1.6 }}>Ingresa tu dirección y elige el tamaño del paquete para ver el precio aproximado de cada courier.</p>
+      <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 16, border: "1px solid rgba(255,255,255,0.08)", padding: "18px 20px" }}>
+        <p style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 700, color: "#F5F3EE" }}>¿Cuánto sale enviar a tu dirección?</p>
+        <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.4)", lineHeight: 1.6 }}>Ingresa tu dirección y elige el tamaño del paquete para ver el precio aproximado de cada courier.</p>
       </div>
 
       {/* Datos destino */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div>
-          <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Tu nombre</p>
+          <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>Tu nombre</p>
           <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej: María González" style={inputStyle}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.1)"; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; e.currentTarget.style.boxShadow = "none"; }} />
+            onFocus={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.15)"; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.boxShadow = "none"; }} />
         </div>
         <div>
-          <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Tu comuna de destino</p>
+          <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>Tu comuna de destino</p>
           <ComunaAutocomplete value={comuna} onChange={setComuna} />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8 }}>
           <div>
-            <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Calle</p>
+            <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>Calle</p>
             <input value={calle} onChange={(e) => setCalle(e.target.value)} placeholder="Ej: Av. Providencia" style={inputStyle}
-              onFocus={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.1)"; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; e.currentTarget.style.boxShadow = "none"; }} />
+              onFocus={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.15)"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.boxShadow = "none"; }} />
           </div>
           <div>
-            <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Número</p>
+            <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>Número</p>
             <input value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="123" style={{ ...inputStyle, width: 90 }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.1)"; }}
-              onBlur={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; e.currentTarget.style.boxShadow = "none"; }} />
+              onFocus={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.15)"; }}
+              onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.boxShadow = "none"; }} />
           </div>
         </div>
         <div>
-          <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Depto / Piso <span style={{ fontWeight: 400, color: "#9C9C95" }}>(opcional)</span></p>
+          <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>Depto / Piso <span style={{ fontWeight: 400, color: "rgba(255,255,255,0.3)" }}>(opcional)</span></p>
           <input value={depto} onChange={(e) => setDepto(e.target.value)} placeholder="Ej: Depto 301" style={inputStyle}
-            onFocus={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.1)"; }}
-            onBlur={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; e.currentTarget.style.boxShadow = "none"; }} />
+            onFocus={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.15)"; }}
+            onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.boxShadow = "none"; }} />
         </div>
       </div>
 
       {/* Tamaño del paquete */}
       <div>
-        <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>
+        <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>
           Tamaño del paquete
-          <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 500, color: "#9C9C95" }}>aprox.</span>
+          <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.3)" }}>aprox.</span>
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
           {PKG_PRESETS.map((p) => {
             const active = selectedPreset === p.id;
             return (
               <button key={p.id} onClick={() => setSelectedPreset(active ? null : p.id)} style={{
-                border: `1.5px solid ${active ? "#1A1A18" : "#E8E8E3"}`,
+                border: `1.5px solid ${active ? "#E8553D" : "rgba(255,255,255,0.1)"}`,
                 borderRadius: 12, padding: "12px 8px",
-                background: active ? "#1A1A18" : "#fff",
+                background: active ? "rgba(232,85,61,0.15)" : "rgba(255,255,255,0.04)",
                 cursor: "pointer", fontFamily: "inherit",
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
                 transition: "all 0.15s",
               }}>
-                <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: active ? "#fff" : "#1A1A18" }}>{p.label}</p>
-                <p style={{ margin: 0, fontSize: 10, color: active ? "rgba(255,255,255,0.55)" : "#9C9C95" }}>{p.desc}</p>
+                <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: active ? "#E8553D" : "#F5F3EE" }}>{p.label}</p>
+                <p style={{ margin: 0, fontSize: 10, color: active ? "rgba(232,85,61,0.7)" : "rgba(255,255,255,0.35)" }}>{p.desc}</p>
               </button>
             );
           })}
           {!hasDims && !selectedPreset && (
-            <div style={{ gridColumn: "1/-1", background: "#FFFBE8", border: "1px solid #F5E0A0", borderRadius: 10, padding: "10px 14px" }}>
-              <p style={{ margin: 0, fontSize: 12, color: "#8B6914" }}>Selecciona un tamaño para cotizar</p>
+            <div style={{ gridColumn: "1/-1", background: "rgba(232,85,61,0.08)", border: "1px solid rgba(232,85,61,0.2)", borderRadius: 10, padding: "10px 14px" }}>
+              <p style={{ margin: 0, fontSize: 12, color: "rgba(232,85,61,0.8)" }}>Selecciona un tamaño para cotizar</p>
             </div>
           )}
         </div>
         {hasDims && !selectedPreset && (
-          <p style={{ margin: "8px 0 0", fontSize: 11, color: "#9C9C95" }}>Sin selección se usarán las dimensiones por defecto de la tienda.</p>
+          <p style={{ margin: "8px 0 0", fontSize: 11, color: "rgba(255,255,255,0.3)" }}>Sin selección se usarán las dimensiones por defecto de la tienda.</p>
         )}
       </div>
 
-      {error && <p style={{ margin: 0, fontSize: 13, color: "#C23E28", background: "#FFF0ED", padding: "10px 14px", borderRadius: 10 }}>{error}</p>}
+      {error && <p style={{ margin: 0, fontSize: 13, color: "#E8553D", background: "rgba(232,85,61,0.1)", border: "1px solid rgba(232,85,61,0.2)", padding: "10px 14px", borderRadius: 10 }}>{error}</p>}
 
       {/* Botón */}
-      <button onClick={handleCotizar} disabled={cotizando || !canCotizar} style={{
-        width: "100%", padding: "15px", borderRadius: 14, border: "none",
-        background: cotizando || !canCotizar ? "#D1D1CC" : "#E8553D",
-        color: "#fff", fontSize: 15, fontWeight: 700, cursor: cotizando || !canCotizar ? "not-allowed" : "pointer",
+      <button onClick={handleCotizar} disabled={cotizando || !canCotizar} className="hub-action-btn" style={{
+        width: "100%", padding: "16px", borderRadius: 14, border: "none",
+        background: cotizando || !canCotizar ? "rgba(255,255,255,0.08)" : "#E8553D",
+        color: cotizando || !canCotizar ? "rgba(255,255,255,0.3)" : "#fff",
+        fontSize: 15, fontWeight: 700, cursor: cotizando || !canCotizar ? "not-allowed" : "pointer",
         fontFamily: "inherit", transition: "all 0.2s",
+        letterSpacing: "-0.01em",
       }}>
         {cotizando ? "Cotizando…" : "Ver precios de envío →"}
       </button>
@@ -423,18 +470,18 @@ function TabCotizar({ pymeId, couriersHabilitados, defaultDims }: { pymeId: stri
       {/* Resultados */}
       {resultados && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: "#9C9C95", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-            Precios aproximados a {comuna}
+          <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+            Precios a {comuna}
           </p>
           {resultKeys.length === 0 && (
-            <p style={{ fontSize: 13, color: "#9C9C95", textAlign: "center", padding: "20px 0" }}>No hay couriers disponibles para esta comuna.</p>
+            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", textAlign: "center", padding: "20px 0" }}>No hay couriers disponibles para esta comuna.</p>
           )}
           {resultKeys.map((key) => {
             const cot = resultados![key]!;
             const cfg = COURIER_CONFIG[key] ?? { color: "#5C5C57", colorLight: "#F5F5F0", label: key };
             const isCheapest = key === cheapest;
             return (
-              <div key={key} style={{ background: "#fff", border: `1.5px solid ${isCheapest ? cfg.color : "#E8E8E3"}`, borderRadius: 14, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, position: "relative" }}>
+              <div key={key} style={{ background: "#fff", border: `1.5px solid ${isCheapest ? cfg.color : "transparent"}`, borderRadius: 14, padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, position: "relative" }}>
                 {isCheapest && (
                   <span style={{ position: "absolute", top: -10, left: 14, fontSize: 10, fontWeight: 700, background: cfg.color, color: "#fff", borderRadius: 100, padding: "2px 10px" }}>Más económico</span>
                 )}
@@ -442,14 +489,14 @@ function TabCotizar({ pymeId, couriersHabilitados, defaultDims }: { pymeId: stri
                   <span style={{ fontSize: 11, fontWeight: 700, color: cfg.color, background: cfg.colorLight, borderRadius: 100, padding: "3px 10px" }}>{cfg.label}</span>
                   {cot.tiempo && <span style={{ fontSize: 11, color: "#9C9C95" }}>{cot.tiempo}</span>}
                 </div>
-                <p style={{ margin: 0, fontSize: 16, fontWeight: 800, color: "#1A1A18" }}>
+                <p style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#1A1A18", letterSpacing: "-0.02em" }}>
                   ${(cot.price ?? 0).toLocaleString("es-CL")}
                 </p>
               </div>
             );
           })}
-          <p style={{ margin: "4px 0 0", fontSize: 11, color: "#9C9C95", textAlign: "center", lineHeight: 1.6 }}>
-            * Precio referencial. El precio final lo verás en el link de envío que te comparta la tienda.
+          <p style={{ margin: "4px 0 0", fontSize: 11, color: "rgba(255,255,255,0.25)", textAlign: "center", lineHeight: 1.6 }}>
+            Precio referencial — el valor final estará en el link de envío.
           </p>
         </div>
       )}
@@ -495,36 +542,37 @@ function TabRastrear({ pymeId }: { pymeId: string }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "18px 20px" }}>
-        <p style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 700, color: "#1A1A18" }}>Rastrea tu pedido</p>
-        <p style={{ margin: 0, fontSize: 13, color: "#9C9C95", lineHeight: 1.6 }}>Ingresa el número de seguimiento que te envió la tienda.</p>
+      <div style={{ background: "rgba(255,255,255,0.05)", borderRadius: 16, border: "1px solid rgba(255,255,255,0.08)", padding: "18px 20px" }}>
+        <p style={{ margin: "0 0 4px", fontSize: 15, fontWeight: 700, color: "#F5F3EE" }}>Rastrea tu pedido</p>
+        <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.4)", lineHeight: 1.6 }}>Ingresa el número de seguimiento que te envió la tienda.</p>
       </div>
 
       <div>
-        <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>Número de tracking</p>
+        <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>Número de tracking</p>
         <input
           type="text" value={tracking} onChange={(e) => setTracking(e.target.value)}
           placeholder="Ej: 12345678"
           onKeyDown={(e) => e.key === "Enter" && handleBuscar()}
-          style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid #E8E8E3", borderRadius: 12, padding: "13px 16px", fontSize: 15, color: "#1A1A18", background: "#fff", outline: "none", fontFamily: "inherit" }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.1)"; }}
-          onBlur={(e) => { e.currentTarget.style.borderColor = "#E8E8E3"; e.currentTarget.style.boxShadow = "none"; }}
+          style={{ width: "100%", boxSizing: "border-box", border: "1.5px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "13px 16px", fontSize: 15, color: "#F5F3EE", background: "rgba(255,255,255,0.06)", outline: "none", fontFamily: "inherit" }}
+          onFocus={(e) => { e.currentTarget.style.borderColor = "#E8553D"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(232,85,61,0.15)"; }}
+          onBlur={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.boxShadow = "none"; }}
         />
       </div>
 
-      {error && <p style={{ margin: 0, fontSize: 13, color: "#C23E28", background: "#FFF0ED", padding: "10px 14px", borderRadius: 10 }}>{error}</p>}
+      {error && <p style={{ margin: 0, fontSize: 13, color: "#E8553D", background: "rgba(232,85,61,0.1)", border: "1px solid rgba(232,85,61,0.2)", padding: "10px 14px", borderRadius: 10 }}>{error}</p>}
 
-      <button onClick={handleBuscar} disabled={buscando || !tracking.trim()} style={{
-        width: "100%", padding: "15px", borderRadius: 14, border: "none",
-        background: buscando || !tracking.trim() ? "#D1D1CC" : "#1A1A18",
-        color: "#fff", fontSize: 15, fontWeight: 700, cursor: buscando || !tracking.trim() ? "not-allowed" : "pointer",
-        fontFamily: "inherit", transition: "all 0.2s",
+      <button onClick={handleBuscar} disabled={buscando || !tracking.trim()} className="hub-action-btn" style={{
+        width: "100%", padding: "16px", borderRadius: 14, border: "none",
+        background: buscando || !tracking.trim() ? "rgba(255,255,255,0.08)" : "#F5F3EE",
+        color: buscando || !tracking.trim() ? "rgba(255,255,255,0.3)" : "#1A1A18",
+        fontSize: 15, fontWeight: 700, cursor: buscando || !tracking.trim() ? "not-allowed" : "pointer",
+        fontFamily: "inherit", transition: "all 0.2s", letterSpacing: "-0.01em",
       }}>
         {buscando ? "Buscando…" : "Rastrear pedido →"}
       </button>
 
       {resultado && (
-        <div style={{ background: "#fff", border: "1.5px solid #B8E2C8", borderRadius: 14, padding: "18px 20px" }}>
+        <div style={{ background: "#fff", borderRadius: 14, padding: "18px 20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
             <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#F0FAF4", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2D8A56" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
@@ -550,16 +598,15 @@ function TabRastrear({ pymeId }: { pymeId: string }) {
 function TabInfo({ infoEnvios, nombrePyme }: { infoEnvios: string | null; nombrePyme: string }) {
   if (!infoEnvios) {
     return (
-      <div style={{ textAlign: "center", padding: "48px 24px" }}>
-        <p style={{ fontSize: 32, marginBottom: 12 }}>📦</p>
-        <p style={{ margin: "0 0 6px", fontSize: 15, fontWeight: 700, color: "#1A1A18" }}>Próximamente</p>
-        <p style={{ margin: 0, fontSize: 13, color: "#9C9C95" }}>{nombrePyme} aún no ha configurado esta sección.</p>
+      <div style={{ textAlign: "center", padding: "56px 24px" }}>
+        <p style={{ margin: "0 0 8px", fontSize: 15, fontWeight: 700, color: "rgba(255,255,255,0.5)" }}>Próximamente</p>
+        <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.25)" }}>{nombrePyme} aún no ha configurado esta sección.</p>
       </div>
     );
   }
   return (
-    <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", padding: "20px" }}>
-      <div style={{ fontSize: 14, color: "#1A1A18", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>
+    <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 16, border: "1px solid rgba(255,255,255,0.08)", padding: "20px" }}>
+      <div style={{ fontSize: 14, color: "rgba(255,255,255,0.75)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>
         {infoEnvios}
       </div>
     </div>
@@ -620,35 +667,36 @@ function TabCrear({ pymeId, nombrePyme, couriersHabilitados, defaultDims }: { py
 
       {/* Presets */}
       <div>
-        <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 600, color: "#1A1A18" }}>¿Qué vas a enviar?</p>
+        <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)" }}>¿Qué vas a enviar?</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
           {PKG_PRESETS.map((p) => {
             const active = selectedPreset === p.id;
             return (
               <button key={p.id} onClick={() => setSelectedPreset(active ? null : p.id)} style={{
-                border: `1.5px solid ${active ? "#E8553D" : "#E8E8E3"}`,
+                border: `1.5px solid ${active ? "#E8553D" : "rgba(255,255,255,0.1)"}`,
                 borderRadius: 12, padding: "14px 8px",
-                background: active ? "#FFF0ED" : "#fff",
+                background: active ? "rgba(232,85,61,0.15)" : "rgba(255,255,255,0.04)",
                 cursor: "pointer", fontFamily: "inherit",
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
                 transition: "all 0.15s",
               }}>
-                <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: active ? "#E8553D" : "#1A1A18" }}>{p.label}</p>
-                <p style={{ margin: 0, fontSize: 10, color: active ? "#E8553D" : "#9C9C95" }}>{p.desc}</p>
+                <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: active ? "#E8553D" : "#F5F3EE" }}>{p.label}</p>
+                <p style={{ margin: 0, fontSize: 10, color: active ? "rgba(232,85,61,0.7)" : "rgba(255,255,255,0.35)" }}>{p.desc}</p>
               </button>
             );
           })}
         </div>
       </div>
 
-      {error && <p style={{ margin: 0, fontSize: 13, color: "#C23E28", background: "#FFF0ED", padding: "10px 14px", borderRadius: 10 }}>{error}</p>}
+      {error && <p style={{ margin: 0, fontSize: 13, color: "#E8553D", background: "rgba(232,85,61,0.1)", border: "1px solid rgba(232,85,61,0.2)", padding: "10px 14px", borderRadius: 10 }}>{error}</p>}
 
       {!generatedUrl ? (
-        <button onClick={handleGenerar} disabled={generando} style={{
-          width: "100%", padding: "15px", borderRadius: 14, border: "none",
-          background: generando ? "#D1D1CC" : "#E8553D",
-          color: "#fff", fontSize: 15, fontWeight: 700, cursor: generando ? "not-allowed" : "pointer",
-          fontFamily: "inherit", transition: "all 0.2s",
+        <button onClick={handleGenerar} disabled={generando} className="hub-action-btn" style={{
+          width: "100%", padding: "16px", borderRadius: 14, border: "none",
+          background: generando ? "rgba(255,255,255,0.08)" : "#E8553D",
+          color: generando ? "rgba(255,255,255,0.3)" : "#fff",
+          fontSize: 15, fontWeight: 700, cursor: generando ? "not-allowed" : "pointer",
+          fontFamily: "inherit", transition: "all 0.2s", letterSpacing: "-0.01em",
         }}>
           {generando ? "Generando…" : "Generar link →"}
         </button>
@@ -671,7 +719,7 @@ function TabCrear({ pymeId, nombrePyme, couriersHabilitados, defaultDims }: { py
       )}
 
       {generatedUrl && (
-        <button onClick={() => { setGeneratedUrl(""); setSelectedPreset(null); }} style={{ background: "none", border: "1.5px solid #E8E8E3", borderRadius: 12, padding: "12px", fontSize: 13, color: "#5C5C57", cursor: "pointer", fontFamily: "inherit" }}>
+        <button onClick={() => { setGeneratedUrl(""); setSelectedPreset(null); }} style={{ background: "none", border: "1.5px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "12px", fontSize: 13, color: "rgba(255,255,255,0.4)", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s" }}>
           Crear otro link
         </button>
       )}

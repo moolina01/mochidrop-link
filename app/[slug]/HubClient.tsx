@@ -595,20 +595,97 @@ function TabRastrear({ pymeId }: { pymeId: string }) {
 
 // ─── Tab Info ─────────────────────────────────────────────────────────────────
 
-function TabInfo({ infoEnvios, nombrePyme }: { infoEnvios: string | null; nombrePyme: string }) {
-  if (!infoEnvios) {
-    return (
-      <div style={{ textAlign: "center", padding: "56px 24px" }}>
-        <p style={{ margin: "0 0 8px", fontSize: 15, fontWeight: 700, color: "rgba(255,255,255,0.5)" }}>Próximamente</p>
-        <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.25)" }}>{nombrePyme} aún no ha configurado esta sección.</p>
-      </div>
-    );
-  }
+const POLITICAS = [
+  {
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+      </svg>
+    ),
+    titulo: "Cobertura",
+    texto: "Hacemos envíos a todo Chile a través de nuestros couriers asociados: Starken, Chilexpress, Blue Express y 99 Minutos. Cubrimos desde Arica hasta Punta Arenas, incluyendo zonas extremas.",
+  },
+  {
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.45"/>
+      </svg>
+    ),
+    titulo: "Cambios y devoluciones",
+    texto: "Aceptamos cambios dentro de los 7 días hábiles desde la recepción del pedido. El producto debe estar sin uso y en su empaque original. Los gastos de reenvío son a cargo del cliente salvo que el error sea nuestro.",
+  },
+  {
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+    ),
+    titulo: "Seguimiento",
+    texto: "Una vez despachado tu pedido recibirás un número de tracking por WhatsApp. Puedes rastrearlo en la pestaña Rastrear de esta misma página en cualquier momento.",
+  },
+  {
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+      </svg>
+    ),
+    titulo: "Retiros",
+    texto: "El courier retira el paquete directamente desde nuestra dirección. Los retiros se agendan dentro de las 24 horas hábiles después de confirmar el envío. No es necesario que el cliente coordine el retiro.",
+  },
+];
+
+function TabInfo({ nombrePyme }: { infoEnvios: string | null; nombrePyme: string }) {
+  const [open, setOpen] = useState<number | null>(null);
+
   return (
-    <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 16, border: "1px solid rgba(255,255,255,0.08)", padding: "20px" }}>
-      <div style={{ fontSize: 14, color: "rgba(255,255,255,0.75)", lineHeight: 1.9, whiteSpace: "pre-wrap" }}>
-        {infoEnvios}
+    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+
+      <p style={{ margin: "0 0 4px", fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.3)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+        Políticas de envío
+      </p>
+
+      {POLITICAS.map((p, i) => {
+        const isOpen = open === i;
+        return (
+          <div key={i} style={{
+            background: "rgba(255,255,255,0.04)", border: `1px solid ${isOpen ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.07)"}`,
+            borderRadius: 14, overflow: "hidden", transition: "border-color 0.2s",
+          }}>
+            <button onClick={() => setOpen(isOpen ? null : i)} style={{
+              width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+              padding: "16px 18px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ color: "#E8553D", display: "flex", flexShrink: 0 }}>{p.icon}</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#F5F3EE" }}>{p.titulo}</span>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.25s ease", flexShrink: 0 }}>
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+            {isOpen && (
+              <div style={{ padding: "0 18px 18px" }}>
+                <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.55)", lineHeight: 1.75 }}>{p.texto}</p>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Footer cálido */}
+      <div style={{
+        marginTop: 12, padding: "20px 18px",
+        background: "rgba(232,85,61,0.07)", border: "1px solid rgba(232,85,61,0.15)",
+        borderRadius: 16, textAlign: "center",
+      }}>
+        <p style={{ margin: "0 0 4px", fontSize: 18 }}>🧡</p>
+        <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.6)", lineHeight: 1.7 }}>
+          Gracias por confiar en <span style={{ fontWeight: 700, color: "#F5F3EE" }}>{nombrePyme}</span>.<br />
+          Cada pedido lo preparamos con mucho amor.
+        </p>
       </div>
+
     </div>
   );
 }

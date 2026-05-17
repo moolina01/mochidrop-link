@@ -128,112 +128,148 @@ function ComunaAutocomplete({ value, onChange }: { value: string; onChange: (v: 
 
 export default function HubClient({ slug, pymeId, nombrePyme, logoPyme, couriersHabilitados, defaultDims, infoEnvios }: HubProps) {
   const [activeTab, setActiveTab] = useState<Tab>("cotizar");
-  const [user, setUser] = useState<User | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
 
-  // Auth
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user ?? null);
       if (data.user?.id === pymeId) setIsOwner(true);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null);
       setIsOwner(session?.user?.id === pymeId);
     });
     return () => subscription.unsubscribe();
   }, [pymeId]);
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: "cotizar", label: "Cotizar" },
-    { id: "rastrear", label: "Rastrear" },
-    { id: "info", label: "Info" },
-    ...(isOwner ? [{ id: "crear" as Tab, label: "Crear envío" }] : []),
+  const tabs: { id: Tab; label: string; icon: string }[] = [
+    { id: "cotizar",  label: "Cotizar",      icon: "📦" },
+    { id: "rastrear", label: "Rastrear",     icon: "🔍" },
+    { id: "info",     label: "Info",         icon: "💬" },
+    ...(isOwner ? [{ id: "crear" as Tab, label: "Crear envío", icon: "✦" }] : []),
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#FAFAF7", fontFamily: "'Instrument Sans', system-ui, sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: "linear-gradient(160deg, #F2EDE4 0%, #EBE4D8 40%, #E8E0D2 100%)", fontFamily: "'Instrument Sans', system-ui, sans-serif" }}>
       <style>{`
         @keyframes fade-up {
-          from { opacity: 0; transform: translateY(12px); }
+          from { opacity: 0; transform: translateY(14px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        .hub-tab-content { animation: fade-up 0.25s ease both; }
+        .hub-tab-content { animation: fade-up 0.22s ease both; }
+        .hub-tab-btn:hover { opacity: 0.85; }
       `}</style>
 
-      {/* Header */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #EBEBEB", padding: "20px 24px 0" }}>
-        <div style={{ maxWidth: 480, margin: "0 auto" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
-            <div style={{ width: 48, height: 48, borderRadius: 14, background: "#F5F5F0", border: "1px solid #E8E8E3", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
-              {logoPyme
-                // eslint-disable-next-line @next/next/no-img-element
-                ? <img src={logoPyme} alt={nombrePyme} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : <span style={{ fontSize: 22 }}>🏪</span>
-              }
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#1A1A18", letterSpacing: "-0.02em" }}>{nombrePyme}</p>
-              <p style={{ margin: "2px 0 0", fontSize: 12, color: "#9C9C95" }}>linkdrop.cl/{slug}</p>
-            </div>
-            {!isOwner && (
-              <button onClick={() => setShowLogin(true)} style={{ fontSize: 12, fontWeight: 600, color: "#5C5C57", background: "#F5F5F0", border: "1px solid #E8E8E3", borderRadius: 20, padding: "6px 14px", cursor: "pointer", fontFamily: "inherit" }}>
-                Ingresar
-              </button>
-            )}
-            {isOwner && (
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#2D8A56", background: "#F0FAF4", border: "1px solid #B8E2C8", borderRadius: 20, padding: "5px 12px" }}>
-                Mi tienda
-              </span>
-            )}
+      <div style={{ maxWidth: 460, margin: "0 auto", padding: "0 20px 80px" }}>
+
+        {/* Profile hero */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 56, paddingBottom: 32, gap: 0 }}>
+
+          {/* Avatar */}
+          <div style={{
+            width: 88, height: 88, borderRadius: "50%",
+            background: "#fff",
+            boxShadow: "0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            overflow: "hidden", marginBottom: 16, flexShrink: 0,
+          }}>
+            {logoPyme
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={logoPyme} alt={nombrePyme} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              : <span style={{ fontSize: 36 }}>🏪</span>
+            }
           </div>
 
-          {/* Tabs */}
-          <div style={{ display: "flex", gap: 0 }}>
-            {tabs.map((tab) => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
-                flex: 1, padding: "11px 8px", fontSize: 13, fontWeight: 700,
-                color: activeTab === tab.id ? "#1A1A18" : "#9C9C95",
-                background: "none", border: "none", borderBottom: `2.5px solid ${activeTab === tab.id ? "#E8553D" : "transparent"}`,
-                cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
-                whiteSpace: "nowrap",
-              }}>
-                {tab.label}
+          {/* Name */}
+          <h1 style={{ margin: "0 0 6px", fontSize: 22, fontWeight: 800, color: "#1A1A18", letterSpacing: "-0.03em", textAlign: "center" }}>
+            {nombrePyme}
+          </h1>
+          <p style={{ margin: "0 0 20px", fontSize: 13, color: "#7A7A72", textAlign: "center" }}>
+            linkdrop.cl/{slug}
+          </p>
+
+          {/* Owner / Login badge */}
+          {isOwner ? (
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#2D8A56", background: "rgba(255,255,255,0.7)", border: "1px solid #B8E2C8", borderRadius: 100, padding: "5px 14px", backdropFilter: "blur(4px)" }}>
+              ✓ Mi tienda
+            </span>
+          ) : (
+            <button onClick={() => setShowLogin(true)} style={{
+              fontSize: 12, fontWeight: 600, color: "#5C5C57",
+              background: "rgba(255,255,255,0.65)", border: "1px solid rgba(255,255,255,0.9)",
+              borderRadius: 100, padding: "7px 18px", cursor: "pointer",
+              fontFamily: "inherit", backdropFilter: "blur(4px)",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+            }}>
+              Soy la tienda →
+            </button>
+          )}
+        </div>
+
+        {/* Tab pills */}
+        <div style={{
+          display: "flex", gap: 8, marginBottom: 24,
+          background: "rgba(255,255,255,0.5)", borderRadius: 18,
+          padding: 6, backdropFilter: "blur(8px)",
+          border: "1px solid rgba(255,255,255,0.8)",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+        }}>
+          {tabs.map((tab) => {
+            const active = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                className="hub-tab-btn"
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+                  padding: "10px 6px", borderRadius: 13, border: "none",
+                  background: active ? "#fff" : "transparent",
+                  boxShadow: active ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
+                  cursor: "pointer", fontFamily: "inherit", transition: "all 0.18s",
+                }}
+              >
+                <span style={{ fontSize: tab.id === "crear" ? 13 : 16 }}>{tab.icon}</span>
+                <span style={{ fontSize: 11, fontWeight: active ? 700 : 500, color: active ? "#1A1A18" : "#9C9C95", whiteSpace: "nowrap" }}>
+                  {tab.label}
+                </span>
                 {tab.id === "crear" && (
-                  <span style={{ marginLeft: 5, width: 6, height: 6, borderRadius: "50%", background: "#E8553D", display: "inline-block" }} />
+                  <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#E8553D", display: "block" }} />
                 )}
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
+
+        {/* Tab content */}
+        <div>
+          {activeTab === "cotizar" && (
+            <div key="cotizar" className="hub-tab-content">
+              <TabCotizar pymeId={pymeId} couriersHabilitados={couriersHabilitados} defaultDims={defaultDims} />
+            </div>
+          )}
+          {activeTab === "rastrear" && (
+            <div key="rastrear" className="hub-tab-content">
+              <TabRastrear pymeId={pymeId} />
+            </div>
+          )}
+          {activeTab === "info" && (
+            <div key="info" className="hub-tab-content">
+              <TabInfo infoEnvios={infoEnvios} nombrePyme={nombrePyme} />
+            </div>
+          )}
+          {activeTab === "crear" && isOwner && (
+            <div key="crear" className="hub-tab-content">
+              <TabCrear pymeId={pymeId} nombrePyme={nombrePyme} couriersHabilitados={couriersHabilitados} defaultDims={defaultDims} />
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <p style={{ textAlign: "center", marginTop: 40, fontSize: 11, color: "#B0A898" }}>
+          Powered by <span style={{ fontWeight: 700, color: "#9A9088" }}>LinkDrop</span>
+        </p>
       </div>
 
-      {/* Content */}
-      <div style={{ maxWidth: 480, margin: "0 auto", padding: "24px 20px 60px" }}>
-        {activeTab === "cotizar" && (
-          <div key="cotizar" className="hub-tab-content">
-            <TabCotizar pymeId={pymeId} couriersHabilitados={couriersHabilitados} defaultDims={defaultDims} />
-          </div>
-        )}
-        {activeTab === "rastrear" && (
-          <div key="rastrear" className="hub-tab-content">
-            <TabRastrear pymeId={pymeId} />
-          </div>
-        )}
-        {activeTab === "info" && (
-          <div key="info" className="hub-tab-content">
-            <TabInfo infoEnvios={infoEnvios} nombrePyme={nombrePyme} />
-          </div>
-        )}
-        {activeTab === "crear" && isOwner && (
-          <div key="crear" className="hub-tab-content">
-            <TabCrear pymeId={pymeId} nombrePyme={nombrePyme} couriersHabilitados={couriersHabilitados} defaultDims={defaultDims} />
-          </div>
-        )}
-      </div>
-
-      {/* Login modal */}
       {showLogin && (
         <LoginModal pymeId={pymeId} onClose={() => setShowLogin(false)} />
       )}

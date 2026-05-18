@@ -193,7 +193,8 @@ export default function HubClient({ slug, pymeId, nombrePyme, logoPyme, couriers
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Instrument Sans', system-ui, sans-serif" }}>
+    <div style={{ height: "100dvh", background: "#EDEBE5", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Instrument Sans', system-ui, sans-serif" }}>
+    <div style={{ width: "100%", maxWidth: 480, height: "100dvh", background: C.bg, display: "flex", flexDirection: "column", overflow: "hidden", position: "relative" }}>
       <style>{`
         @keyframes hub-in { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
         .hub-content { animation: hub-in 0.22s cubic-bezier(0.16,1,0.3,1) both; }
@@ -204,7 +205,7 @@ export default function HubClient({ slug, pymeId, nombrePyme, logoPyme, couriers
       `}</style>
 
       {/* ── Header ── */}
-      <div style={{ background: C.bg, paddingBottom: 0 }}>
+      <div style={{ background: C.bg, paddingBottom: 0, flexShrink: 0 }}>
         <div style={{ maxWidth: 480, margin: "0 auto", padding: "0 20px" }}>
 
           {/* Fila superior: solo botón login a la derecha */}
@@ -314,8 +315,8 @@ export default function HubClient({ slug, pymeId, nombrePyme, logoPyme, couriers
         </div>
       </div>
 
-      {/* Content */}
-      <div style={{ maxWidth: 480, margin: "0 auto", padding: "20px 20px 80px" }}>
+      {/* Content — scrollable, fills remaining height */}
+      <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 40px", WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
         {activeTab === "cotizar" && <div key="c" className="hub-content"><TabCotizar pymeId={pymeId} couriersHabilitados={couriersHabilitados} defaultDims={defaultDims} /></div>}
         {activeTab === "rastrear" && <div key="r" className="hub-content"><TabRastrear pymeId={pymeId} /></div>}
         {activeTab === "info" && <div key="i" className="hub-content"><TabInfo infoEnvios={infoEnvios} nombrePyme={nombrePyme} /></div>}
@@ -323,6 +324,7 @@ export default function HubClient({ slug, pymeId, nombrePyme, logoPyme, couriers
       </div>
 
       {showLogin && <LoginModal pymeId={pymeId} onClose={() => setShowLogin(false)} />}
+    </div>
     </div>
   );
 }

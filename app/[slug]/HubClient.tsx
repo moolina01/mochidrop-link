@@ -166,68 +166,79 @@ export default function HubClient({ slug, pymeId, nombrePyme, logoPyme, couriers
     ...(isOwner ? [{ id: "crear" as Tab, label: "Crear envío" }] : []),
   ];
 
+  const tabIndex = tabs.findIndex((t) => t.id === activeTab);
+
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Instrument Sans', system-ui, sans-serif" }}>
       <style>{`
         @keyframes hub-in { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
         .hub-content { animation: hub-in 0.22s cubic-bezier(0.16,1,0.3,1) both; }
         .hub-btn-press:active { transform: scale(0.98); opacity: 0.9; }
+        .hub-tab-btn { transition: color 0.2s; }
       `}</style>
 
       {/* Header */}
-      <div style={{ background: C.bg, padding: "16px 20px 0", borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ background: C.bg, padding: "0 20px 0", borderBottom: `1px solid ${C.border}` }}>
         <div style={{ maxWidth: 480, margin: "0 auto" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, paddingBottom: 16 }}>
 
-            {/* Avatar */}
-            <div style={{
-              width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
-              background: C.card, border: `1.5px solid ${C.border}`,
-              display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
-            }}>
-              {logoPyme
-                // eslint-disable-next-line @next/next/no-img-element
-                ? <img src={logoPyme} alt={nombrePyme} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : <span style={{ fontSize: 15, fontWeight: 800, color: C.text, letterSpacing: "-0.02em" }}>{initials}</span>
-              }
-            </div>
-
-            {/* Nombre + subtítulo */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text, letterSpacing: "-0.02em" }}>{nombrePyme}</p>
-              <p style={{ margin: "1px 0 0", fontSize: 11, color: C.muted }}>Envíos simples y rápidos a todo Chile</p>
-            </div>
-
-            {/* Login / badge */}
+          {/* Login button — esquina superior derecha */}
+          <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 16, paddingBottom: 4 }}>
             {isOwner ? (
-              <span style={{ fontSize: 11, fontWeight: 600, color: C.green, background: C.greenBg, border: `1px solid #B8DFC9`, borderRadius: 100, padding: "5px 12px", whiteSpace: "nowrap" }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: C.green, background: C.greenBg, border: `1px solid #B8DFC9`, borderRadius: 100, padding: "5px 12px" }}>
                 Mi tienda
               </span>
             ) : (
               <button onClick={() => setShowLogin(true)} className="hub-btn-press" style={{
                 fontSize: 12, fontWeight: 600, color: C.muted,
                 background: C.card, border: `1px solid ${C.border}`,
-                borderRadius: 100, padding: "6px 14px", cursor: "pointer", fontFamily: "inherit",
-                whiteSpace: "nowrap", transition: "all 0.15s",
+                borderRadius: 100, padding: "6px 14px", cursor: "pointer", fontFamily: "inherit", transition: "all 0.15s",
               }}>
                 Iniciar sesión
               </button>
             )}
           </div>
 
-          {/* Tab bar */}
-          <div style={{ display: "flex", gap: 0, overflowX: "auto" }}>
+          {/* Avatar centrado */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingBottom: 20, gap: 0 }}>
+            <div style={{
+              width: 72, height: 72, borderRadius: "50%", marginBottom: 12,
+              background: C.card, border: `1.5px solid ${C.border}`,
+              boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
+              display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
+            }}>
+              {logoPyme
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={logoPyme} alt={nombrePyme} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                : <span style={{ fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: "-0.02em" }}>{initials}</span>
+              }
+            </div>
+            <p style={{ margin: "0 0 4px", fontSize: 20, fontWeight: 700, color: C.text, letterSpacing: "-0.03em", textAlign: "center" }}>{nombrePyme}</p>
+            <p style={{ margin: 0, fontSize: 12, color: C.muted, textAlign: "center" }}>Envíos simples y rápidos a todo Chile</p>
+          </div>
+
+          {/* Tabs — pill container con sliding pill */}
+          <div style={{ position: "relative", display: "flex", background: "#EAE5DC", borderRadius: 14, padding: 4, marginBottom: 0, gap: 0 }}>
+            {/* Sliding pill */}
+            <div style={{
+              position: "absolute", top: 4, bottom: 4,
+              left: `calc(${tabIndex} * (100% / ${tabs.length}) + 4px)`,
+              width: `calc(100% / ${tabs.length} - 8px)`,
+              background: C.card,
+              borderRadius: 10,
+              boxShadow: "0 1px 6px rgba(0,0,0,0.10)",
+              transition: "left 0.28s cubic-bezier(0.16,1,0.3,1)",
+              zIndex: 0,
+            }} />
             {tabs.map((tab) => {
               const active = activeTab === tab.id;
               return (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
-                  flex: "none", padding: "10px 16px",
-                  fontSize: 13, fontWeight: active ? 700 : 500,
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="hub-tab-btn" style={{
+                  flex: 1, position: "relative", zIndex: 1,
+                  padding: "10px 6px", background: "none", border: "none",
+                  fontSize: 12, fontWeight: active ? 700 : 500,
                   color: active ? C.text : C.muted,
-                  background: "none", border: "none",
-                  borderBottom: `2px solid ${active ? C.text : "transparent"}`,
-                  cursor: "pointer", fontFamily: "inherit",
-                  transition: "all 0.15s", whiteSpace: "nowrap",
+                  cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap",
+                  textAlign: "center",
                 }}>
                   {tab.label}
                 </button>

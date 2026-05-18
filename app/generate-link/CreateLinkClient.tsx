@@ -113,10 +113,9 @@ const DEFAULT_PACKAGE: PackageState = {
 };
 
 const PKG_PRESETS = [
-  { id: "sobre",  label: "Sobre",       desc: "hasta 0.3 kg", largo: "30", alto: "20", ancho: "3",  peso: "0.3", w: 28, h: 20, d: 4  },
-  { id: "xs",     label: "Pequeño",     desc: "hasta 0.7 kg", largo: "35", alto: "25", ancho: "10", peso: "0.7", w: 32, h: 24, d: 10 },
-  { id: "m",      label: "Mediano",     desc: "hasta 1.5 kg", largo: "40", alto: "30", ancho: "15", peso: "1.5", w: 38, h: 28, d: 14 },
-  { id: "l",      label: "Grande",      desc: "hasta 3 kg",   largo: "45", alto: "35", ancho: "20", peso: "3",   w: 44, h: 34, d: 18 },
+  { id: "sobre",  label: "Sobre",       desc: "hasta 0.5 kg", largo: "20", alto: "20", ancho: "20", peso: "0.5", w: 28, h: 20, d: 4  },
+  { id: "m",      label: "Mediano",     desc: "hasta 2 kg",   largo: "40", alto: "30", ancho: "15", peso: "2",   w: 38, h: 28, d: 14 },
+  { id: "l",      label: "Grande",      desc: "hasta 4 kg",   largo: "45", alto: "35", ancho: "20", peso: "4",   w: 44, h: 34, d: 18 },
   { id: "xl",     label: "Caja grande", desc: "hasta 8 kg",   largo: "55", alto: "45", ancho: "30", peso: "8",   w: 50, h: 40, d: 24 },
 ] as const;
 
@@ -2394,12 +2393,13 @@ export default function CreateLinkClient() {
         const nuevo = (payload.new as { pago_status?: string }).pago_status;
         console.log("[realtime] pago_status nuevo:", nuevo);
         if (!nuevo) return;
-        if (nuevo === "pendiente") {
-          setEnvioPageStatus("pendiente");
-        } else {
+        if (nuevo === "pagado") {
           setEnvioPageStatus("pagado");
           setEnviosPendientesCount((prev) => prev + 1);
+        } else if (nuevo === "pendiente") {
+          setEnvioPageStatus("pendiente");
         }
+        // "procesando" = cliente en Flow ingresando tarjeta → no cambiar estado UI
       })
       .subscribe((status) => {
         console.log("[realtime] estado canal:", status);

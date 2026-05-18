@@ -643,63 +643,109 @@ function TabRastrear({ pymeId }: { pymeId: string }) {
 
 const POLITICAS = [
   {
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+        <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+      </svg>
+    ),
     titulo: "Envíos",
-    texto: "Despachamos en 24 horas hábiles una vez confirmado el pago. Trabajamos con Starken y Chilexpress para garantizar la mejor cobertura a nivel nacional.",
+    texto: "Despachamos en 24 hrs hábiles.\nTrabajamos con Starken y Chilexpress.",
   },
   {
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="2" y1="12" x2="22" y2="12"/>
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+      </svg>
+    ),
     titulo: "Cobertura",
-    texto: "Enviamos a todo Chile: desde Arica hasta Punta Arenas, incluyendo zonas extremas y regiones apartadas.",
+    texto: "Enviamos a todo Chile.",
   },
   {
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="1 4 1 10 7 10"/>
+        <path d="M3.51 15a9 9 0 1 0 .49-4.45"/>
+      </svg>
+    ),
     titulo: "Cambios y devoluciones",
-    texto: "Aceptamos cambios dentro de los 7 días hábiles desde la recepción. El producto debe estar sin uso y en su empaque original. Los gastos de reenvío son a cargo del cliente salvo error nuestro.",
+    texto: "Tienes hasta 10 días para solicitar un cambio.",
   },
   {
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+    ),
     titulo: "Seguimiento",
-    texto: "Recibirás tu número de tracking por WhatsApp una vez despachado. Puedes rastrearlo en el tab Rastrear pedido de esta misma página.",
+    texto: "Recibirás un link de seguimiento apenas tu pedido sea enviado.",
   },
   {
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+    ),
     titulo: "Retiros",
-    texto: "El courier retira directamente desde nuestra dirección dentro de las 24 horas hábiles. No necesitas coordinar el retiro como cliente.",
+    texto: "Disponible retiro en tienda en Santiago Centro.",
   },
 ];
 
 function TabInfo({ nombrePyme }: { infoEnvios: string | null; nombrePyme: string }) {
-  const [open, setOpen] = useState<number | null>(0);
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
-      {POLITICAS.map((p, i) => {
-        const isOpen = open === i;
-        return (
-          <div key={i} style={{
-            background: C.card, border: `1px solid ${isOpen ? "#C8C0B0" : C.border}`,
-            borderRadius: 14, overflow: "hidden", transition: "border-color 0.2s",
+      {POLITICAS.map((p, i) => (
+        <div key={i} style={{
+          background: C.card,
+          border: `1px solid ${C.border}`,
+          borderRadius: 16,
+          padding: "18px 18px",
+          display: "flex", alignItems: "center", gap: 16,
+          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+        }}>
+          {/* Ícono en círculo */}
+          <div style={{
+            width: 42, height: 42, borderRadius: "50%", flexShrink: 0,
+            background: C.bg,
+            border: `1px solid ${C.border}`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: C.accent,
           }}>
-            <button onClick={() => setOpen(isOpen ? null : i)} style={{
-              width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "15px 18px", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit",
-            }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{p.titulo}</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0)", transition: "transform 0.22s ease", flexShrink: 0 }}>
-                <polyline points="6 9 12 15 18 9"/>
-              </svg>
-            </button>
-            {isOpen && (
-              <div style={{ padding: "0 18px 18px" }}>
-                <p style={{ margin: 0, fontSize: 13, color: C.muted, lineHeight: 1.75 }}>{p.texto}</p>
-              </div>
-            )}
+            {p.icon}
           </div>
-        );
-      })}
 
-      {/* Footer cálido */}
-      <div style={{ marginTop: 8, padding: "20px 18px", background: "#FBF3E8", border: "1px solid #E8D8B8", borderRadius: 16, textAlign: "center" }}>
-        <p style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 600, color: C.text }}>Gracias por confiar en {nombrePyme}</p>
-        <p style={{ margin: 0, fontSize: 13, color: C.muted }}>Cada pedido lo preparamos con mucho amor 🧡</p>
+          {/* Texto */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: "0 0 3px", fontSize: 14, fontWeight: 600, color: C.text }}>{p.titulo}</p>
+            <p style={{ margin: 0, fontSize: 12, color: C.muted, lineHeight: 1.6, whiteSpace: "pre-line" }}>{p.texto}</p>
+          </div>
+
+          {/* Chevron */}
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C8C4BC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </div>
+      ))}
+
+      {/* Trust card */}
+      <div style={{
+        marginTop: 6,
+        background: "linear-gradient(135deg, #FBF5EC 0%, #F5EDE0 100%)",
+        border: "1px solid #EAD9C0",
+        borderRadius: 20,
+        padding: "28px 24px",
+        textAlign: "center",
+      }}>
+        <p style={{ margin: "0 0 8px", fontSize: 26 }}>💕</p>
+        <p style={{ margin: "0 0 6px", fontSize: 15, fontWeight: 700, color: C.text, letterSpacing: "-0.02em" }}>
+          Gracias por confiar en {nombrePyme}
+        </p>
+        <p style={{ margin: 0, fontSize: 13, color: C.muted, lineHeight: 1.6 }}>
+          Cada pedido es preparado con mucho cuidado ✨
+        </p>
       </div>
 
     </div>

@@ -5,6 +5,8 @@ import { supabase } from "@/utils/supabase";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
+type InfoCard = { titulo: string; texto: string };
+
 type HubProps = {
   slug: string;
   pymeId: string;
@@ -13,6 +15,7 @@ type HubProps = {
   couriersHabilitados: string[] | null;
   defaultDims: { largo: number | null; alto: number | null; ancho: number | null; peso: number | null };
   infoEnvios: string | null;
+  infoCards: InfoCard[] | null;
   deliveryPropio: { precio: number } | null;
 };
 
@@ -218,7 +221,7 @@ function MapboxAddressSearch({ onSelect, placeholder = "Busca tu dirección..." 
 
 // ─── HubClient ────────────────────────────────────────────────────────────────
 
-export default function HubClient({ slug, pymeId, nombrePyme, logoPyme, couriersHabilitados, defaultDims, infoEnvios, deliveryPropio = null }: HubProps) {
+export default function HubClient({ slug, pymeId, nombrePyme, logoPyme, couriersHabilitados, defaultDims, infoEnvios, infoCards, deliveryPropio = null }: HubProps) {
   const [activeTab, setActiveTab] = useState<Tab>("cotizar");
   const [isOwner, setIsOwner] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
@@ -507,7 +510,7 @@ export default function HubClient({ slug, pymeId, nombrePyme, logoPyme, couriers
       <div className="hub-content-inner" style={{ maxWidth: 480, margin: "0 auto", padding: "20px 20px 60px" }}>
         <div style={{ display: activeTab === "cotizar"  ? "block" : "none" }}><TabCotizar pymeId={pymeId} couriersHabilitados={couriersHabilitados} defaultDims={defaultDims} deliveryPropio={deliveryPropio} /></div>
         <div style={{ display: activeTab === "rastrear" ? "block" : "none" }}><TabRastrear pymeId={pymeId} /></div>
-        <div style={{ display: activeTab === "info"     ? "block" : "none" }}><TabInfo infoEnvios={infoEnvios} nombrePyme={nombrePyme} /></div>
+        <div style={{ display: activeTab === "info"     ? "block" : "none" }}><TabInfo infoEnvios={infoEnvios} nombrePyme={nombrePyme} infoCards={infoCards} isOwner={isOwner} pymeId={pymeId} /></div>
         {isOwner && <div style={{ display: activeTab === "crear" ? "block" : "none" }}><TabCrear pymeId={pymeId} nombrePyme={nombrePyme} slug={slug} defaultDims={defaultDims} /></div>}
       </div>
 
@@ -1021,8 +1024,40 @@ const INFO_CARDS = [
   },
 ];
 
-function TabInfo({ infoEnvios, nombrePyme }: { infoEnvios: string | null; nombrePyme: string }) {
+function TabInfo({ infoEnvios, nombrePyme, infoCards: infoCardsProp, isOwner, pymeId }: {
+  infoEnvios: string | null; nombrePyme: string;
+  infoCards: InfoCard[] | null; isOwner: boolean; pymeId: string;
+}) {
   const C = useTheme();
+
+  const defaultCards: InfoCard[] = INFO_CARDS.map((c) => ({ titulo: c.titulo, texto: c.texto }));
+  const [cards, setCards] = useState<InfoCard[]>(infoCardsProp ?? defaultCards);
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [draft, setDraft] = useState<InfoCard>({ titulo: "", texto: "" });
+  const [saving, setSaving] = useState(false);
+
+  function startEdit(i: number) {
+    setDraft({ titulo: cards[i].titulo, texto: cards[i].texto });
+    setEditingIdx(i);
+  }
+
+  function cancelEdit() { setEditingIdx(null); }
+
+  async function saveEdit(i: number) {
+    if (!draft.titulo.trim()) return;
+    setSaving(true);
+    const updated = cards.map((c, idx) => idx === i ? { ...draft } : c);
+    try {
+      await fetch("/api/save-info-cards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pymeId, infoCards: updated }),
+      });
+      setCards(updated);
+      setEditingIdx(null);
+    } catch { /* ignorar */ } finally { setSaving(false); }
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
@@ -1048,26 +1083,112 @@ function TabInfo({ infoEnvios, nombrePyme }: { infoEnvios: string | null; nombre
         </div>
       )}
 
-      {/* Cards genéricas */}
-      {INFO_CARDS.map((p, i) => (
-        <div key={i} style={{
-          background: C.card, border: `1px solid ${C.border}`, borderRadius: 16,
-          padding: "18px", display: "flex", alignItems: "center", gap: 16,
-          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-        }}>
-          <div style={{
-            width: 42, height: 42, borderRadius: "50%", flexShrink: 0,
-            background: C.bg, border: `1px solid ${C.border}`,
-            display: "flex", alignItems: "center", justifyContent: "center", color: C.accent,
+      {/* Cards editables */}
+      {cards.map((card, i) => {
+        const isEditing = editingIdx === i;
+        const defaultIcon = INFO_CARDS[i]?.icon;
+        return (
+          <div key={i} style={{
+            background: C.card, border: `1.5px solid ${isEditing ? C.accent : C.border}`,
+            borderRadius: 16, padding: "18px",
+            display: "flex", alignItems: isEditing ? "flex-start" : "center", gap: 16,
+            boxShadow: "0 1px 3px rgba(0,0,0,0.04)", transition: "border-color 0.2s",
           }}>
-            {p.icon}
+            {/* Ícono */}
+            <div style={{
+              width: 42, height: 42, borderRadius: "50%", flexShrink: 0,
+              background: C.bg, border: `1px solid ${C.border}`,
+              display: "flex", alignItems: "center", justifyContent: "center", color: C.accent,
+            }}>
+              {defaultIcon}
+            </div>
+
+            {/* Contenido */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {isEditing ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <input
+                    value={draft.titulo}
+                    onChange={(e) => setDraft((d) => ({ ...d, titulo: e.target.value }))}
+                    placeholder="Título"
+                    style={{
+                      width: "100%", boxSizing: "border-box", padding: "8px 10px",
+                      border: `1.5px solid ${C.accent}`, borderRadius: 8,
+                      fontSize: 13, fontWeight: 600, color: C.text,
+                      background: C.inputBg, outline: "none", fontFamily: "inherit",
+                    }}
+                  />
+                  <textarea
+                    value={draft.texto}
+                    onChange={(e) => setDraft((d) => ({ ...d, texto: e.target.value }))}
+                    placeholder="Descripción"
+                    rows={3}
+                    style={{
+                      width: "100%", boxSizing: "border-box", padding: "8px 10px",
+                      border: `1.5px solid ${C.border}`, borderRadius: 8,
+                      fontSize: 12, color: C.muted, lineHeight: 1.6,
+                      background: C.inputBg, outline: "none", fontFamily: "inherit",
+                      resize: "vertical",
+                    }}
+                  />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      onClick={() => saveEdit(i)}
+                      disabled={saving}
+                      style={{
+                        padding: "7px 16px", borderRadius: 8, border: "none",
+                        background: C.accent, color: "#fff",
+                        fontSize: 12, fontWeight: 600, cursor: saving ? "wait" : "pointer",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      {saving ? "Guardando…" : "Guardar"}
+                    </button>
+                    <button
+                      onClick={cancelEdit}
+                      disabled={saving}
+                      style={{
+                        padding: "7px 14px", borderRadius: 8,
+                        border: `1px solid ${C.border}`, background: "transparent",
+                        color: C.muted, fontSize: 12, fontWeight: 500,
+                        cursor: "pointer", fontFamily: "inherit",
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p style={{ margin: "0 0 3px", fontSize: 14, fontWeight: 600, color: C.text }}>{card.titulo}</p>
+                  <p style={{ margin: 0, fontSize: 12, color: C.muted, lineHeight: 1.6 }}>{card.texto}</p>
+                </>
+              )}
+            </div>
+
+            {/* Botón editar (solo owner, solo cuando no está en modo edición) */}
+            {isOwner && !isEditing && (
+              <button
+                onClick={() => startEdit(i)}
+                title="Editar"
+                style={{
+                  flexShrink: 0, width: 30, height: 30, borderRadius: 8,
+                  border: `1px solid ${C.border}`, background: "transparent",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", color: C.muted, transition: "background 0.15s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = C.bg; e.currentTarget.style.color = C.accent; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.muted; }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              </button>
+            )}
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ margin: "0 0 3px", fontSize: 14, fontWeight: 600, color: C.text }}>{p.titulo}</p>
-            <p style={{ margin: 0, fontSize: 12, color: C.muted, lineHeight: 1.6 }}>{p.texto}</p>
-          </div>
-        </div>
-      ))}
+        );
+      })}
 
       {/* Trust card */}
       <div style={{

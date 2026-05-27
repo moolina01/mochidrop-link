@@ -28,7 +28,7 @@ export default async function PymeLandingPage({
   // Try full query first
   let { data: pyme, error } = await supabaseServer
     .from("pymes")
-    .select("auth_id, nombre_tienda, logo_url, couriers_habilitados, default_largo, default_alto, default_ancho, default_peso, info_envios, delivery_propio_enabled, delivery_propio_precio")
+    .select("auth_id, nombre_tienda, logo_url, couriers_habilitados, default_largo, default_alto, default_ancho, default_peso, info_envios, info_cards, delivery_propio_enabled, delivery_propio_precio")
     .eq("slug", slug)
     .single();
 
@@ -43,7 +43,7 @@ export default async function PymeLandingPage({
     pyme = fallback.data ? {
       ...fallback.data,
       default_largo: null, default_alto: null, default_ancho: null, default_peso: null,
-      info_envios: null, delivery_propio_enabled: false, delivery_propio_precio: null,
+      info_envios: null, info_cards: null, delivery_propio_enabled: false, delivery_propio_precio: null,
     } : null;
     error = fallback.error;
   }
@@ -72,6 +72,7 @@ export default async function PymeLandingPage({
           peso: pyme.default_peso ?? null,
         }}
         infoEnvios={pyme.info_envios ?? null}
+        infoCards={Array.isArray(pyme.info_cards) ? pyme.info_cards : null}
         deliveryPropio={pyme.delivery_propio_enabled && pyme.delivery_propio_precio
           ? { precio: pyme.delivery_propio_precio }
           : null}

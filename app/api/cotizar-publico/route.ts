@@ -6,7 +6,7 @@ const N8N_COTIZAR = "https://mochidrop-n8n.utdxt3.easypanel.host/webhook/cotizar
 
 const supabaseServer = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 function parseId(raw: unknown): number | null {
@@ -20,7 +20,7 @@ function parseId(raw: unknown): number | null {
   return null;
 }
 
-async function pollCotizaciones(envioId: number, attempts = 6, delayMs = 1200) {
+async function pollCotizaciones(envioId: number, attempts = 12, delayMs = 2000) {
   for (let i = 0; i < attempts; i++) {
     if (i > 0) await new Promise((r) => setTimeout(r, delayMs));
     const { data } = await supabaseServer
@@ -28,6 +28,7 @@ async function pollCotizaciones(envioId: number, attempts = 6, delayMs = 1200) {
       .select("cotizaciones")
       .eq("id", envioId)
       .single();
+    console.log(`[cotizar-publico] poll #${i + 1} envioId=${envioId} cotizaciones:`, JSON.stringify(data?.cotizaciones)?.slice(0, 100));
     if (data?.cotizaciones && Object.keys(data.cotizaciones).length > 0) {
       return data.cotizaciones as Record<string, unknown>;
     }
@@ -37,16 +38,16 @@ async function pollCotizaciones(envioId: number, attempts = 6, delayMs = 1200) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { pymeId, datos_destino } = await req.json();
+    const { pymeId, datosDestino, largo, alto, ancho, peso } = await req.json();
 
-    if (!pymeId || !datos_destino) {
+    if (!pymeId || !datosDestino?.comuna || !largo || !alto || !ancho || !peso) {
       return NextResponse.json({ error: "Faltan datos requeridos" }, { status: 400 });
     }
 
-    // 1. Obtener datos de la pyme
+    // 1. Get pyme origin address
     const { data: pyme, error: pymeErr } = await supabaseServer
       .from("pymes")
-      .select("nombre_tienda, logo_url, email, ask_instagram, origen_comuna, origen_calle, origen_numero, origen_depto, default_largo, default_alto, default_ancho, default_peso")
+      .select("nombre_tienda, logo_url, email, ask_instagram, origen_comuna, origen_calle, origen_numero, origen_depto")
       .eq("auth_id", pymeId)
       .single();
 
@@ -55,10 +56,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (!pyme.origen_comuna || !pyme.origen_calle || !pyme.origen_numero) {
-      return NextResponse.json({ error: "La tienda no tiene dirección de origen configurada." }, { status: 400 });
+      return NextResponse.json({ error: "Esta tienda aún no tiene dirección de origen configurada." }, { status: 400 });
     }
 
-    // 2. Crear el envío en N8N
+    // 2. Create envío in N8N with given dims
     const crearRes = await fetch(N8N_CREAR, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -73,22 +74,18 @@ export async function POST(req: NextRequest) {
           numero: pyme.origen_numero,
           depto:  pyme.origen_depto ?? "",
         },
-        paquete: {
-          largo: Number(pyme.default_largo) || 20,
-          alto:  Number(pyme.default_alto)  || 20,
-          ancho: Number(pyme.default_ancho) || 20,
-          peso:  Number(pyme.default_peso)  || 1,
-        },
+        paquete: { largo: Number(largo), alto: Number(alto), ancho: Number(ancho), peso: Number(peso) },
         ask_instagram: pyme.ask_instagram ?? false,
+        cotizar_publico: true,
       }),
     });
 
     const crearText = await crearRes.text();
-    console.log("[link-fijo/cotizar] crear status:", crearRes.status, crearText?.slice(0, 200));
+    console.log("[cotizar-publico] crear status:", crearRes.status, crearText?.slice(0, 200));
 
     if (!crearRes.ok || !crearText) {
       const msg = (() => { try { return JSON.parse(crearText)?.message ?? crearText; } catch { return crearText; } })();
-      return NextResponse.json({ error: msg || "Error al crear el envío" }, { status: crearRes.status || 502 });
+      return NextResponse.json({ error: msg || "Error al preparar cotización" }, { status: crearRes.status || 502 });
     }
 
     let parsed: unknown;
@@ -98,40 +95,43 @@ export async function POST(req: NextRequest) {
 
     const envioId = parseId(parsed);
     if (!envioId) {
-      console.error("[link-fijo/cotizar] Sin ID. N8N respondió:", crearText?.slice(0, 200));
-      return NextResponse.json({ error: `N8N no devolvió el ID del envío. Respuesta: ${crearText?.slice(0, 80)}` }, { status: 502 });
+      return NextResponse.json({ error: "N8N no devolvió el ID del envío." }, { status: 502 });
     }
 
-    // 3. Cotizar couriers
+    // 3. Cotizar — N8N requiere nombre, completamos con placeholder para cotización pública
+    const datosDestinoCompleto = {
+      nombre:    "Cotización pública",
+      telefono:  "",
+      instagram: "",
+      depto:     "",
+      calle:     datosDestino.calle   ?? "",
+      numero:    datosDestino.numero  ?? "",
+      comuna:    datosDestino.comuna  ?? "",
+    };
+    console.log("[cotizar-publico] datos_destino enviado a N8N:", JSON.stringify(datosDestinoCompleto));
     const cotizarRes = await fetch(N8N_COTIZAR, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: envioId, datos_destino }),
+      body: JSON.stringify({ id: envioId, datos_destino: datosDestinoCompleto }),
     });
 
-    console.log("[link-fijo/cotizar] cotizar status:", cotizarRes.status);
+    const cotizarText = await cotizarRes.text();
+    console.log("[cotizar-publico] cotizar status:", cotizarRes.status, "body:", cotizarText?.slice(0, 200));
 
     if (!cotizarRes.ok) {
-      return NextResponse.json({ error: "Error al cotizar couriers" }, { status: cotizarRes.status });
+      return NextResponse.json({ error: `Error al cotizar couriers: ${cotizarText?.slice(0, 100)}` }, { status: cotizarRes.status });
     }
 
-    // 4. Obtener cotizaciones desde Supabase (N8N las guarda ahí)
+    // 4. Poll cotizaciones from Supabase
     const cotizaciones = await pollCotizaciones(envioId);
     if (!cotizaciones) {
       return NextResponse.json({ error: "No se recibieron cotizaciones. Intenta de nuevo." }, { status: 502 });
     }
 
-    // Garantizar que pyme_id esté seteado — igual que el dashboard
-    await supabaseServer
-      .from("envios")
-      .update({ pyme_id: pymeId })
-      .eq("id", envioId);
-
-    // Retornar id + cotizaciones juntos, cliente no necesita consultar Supabase
-    return NextResponse.json({ id: envioId, cotizaciones });
+    return NextResponse.json({ cotizaciones });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Error desconocido";
-    console.error("[link-fijo/cotizar] Error:", msg);
+    console.error("[cotizar-publico] Error:", msg);
     return NextResponse.json({ error: `Error de conexión: ${msg}` }, { status: 503 });
   }
 }

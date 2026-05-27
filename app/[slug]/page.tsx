@@ -1,11 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import EnvioFijoClient from "./EnvioFijoClient";
+import HubClient from "./HubClientWrapper";
+
+export const dynamic = "force-dynamic";
 
 const supabaseServer = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 function LoadingFallback() {
@@ -23,26 +25,56 @@ export default async function PymeLandingPage({
 }) {
   const { slug } = await params;
 
-  const { data: pyme, error } = await supabaseServer
+  // Try full query first
+  let { data: pyme, error } = await supabaseServer
     .from("pymes")
-    .select("auth_id, nombre_tienda, logo_url, ask_instagram, link_fijo_enabled, default_largo, default_alto, default_ancho, default_peso, couriers_habilitados")
+    .select("auth_id, nombre_tienda, logo_url, couriers_habilitados, default_largo, default_alto, default_ancho, default_peso, info_envios, delivery_propio_enabled, delivery_propio_precio")
     .eq("slug", slug)
     .single();
 
-  console.log("[link-fijo] slug:", slug, "| pyme:", pyme, "| error:", error);
+  // If query errored (e.g., missing column in older schema), retry with minimal columns
+  if (error && error.code !== "PGRST116") {
+    console.error("[hub] full query failed, retrying minimal:", error.message);
+    const fallback = await supabaseServer
+      .from("pymes")
+      .select("auth_id, nombre_tienda, logo_url, couriers_habilitados")
+      .eq("slug", slug)
+      .single();
+    pyme = fallback.data ? {
+      ...fallback.data,
+      default_largo: null, default_alto: null, default_ancho: null, default_peso: null,
+      info_envios: null, delivery_propio_enabled: false, delivery_propio_precio: null,
+    } : null;
+    error = fallback.error;
+  }
 
-  if (!pyme || !pyme.link_fijo_enabled) {
+  if (!pyme) {
+    console.error("[hub] pyme not found for slug:", slug, error?.message);
     notFound();
   }
 
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <EnvioFijoClient
+      <HubClient
+        slug={slug}
         pymeId={pyme.auth_id}
         nombrePyme={pyme.nombre_tienda ?? ""}
         logoPyme={pyme.logo_url ?? null}
-        askInstagram={pyme.ask_instagram ?? false}
-        couriersHabilitados={pyme.couriers_habilitados ?? null}
+        couriersHabilitados={
+          Array.isArray(pyme.couriers_habilitados) && pyme.couriers_habilitados.length > 0
+            ? pyme.couriers_habilitados
+            : null
+        }
+        defaultDims={{
+          largo: pyme.default_largo ?? null,
+          alto: pyme.default_alto ?? null,
+          ancho: pyme.default_ancho ?? null,
+          peso: pyme.default_peso ?? null,
+        }}
+        infoEnvios={pyme.info_envios ?? null}
+        deliveryPropio={pyme.delivery_propio_enabled && pyme.delivery_propio_precio
+          ? { precio: pyme.delivery_propio_precio }
+          : null}
       />
     </Suspense>
   );

@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   try {
     const form = await req.formData();
 
-    const pymeEmail   = form.get("pymeEmail") as string;
+    const pymeEmail   = (form.get("pymeEmail") as string) ?? "";
     const pymeName    = form.get("pymeName") as string;
     const clientName  = form.get("clientName") as string;
     const clientPhone = form.get("clientPhone") as string;
@@ -18,10 +18,11 @@ export async function POST(req: NextRequest) {
     const comuna      = form.get("comuna") as string;
     const precio      = form.get("precio") as string;
     const comprobante = form.get("comprobante") as File | null;
+    const envioId     = form.get("envioId") as string | null;
 
     let comprobanteUrl = "";
 
-    if (comprobante) {
+    if (comprobante && comprobante.size > 0) {
       const ext = comprobante.name.split(".").pop() ?? "jpg";
       const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const buffer = Buffer.from(await comprobante.arrayBuffer());
@@ -36,29 +37,48 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Marcar envío como comprobante enviado
-    const envioId = form.get("envioId") as string | null;
+    // Marcar envío como comprobante enviado y obtener pyme_id para fallback de email
+    let pymeMainEmail = "";
     if (envioId) {
-      await supabaseAdmin.from("envios").update({ estado: "delivery_pendiente" }).eq("id", Number(envioId));
+      const { data: envio } = await supabaseAdmin
+        .from("envios")
+        .update({ estado: "delivery_pendiente" })
+        .eq("id", Number(envioId))
+        .select("pyme_id")
+        .single();
+
+      if (envio?.pyme_id) {
+        const { data: pyme } = await supabaseAdmin
+          .from("pymes")
+          .select("email")
+          .eq("auth_id", envio.pyme_id)
+          .single();
+        pymeMainEmail = pyme?.email ?? "";
+      }
     }
 
-    const n8nWebhook = process.env.N8N_DELIVERY_PROPIO_WEBHOOK;
-    const resendKey = process.env.RESEND_API_KEY;
+    // Usar delivery_propio_email si existe, si no el email principal de la cuenta
+    const destinatario = pymeEmail.trim() || pymeMainEmail;
 
-    if (n8nWebhook) {
+    const resendKey = process.env.RESEND_API_KEY;
+    const n8nWebhook = process.env.N8N_DELIVERY_PROPIO_WEBHOOK;
+
+    if (!destinatario) {
+      console.warn("[delivery-propio] Sin email destino — no se envía notificación");
+    } else if (n8nWebhook) {
       await fetch(n8nWebhook, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pymeEmail, pymeName, clientName, clientPhone, address, comuna, precio, comprobanteUrl }),
+        body: JSON.stringify({ pymeEmail: destinatario, pymeName, clientName, clientPhone, address, comuna, precio, comprobanteUrl }),
       });
     } else if (resendKey) {
-      await fetch("https://api.resend.com/emails", {
+      const emailRes = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           from: "LinkDrop <notificaciones@linkdrop.cl>",
-          to: pymeEmail,
-          subject: `Nuevo pedido delivery propio — ${clientName}`,
+          to: destinatario,
+          subject: `📦 Nuevo pedido delivery — ${clientName}`,
           html: `<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
@@ -67,28 +87,25 @@ export async function POST(req: NextRequest) {
     <tr><td align="center">
       <table width="100%" style="max-width:520px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
 
-        <!-- Header -->
         <tr><td style="background:#1A1A18;padding:32px 40px;text-align:center;">
           <p style="margin:0 0 4px;font-size:13px;color:rgba(255,255,255,0.5);letter-spacing:0.08em;text-transform:uppercase;">LinkDrop</p>
           <h1 style="margin:0;font-size:22px;font-weight:700;color:#fff;">Nuevo pedido de delivery</h1>
           <p style="margin:8px 0 0;font-size:14px;color:rgba(255,255,255,0.5);">${pymeName}</p>
         </td></tr>
 
-        <!-- Alerta -->
         <tr><td style="background:#FFF0ED;padding:16px 40px;border-bottom:1px solid #F5D5CE;">
           <p style="margin:0;font-size:14px;color:#E8553D;font-weight:600;text-align:center;">
             📦 Un cliente envió su comprobante de pago — coordina la entrega
           </p>
         </td></tr>
 
-        <!-- Datos cliente -->
         <tr><td style="padding:32px 40px 0;">
           <p style="margin:0 0 16px;font-size:11px;font-weight:700;color:#9C9C95;text-transform:uppercase;letter-spacing:0.1em;">Datos del cliente</p>
           <table width="100%" cellpadding="0" cellspacing="0">
             ${[
-              ["Cliente", clientName],
-              ["Teléfono", clientPhone || "No indicado"],
-              ["Dirección", `${address}, ${comuna}`],
+              ["Cliente",        clientName],
+              ["Teléfono",       clientPhone || "No indicado"],
+              ["Dirección",      `${address}, ${comuna}`],
               ["Monto a cobrar", `$${Number(precio).toLocaleString("es-CL")}`],
             ].map(([label, value]) => `
             <tr>
@@ -102,7 +119,6 @@ export async function POST(req: NextRequest) {
           </table>
         </td></tr>
 
-        <!-- Comprobante -->
         <tr><td style="padding:24px 40px;">
           ${comprobanteUrl
             ? `<p style="margin:0 0 12px;font-size:11px;font-weight:700;color:#9C9C95;text-transform:uppercase;letter-spacing:0.1em;">Comprobante de pago</p>
@@ -113,7 +129,12 @@ export async function POST(req: NextRequest) {
           }
         </td></tr>
 
-        <!-- Footer -->
+        <tr><td style="padding:16px 40px 24px;">
+          <a href="https://linkdrop.cl/generate-link" style="display:inline-block;background:#E8553D;color:#fff;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;">
+            Ver en el dashboard →
+          </a>
+        </td></tr>
+
         <tr><td style="background:#F5F5F0;padding:20px 40px;text-align:center;border-top:1px solid #E8E8E3;">
           <p style="margin:0;font-size:12px;color:#9C9C95;">Enviado por <strong style="color:#5C5C57;">LinkDrop</strong></p>
         </td></tr>
@@ -125,8 +146,13 @@ export async function POST(req: NextRequest) {
 </html>`,
         }),
       });
+
+      if (!emailRes.ok) {
+        const errText = await emailRes.text();
+        console.error("[delivery-propio] Resend error:", errText);
+      }
     } else {
-      console.log("[delivery-propio] Sin webhook/email configurado:", { pymeEmail, clientName, comprobanteUrl });
+      console.warn("[delivery-propio] RESEND_API_KEY no configurada");
     }
 
     return NextResponse.json({ ok: true });

@@ -6,7 +6,7 @@ const N8N_COTIZAR = "https://mochidrop-n8n.utdxt3.easypanel.host/webhook/cotizar
 
 const supabaseServer = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 function parseId(raw: unknown): number | null {
@@ -120,6 +120,12 @@ export async function POST(req: NextRequest) {
     if (!cotizaciones) {
       return NextResponse.json({ error: "No se recibieron cotizaciones. Intenta de nuevo." }, { status: 502 });
     }
+
+    // Garantizar que pyme_id esté seteado — igual que el dashboard
+    await supabaseServer
+      .from("envios")
+      .update({ pyme_id: pymeId })
+      .eq("id", envioId);
 
     // Retornar id + cotizaciones juntos, cliente no necesita consultar Supabase
     return NextResponse.json({ id: envioId, cotizaciones });

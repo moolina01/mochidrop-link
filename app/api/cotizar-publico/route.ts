@@ -20,7 +20,7 @@ function parseId(raw: unknown): number | null {
   return null;
 }
 
-async function pollCotizaciones(envioId: number, attempts = 6, delayMs = 1200) {
+async function pollCotizaciones(envioId: number, attempts = 12, delayMs = 2000) {
   for (let i = 0; i < attempts; i++) {
     if (i > 0) await new Promise((r) => setTimeout(r, delayMs));
     const { data } = await supabaseServer
@@ -28,6 +28,7 @@ async function pollCotizaciones(envioId: number, attempts = 6, delayMs = 1200) {
       .select("cotizaciones")
       .eq("id", envioId)
       .single();
+    console.log(`[cotizar-publico] poll #${i + 1} envioId=${envioId} cotizaciones:`, JSON.stringify(data?.cotizaciones)?.slice(0, 100));
     if (data?.cotizaciones && Object.keys(data.cotizaciones).length > 0) {
       return data.cotizaciones as Record<string, unknown>;
     }
@@ -97,17 +98,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "N8N no devolvió el ID del envío." }, { status: 502 });
     }
 
-    // 3. Cotizar with destination commune
+    // 3. Cotizar — N8N requiere nombre, completamos con placeholder para cotización pública
+    const datosDestinoCompleto = {
+      nombre:    "Cotización pública",
+      telefono:  "",
+      instagram: "",
+      depto:     "",
+      calle:     datosDestino.calle   ?? "",
+      numero:    datosDestino.numero  ?? "",
+      comuna:    datosDestino.comuna  ?? "",
+    };
+    console.log("[cotizar-publico] datos_destino enviado a N8N:", JSON.stringify(datosDestinoCompleto));
     const cotizarRes = await fetch(N8N_COTIZAR, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: envioId, datos_destino: datosDestino }),
+      body: JSON.stringify({ id: envioId, datos_destino: datosDestinoCompleto }),
     });
 
-    console.log("[cotizar-publico] cotizar status:", cotizarRes.status);
+    const cotizarText = await cotizarRes.text();
+    console.log("[cotizar-publico] cotizar status:", cotizarRes.status, "body:", cotizarText?.slice(0, 200));
 
     if (!cotizarRes.ok) {
-      return NextResponse.json({ error: "Error al cotizar couriers" }, { status: cotizarRes.status });
+      return NextResponse.json({ error: `Error al cotizar couriers: ${cotizarText?.slice(0, 100)}` }, { status: cotizarRes.status });
     }
 
     // 4. Poll cotizaciones from Supabase

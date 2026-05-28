@@ -62,8 +62,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Usar delivery_propio_email si existe, si no el email principal de la cuenta
-    const destinatario = pymeEmail.trim() || pymeMainEmail;
+    // Usar siempre el email principal de la cuenta; delivery_propio_email como respaldo
+    const destinatario = pymeMainEmail || pymeEmail.trim();
     console.log("[delivery-propio] destinatario final:", destinatario || "(vacío)");
 
     const resendKey = process.env.RESEND_API_KEY;

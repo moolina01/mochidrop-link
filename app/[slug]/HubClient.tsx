@@ -290,6 +290,7 @@ export default function HubClient({ slug, pymeId, nombrePyme, logoPyme, couriers
     <ThemeCtx.Provider value={C}>
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: "'Instrument Sans', system-ui, sans-serif" }}>
       <style suppressHydrationWarning>{`
+        input, textarea, select { font-size: 16px !important; }
         @keyframes hub-in { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
         @keyframes hub-spin { to { transform: rotate(360deg); } }
         @keyframes card-in { from { opacity:0; transform:translateY(14px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }

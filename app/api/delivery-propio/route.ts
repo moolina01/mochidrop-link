@@ -37,31 +37,38 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Marcar envío como comprobante enviado y obtener pyme_id para fallback de email
+    // Marcar envío y obtener pyme_id para fallback de email
     let pymeMainEmail = "";
+    console.log("[delivery-propio] envioId:", envioId, "| pymeEmail recibido:", pymeEmail);
+
     if (envioId) {
-      const { data: envio } = await supabaseAdmin
+      const { data: envio, error: envioErr } = await supabaseAdmin
         .from("envios")
         .update({ estado: "delivery_pendiente" })
         .eq("id", Number(envioId))
         .select("pyme_id")
         .single();
 
+      console.log("[delivery-propio] envio.pyme_id:", envio?.pyme_id, "| error:", envioErr?.message);
+
       if (envio?.pyme_id) {
-        const { data: pyme } = await supabaseAdmin
+        const { data: pyme, error: pymeErr } = await supabaseAdmin
           .from("pymes")
           .select("email")
           .eq("auth_id", envio.pyme_id)
           .single();
         pymeMainEmail = pyme?.email ?? "";
+        console.log("[delivery-propio] pyme.email (fallback):", pymeMainEmail, "| error:", pymeErr?.message);
       }
     }
 
     // Usar delivery_propio_email si existe, si no el email principal de la cuenta
     const destinatario = pymeEmail.trim() || pymeMainEmail;
+    console.log("[delivery-propio] destinatario final:", destinatario || "(vacío)");
 
     const resendKey = process.env.RESEND_API_KEY;
     const n8nWebhook = process.env.N8N_DELIVERY_PROPIO_WEBHOOK;
+    console.log("[delivery-propio] resendKey presente:", !!resendKey, "| n8nWebhook:", !!n8nWebhook);
 
     if (!destinatario) {
       console.warn("[delivery-propio] Sin email destino — no se envía notificación");
@@ -147,9 +154,12 @@ export async function POST(req: NextRequest) {
         }),
       });
 
+      const emailText = await emailRes.text();
+      console.log("[delivery-propio] Resend status:", emailRes.status, "| response:", emailText.slice(0, 300));
       if (!emailRes.ok) {
-        const errText = await emailRes.text();
-        console.error("[delivery-propio] Resend error:", errText);
+        console.error("[delivery-propio] Resend falló:", emailText);
+      } else {
+        console.log("[delivery-propio] Email enviado OK a:", destinatario);
       }
     } else {
       console.warn("[delivery-propio] RESEND_API_KEY no configurada");

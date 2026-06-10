@@ -51,6 +51,9 @@ type EnvioType = {
   };
   cotizaciones: Record<string, CotizacionItem>;
   sucursal_retiro?: SucursalType | null;
+  producto_precio?: number | null;
+  producto_nombre?: string | null;
+  producto_imagen?: string | null;
 };
 
 // ─── Config couriers ──────────────────────────────────────────────────────────
@@ -149,7 +152,7 @@ export default function ConfirmacionClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           envioId: id,
-          amount:  getPrice(info),
+          amount:  getPrice(info) + (envio?.producto_precio ?? 0),
           email:   email.trim(),
           courier,
         }),
@@ -196,6 +199,11 @@ export default function ConfirmacionClient() {
   const isSucursal = courier === "starken_sucursal";
   const sucursal = isSucursal ? envio.sucursal_retiro : null;
 
+  const precioEnvio    = getPrice(info);
+  const precioProducto = envio.producto_precio ?? 0;
+  const hayProducto    = precioProducto > 0;
+  const total          = precioEnvio + precioProducto;
+
   return (
     <div className="min-h-screen bg-[#FAFAF7]">
       {/* Header tienda */}
@@ -219,6 +227,39 @@ export default function ConfirmacionClient() {
       </div>
 
       <div className="max-w-md mx-auto px-4 py-6 pb-16 flex flex-col gap-4">
+
+        {/* Card de producto (solo si la pyme añadió producto) */}
+        {hayProducto && (
+          <div className="bg-white rounded-2xl border border-[#E8E8E3] shadow-sm overflow-hidden">
+            <div className="px-5 pt-5 pb-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-[#9C9C95]">
+                Tu producto
+              </p>
+            </div>
+            <div className="px-5 pb-5 flex items-center gap-4">
+              {envio.producto_imagen ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={envio.producto_imagen}
+                  alt={envio.producto_nombre ?? "Producto"}
+                  className="w-16 h-16 rounded-xl object-cover border border-[#E8E8E3] flex-shrink-0"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-xl bg-[#FAFAF7] border border-[#E8E8E3] flex items-center justify-center flex-shrink-0 text-2xl">
+                  🛍️
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm text-[#1A1A18] leading-snug">
+                  {envio.producto_nombre || "Producto"}
+                </p>
+                <p className="text-lg font-bold text-[#1A1A18] mt-0.5">
+                  ${precioProducto.toLocaleString("es-CL")}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Card de confirmación */}
         <div className="bg-white rounded-2xl border border-[#E8E8E3] shadow-sm overflow-hidden">
@@ -283,10 +324,24 @@ export default function ConfirmacionClient() {
             </div>
           </div>
 
-          {/* Sección 3 — Total */}
-          <div className="px-5 py-4 bg-[#FAFAF7] flex items-center justify-between">
-            <p className="text-sm text-[#5C5C57]">Total a pagar</p>
-            <p className="font-bold text-xl text-[#1A1A18]">${getPrice(info).toLocaleString("es-CL")}</p>
+          {/* Sección 3 — Total (con desglose si hay producto) */}
+          <div className="px-5 py-4 bg-[#FAFAF7]">
+            {hayProducto && (
+              <div className="flex flex-col gap-1.5 mb-3 pb-3 border-b border-[#E8E8E3]">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-[#5C5C57]">Producto</p>
+                  <p className="text-sm font-medium text-[#1A1A18]">${precioProducto.toLocaleString("es-CL")}</p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-[#5C5C57]">Envío</p>
+                  <p className="text-sm font-medium text-[#1A1A18]">${precioEnvio.toLocaleString("es-CL")}</p>
+                </div>
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-[#5C5C57]">Total a pagar</p>
+              <p className="font-bold text-xl text-[#1A1A18]">${total.toLocaleString("es-CL")}</p>
+            </div>
           </div>
         </div>
 
@@ -327,7 +382,7 @@ export default function ConfirmacionClient() {
             ) : (
               <>
                 <CreditCardIcon className="w-5 h-5" />
-                {`Pagar $${getPrice(info).toLocaleString("es-CL")} con tarjeta →`}
+                {`Pagar $${total.toLocaleString("es-CL")} con tarjeta →`}
               </>
             )}
           </button>

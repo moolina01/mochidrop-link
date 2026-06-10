@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/utils/supabase";
 import type { User } from "@supabase/supabase-js";
+import DatosBancariosCard from "./DatosBancariosCard";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -55,6 +56,22 @@ const DEFAULT_DELIVERY_PROPIO: DeliveryPropioState = {
   cuenta: "", titular: "", rut: "", email: "",
 };
 
+type ProductoState = {
+  enabled: boolean;
+  precio: string;
+  nombre: string;
+  imagenFile: File | null;
+  imagenPreview: string;
+  imagenUrl: string;
+};
+
+const DEFAULT_PRODUCTO: ProductoState = {
+  enabled: false, precio: "", nombre: "",
+  imagenFile: null, imagenPreview: "", imagenUrl: "",
+};
+
+const PRODUCTO_NOMBRE_MAX = 60;
+
 type ProfileState = {
   nombrePyme: string;
   logoFile: File | null;
@@ -94,6 +111,12 @@ type EnvioResumen = {
   tracking_url?: string;
   label_url?: string;
   pago_status?: string;
+  producto_precio?: number | null;
+  producto_nombre?: string | null;
+  envio_pago_status?: string | null;
+  liquidado?: boolean | null;
+  liquidado_at?: string | null;
+  pagado_at?: string | null;
 };
 
 const DEFAULT_PROFILE: ProfileState = {
@@ -115,17 +138,17 @@ const DEFAULT_PACKAGE: PackageState = {
 };
 
 const PKG_PRESETS = [
-  { id: "sobre",  label: "Sobre",       desc: "hasta 0.5 kg", largo: "20", alto: "20", ancho: "20", peso: "0.5", w: 28, h: 20, d: 4  },
-  { id: "m",      label: "Mediano",     desc: "hasta 2 kg",   largo: "40", alto: "30", ancho: "15", peso: "2",   w: 38, h: 28, d: 14 },
-  { id: "l",      label: "Grande",      desc: "hasta 4 kg",   largo: "45", alto: "35", ancho: "20", peso: "4",   w: 44, h: 34, d: 18 },
-  { id: "xl",     label: "Caja grande", desc: "hasta 8 kg",   largo: "55", alto: "45", ancho: "30", peso: "8",   w: 50, h: 40, d: 24 },
+  { id: "xs", label: "XS", desc: "hasta 0.5 kg", largo: "15", alto: "15", ancho: "10", peso: "0.5", w: 24, h: 22, d: 12 },
+  { id: "s",  label: "S",  desc: "hasta 3 kg",   largo: "20", alto: "20", ancho: "30", peso: "3",   w: 30, h: 28, d: 20 },
+  { id: "m",  label: "M",  desc: "hasta 6 kg",   largo: "30", alto: "30", ancho: "25", peso: "6",   w: 38, h: 34, d: 24 },
+  { id: "l",  label: "L",  desc: "hasta 20 kg",  largo: "70", alto: "70", ancho: "70", peso: "20",  w: 50, h: 46, d: 34 },
 ] as const;
 
 const ONBOARD_PRESETS = [
-  { id: "sobre", label: "Sobre",       icon: "✉️", desc: "hasta 0.5 kg", largo: "20", alto: "20", ancho: "20", peso: "0.5" },
-  { id: "m",     label: "Mediano",     icon: "📦", desc: "hasta 2 kg",   largo: "40", alto: "30", ancho: "15", peso: "2"   },
-  { id: "l",     label: "Grande",      icon: "🗃️", desc: "hasta 4 kg",   largo: "45", alto: "35", ancho: "20", peso: "4"   },
-  { id: "xl",    label: "Caja grande", icon: "📫", desc: "hasta 8 kg",   largo: "55", alto: "45", ancho: "30", peso: "8"   },
+  { id: "xs", label: "XS", icon: "✉️", desc: "hasta 0.5 kg", largo: "15", alto: "15", ancho: "10", peso: "0.5" },
+  { id: "s",  label: "S",  icon: "📦", desc: "hasta 3 kg",   largo: "20", alto: "20", ancho: "30", peso: "3"   },
+  { id: "m",  label: "M",  icon: "🗃️", desc: "hasta 6 kg",   largo: "30", alto: "30", ancho: "25", peso: "6"   },
+  { id: "l",  label: "L",  icon: "📫", desc: "hasta 20 kg",  largo: "70", alto: "70", ancho: "70", peso: "20"  },
 ];
 
 const COMUNAS_CHILE = [
@@ -328,6 +351,47 @@ function TextInput({
         e.currentTarget.style.boxShadow = "none";
       }}
     />
+  );
+}
+
+// ─── Estado de la transferencia del producto a la pyme (feature producto) ───────
+// El cliente paga producto + envío por Flow. LinkDrop le transfiere el producto a
+// la pyme en 24-48h. `liquidado` indica si esa transferencia ya se hizo.
+
+function ProductoEnvioInfo({ envio }: { envio: EnvioResumen }) {
+  if (!envio.producto_precio || envio.producto_precio <= 0) return null;
+  const transferido = !!envio.liquidado;
+  const monto = `$${envio.producto_precio.toLocaleString("es-CL")}`;
+  const nombre = envio.producto_nombre ? ` · ${envio.producto_nombre}` : "";
+
+  const box = transferido
+    ? { bg: "#F0FAF4", border: "#B8E2C8" }
+    : { bg: "#FFFDF7", border: "#F0E4C0" };
+  const badge = transferido
+    ? { label: "Transferido ✓", color: "#2D8A56", bg: "#E8F8EE", border: "#B8E2C8" }
+    : { label: "En camino", color: "#9A6B00", bg: "#FFF7E6", border: "#F5D58A" };
+
+  const fechaTransfer = envio.liquidado_at
+    ? new Date(envio.liquidado_at).toLocaleDateString("es-CL", { day: "numeric", month: "short" })
+    : null;
+
+  return (
+    <div style={{ gridColumn: "1 / -1", marginTop: 4, padding: "12px 14px", background: box.bg, border: `1px solid ${box.border}`, borderRadius: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+        <div>
+          <p style={{ margin: 0, fontSize: 11, color: "#9C9C95" }}>Producto{nombre}</p>
+          <p style={{ margin: "2px 0 0", fontSize: 14, fontWeight: 800, color: "#1A1A18" }}>{monto}</p>
+        </div>
+        <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20, color: badge.color, background: badge.bg, border: `1px solid ${badge.border}` }}>
+          {badge.label}
+        </span>
+      </div>
+      <p style={{ margin: "8px 0 0", fontSize: 11, color: transferido ? "#2D8A56" : "#9A6B00" }}>
+        {transferido
+          ? `💸 Te transferimos ${monto}${fechaTransfer ? ` el ${fechaTransfer}` : ""}.`
+          : "⏱ Te transferimos el monto del producto dentro de 24-48 h."}
+      </p>
+    </div>
   );
 }
 
@@ -1309,10 +1373,10 @@ function SettingsModal({
               {/* Dimensiones por defecto */}
               {isPro && (() => {
                 const SETTING_PRESETS = [
-                  { id: "sobre", label: "Sobre",   desc: "≤ 0.5 kg", largo: "20", alto: "20", ancho: "20", peso: "0.5" },
-                  { id: "m",     label: "Mediano",  desc: "≤ 2 kg",   largo: "40", alto: "30", ancho: "15", peso: "2"   },
-                  { id: "l",     label: "Grande",   desc: "≤ 4 kg",   largo: "45", alto: "35", ancho: "20", peso: "4"   },
-                  { id: "xl",    label: "Muy grande", desc: "≤ 8 kg", largo: "55", alto: "45", ancho: "30", peso: "8"   },
+                  { id: "xs", label: "XS", desc: "≤ 0.5 kg", largo: "15", alto: "15", ancho: "10", peso: "0.5" },
+                  { id: "s",  label: "S",  desc: "≤ 3 kg",   largo: "20", alto: "20", ancho: "30", peso: "3"   },
+                  { id: "m",  label: "M",  desc: "≤ 6 kg",   largo: "30", alto: "30", ancho: "25", peso: "6"   },
+                  { id: "l",  label: "L",  desc: "≤ 20 kg",  largo: "70", alto: "70", ancho: "70", peso: "20"  },
                 ];
                 const activePresetId = SETTING_PRESETS.find(
                   (p) => p.largo === dims.largo && p.alto === dims.alto && p.ancho === dims.ancho && p.peso === dims.peso
@@ -1521,7 +1585,7 @@ function MisEnviosView({ userId, isPro, origenComuna, onPendientesCount, onCreat
   useEffect(() => {
     supabase
       .from("envios")
-      .select("id, datos_destino, courier, tracking, tracking_url, label_url, estado, created_at, pickup_agendado, pickup_id, pickup_date, pickup_time_from, pickup_time_to, pickup_status, pickup_attempts, pago_status")
+      .select("id, datos_destino, courier, tracking, tracking_url, label_url, estado, created_at, pickup_agendado, pickup_id, pickup_date, pickup_time_from, pickup_time_to, pickup_status, pickup_attempts, pago_status, producto_precio, producto_nombre, envio_pago_status, liquidado, liquidado_at, pagado_at")
       .eq("pyme_id", userId)
       .or("pago_status.eq.pagado,tracking_url.not.is.null,estado.eq.delivery_pendiente")
       .order("created_at", { ascending: false })
@@ -2013,6 +2077,7 @@ function MisEnviosView({ userId, isPro, origenComuna, onPendientesCount, onCreat
                           </p>
                         </div>
                       )}
+                      <ProductoEnvioInfo envio={envio} />
                     </div>
                     <button
                       onClick={async () => {
@@ -2176,6 +2241,7 @@ function MisEnviosView({ userId, isPro, origenComuna, onPendientesCount, onCreat
                               <p style={{ margin: "2px 0 0", fontSize: 12, fontWeight: 600, color: maxIntent ? "#E8553D" : "#1A1A18" }}>{attempts} / 3</p>
                             </div>
                           )}
+                          <ProductoEnvioInfo envio={envio} />
                         </div>
 
                         {/* Mensaje soporte si 3+ intentos */}
@@ -2369,6 +2435,7 @@ function MisEnviosView({ userId, isPro, origenComuna, onPendientesCount, onCreat
                             </a>
                           </div>
                         )}
+                        <ProductoEnvioInfo envio={envio} />
                       </div>
                     </div>
                   )}
@@ -2615,6 +2682,9 @@ export default function CreateLinkClient() {
   const [showCouriersModal, setShowCouriersModal] = useState(false);
   const [showDeliveryPropioModal, setShowDeliveryPropioModal] = useState(false);
   const [deliveryPropio, setDeliveryPropio] = useState<DeliveryPropioState>(DEFAULT_DELIVERY_PROPIO);
+  const [betaProductoEnabled, setBetaProductoEnabled] = useState(false);
+  const [showProductoBetaModal, setShowProductoBetaModal] = useState(false);
+  const [producto, setProducto] = useState<ProductoState>(DEFAULT_PRODUCTO);
   const [pymeSlug, setPymeSlug] = useState("");
   const [linkFijoEnabled, setLinkFijoEnabled] = useState(false);
   const [defaultDims, setDefaultDims] = useState({ largo: "", alto: "", ancho: "", peso: "" });
@@ -2645,7 +2715,8 @@ export default function CreateLinkClient() {
   const pkgComplete = useMemo(() => isPackageComplete(pkg), [pkg]);
   const isPro = linksCount?.limit === 999;
   const isEmprende = !isPro && (linksCount?.limit ?? 0) >= 40;
-  const canGenerate = profileComplete && pkgComplete;
+  const productoValido = !producto.enabled || Number(producto.precio) > 0;
+  const canGenerate = profileComplete && pkgComplete && productoValido;
 
   const allDims = pkg.largo && pkg.alto && pkg.ancho && pkg.peso
     ? `${pkg.largo}×${pkg.alto}×${pkg.ancho} cm · ${pkg.peso} kg`
@@ -2690,7 +2761,7 @@ export default function CreateLinkClient() {
     (async () => {
       const { data } = await supabase
         .from("pymes")
-        .select("links_creados, limite_links, ask_instagram, nombre_tienda, logo_url, origen_comuna, origen_calle, origen_numero, origen_depto, couriers_habilitados, slug, link_fijo_enabled, default_largo, default_alto, default_ancho, default_peso, delivery_propio_enabled, delivery_propio_precio, delivery_propio_telefono, delivery_propio_banco, delivery_propio_cuenta, delivery_propio_titular, delivery_propio_rut, delivery_propio_email, codigo_postal")
+        .select("links_creados, limite_links, ask_instagram, nombre_tienda, logo_url, origen_comuna, origen_calle, origen_numero, origen_depto, couriers_habilitados, slug, link_fijo_enabled, default_largo, default_alto, default_ancho, default_peso, delivery_propio_enabled, delivery_propio_precio, delivery_propio_telefono, delivery_propio_banco, delivery_propio_cuenta, delivery_propio_titular, delivery_propio_rut, delivery_propio_email, codigo_postal, beta_producto_enabled")
         .eq("auth_id", user.id)
         .single();
       if (data) {
@@ -2716,6 +2787,7 @@ export default function CreateLinkClient() {
           setPymeSlug(resolvedSlug);
           if (resolvedSlug) setIsEditingProfile(false);
           setLinkFijoEnabled(data.link_fijo_enabled ?? false);
+          setBetaProductoEnabled(data.beta_producto_enabled ?? false);
           setCodigoPostalOrigen(data.codigo_postal ?? null);
           setDefaultDims({
             largo: String(data.default_largo ?? ""),
@@ -2852,6 +2924,18 @@ export default function CreateLinkClient() {
     const reader = new FileReader();
     reader.onload = () =>
       setProfile((s) => ({ ...s, logoFile: file, logoPreview: String(reader.result) }));
+    reader.readAsDataURL(file);
+  }
+
+  function setProducto_<K extends keyof ProductoState>(key: K, value: ProductoState[K]) {
+    setProducto((s) => ({ ...s, [key]: value }));
+  }
+
+  async function onPickProductoImagen(file?: File | null) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () =>
+      setProducto((s) => ({ ...s, imagenFile: file, imagenPreview: String(reader.result), imagenUrl: "" }));
     reader.readAsDataURL(file);
   }
 
@@ -3046,6 +3130,19 @@ export default function CreateLinkClient() {
         .eq("auth_id", currentUser.id);
       setLinksCount((prev) => prev ? { ...prev, used: newCount } : prev);
 
+      // Subir imagen del producto a Storage (solo si el cobro de producto está activo y hay imagen nueva)
+      let productoImagenUrl = producto.imagenUrl;
+      if (producto.enabled && producto.imagenFile && !producto.imagenUrl) {
+        const ext = producto.imagenFile.name.split(".").pop();
+        const path = `productos/${Date.now()}.${ext}`;
+        const { error: uploadErr } = await supabase.storage
+          .from("mochidrop")
+          .upload(path, producto.imagenFile, { upsert: true });
+        if (uploadErr) throw new Error(`Error al subir la imagen del producto: ${uploadErr.message}`);
+        const { data: publicData } = supabase.storage.from("mochidrop").getPublicUrl(path);
+        productoImagenUrl = publicData.publicUrl;
+      }
+
       // Guardar snapshot de couriers, delivery propio y código postal origen en el envío
       await supabase.from("envios").update({
         pyme_id: currentUser.id,
@@ -3061,6 +3158,12 @@ export default function CreateLinkClient() {
           rut: deliveryPropio.rut,
           email: deliveryPropio.email,
         } : null,
+        ...(producto.enabled && Number(producto.precio) > 0 ? {
+          producto_precio: Number(producto.precio),
+          producto_nombre: producto.nombre.trim() || null,
+          producto_imagen: productoImagenUrl || null,
+          envio_pago_status: "pendiente",
+        } : {}),
       }).eq("id", Number(id));
 
       const slug = slugify(profile.nombrePyme);
@@ -3529,6 +3632,36 @@ export default function CreateLinkClient() {
           onClose={() => setShowDeliveryPropioModal(false)}
         />
       )}
+      {showProductoBetaModal && (
+        <div
+          onClick={() => setShowProductoBetaModal(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(26,26,24,0.55)", backdropFilter: "blur(2px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 22, maxWidth: 380, width: "100%", overflow: "hidden", boxShadow: "0 20px 60px rgba(0,0,0,0.25)" }}>
+            <div style={{ background: "linear-gradient(135deg, #1A1A18 0%, #3A3A35 100%)", padding: "28px 24px", textAlign: "center" }}>
+              <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(255,255,255,0.1)", border: "2px solid rgba(255,255,255,0.18)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px", fontSize: 26 }}>🛍️</div>
+              <p style={{ margin: 0, fontSize: 19, fontWeight: 800, color: "#fff" }}>Activaste el cobro del producto</p>
+              <span style={{ display: "inline-block", marginTop: 8, fontSize: 10, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase", color: "#E3C8EE", background: "rgba(123,45,139,0.35)", border: "1px solid rgba(227,200,238,0.4)", borderRadius: 20, padding: "2px 9px" }}>Función Beta</span>
+            </div>
+            <div style={{ padding: "22px 24px 24px" }}>
+              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: "#5C5C57" }}>
+                Ahora tu cliente paga el <b style={{ color: "#1A1A18" }}>producto + envío</b> en un solo pago.
+                El monto del producto te será transferido a tu cuenta en un plazo de <b style={{ color: "#1A1A18" }}>24 a 48 horas</b>.
+              </p>
+              <div style={{ marginTop: 16, background: "#FAFAF7", border: "1px solid #F0F0EB", borderRadius: 12, padding: "12px 14px" }}>
+                <p style={{ margin: 0, fontSize: 12, color: "#9C9C95" }}>¿Dudas o consultas?</p>
+                <a href="mailto:contacto@linkdrop.cl" style={{ fontSize: 14, fontWeight: 700, color: "#E8553D", textDecoration: "none" }}>contacto@linkdrop.cl</a>
+              </div>
+              <button
+                onClick={() => setShowProductoBetaModal(false)}
+                style={{ marginTop: 18, width: "100%", background: "#1A1A18", color: "#fff", fontWeight: 700, fontSize: 15, fontFamily: "inherit", border: "none", borderRadius: 12, padding: "13px 0", cursor: "pointer" }}
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {showCouriersModal && (
         <CouriersModal
           couriersHabilitados={couriersHabilitados}
@@ -3817,16 +3950,17 @@ export default function CreateLinkClient() {
                   )
                 )}
                 {pymeSlug && siteOrigin ? (
-                  <div style={{ position: "relative", display: "inline-flex", flexDirection: "column", alignItems: "center" }}>
+                  <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", minWidth: 0 }}>
                     <div
                       className={highlightBioChip ? "bio-chip-highlight" : ""}
                       style={{
-                        display: "inline-flex", alignItems: "center",
+                        display: "flex", alignItems: "center",
                         background: "#F5F5F0",
                         border: "1px solid #E8E8E3",
                         borderRadius: 100,
                         overflow: "hidden",
-                        maxWidth: 260,
+                        maxWidth: "min(260px, 42vw)",
+                        minWidth: 0,
                         transition: "border-color 0.2s",
                       }}
                     >
@@ -3842,7 +3976,7 @@ export default function CreateLinkClient() {
                           fontSize: 11, fontWeight: 600, color: "#1A1A18",
                           padding: "5px 10px 5px 12px",
                           textDecoration: "none", overflow: "hidden",
-                          cursor: "pointer",
+                          cursor: "pointer", minWidth: 0, flex: "1 1 0",
                         }}
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
@@ -4017,6 +4151,27 @@ export default function CreateLinkClient() {
           ))}
         </div>
 
+        {/* ── Acceso admin (solo administrador) ──────────────────────────────── */}
+        {(user?.email ?? "").toLowerCase() === "mb212@gmail.com" && (
+          <a
+            href="/admin"
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              gap: 12, marginBottom: 28, padding: "14px 18px", borderRadius: 14,
+              background: "#1A1A18", color: "#fff", textDecoration: "none",
+            }}
+          >
+            <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 18 }}>🏦</span>
+              <span>
+                <span style={{ display: "block", fontSize: 14, fontWeight: 700 }}>Pagos a pymes</span>
+                <span style={{ display: "block", fontSize: 12, color: "rgba(255,255,255,0.55)" }}>Panel admin · transferencias pendientes</span>
+              </span>
+            </span>
+            <span style={{ fontSize: 18, color: "rgba(255,255,255,0.55)" }}>→</span>
+          </a>
+        )}
+
         {/* ── Two-column grid ────────────────────────────────────────────────── */}
         <div style={{ display: "grid", gap: 24, gridTemplateColumns: "1fr" }} className="gen-grid">
 
@@ -4026,6 +4181,13 @@ export default function CreateLinkClient() {
             {/* ════ TAB 1: Mi Tienda ════ */}
             {activeTab === "tienda" && (
               <>
+                {/* ── Datos bancarios para recibir pagos (beta producto) ── */}
+                {betaProductoEnabled && !isEditingProfile && (
+                  <div style={{ marginBottom: 12 }}>
+                    <DatosBancariosCard userId={user?.id ?? null} />
+                  </div>
+                )}
+
                 {/* ── Resumen (perfil ya guardado) ── */}
                 {!isEditingProfile && pymeSlug && (() => {
                   const domain = siteOrigin.replace(/^https?:\/\//, "") || "linkdrop.cl";
@@ -4682,6 +4844,87 @@ export default function CreateLinkClient() {
                 </div>
                 )}
 
+                {/* ── Producto (beta) ── */}
+                {betaProductoEnabled && (
+                  <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E8E8E3", boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }} className="gen-section-pad">
+                    {/* Header con toggle */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ width: 26, height: 26, borderRadius: "50%", background: "#1A1A18", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>🛍️</div>
+                        <div>
+                          <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#1A1A18", display: "flex", alignItems: "center", gap: 6 }}>
+                            Cobrar el producto
+                            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase", color: "#7B2D8B", background: "#F5EAF9", border: "1px solid #E3C8EE", borderRadius: 20, padding: "1px 7px" }}>Beta</span>
+                          </p>
+                          <p style={{ margin: "1px 0 0", fontSize: 12, color: "#9C9C95" }}>Opcional · tu cliente paga producto + envío juntos</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={producto.enabled}
+                        onClick={() => {
+                          const next = !producto.enabled;
+                          setProducto_("enabled", next);
+                          if (next && user && !localStorage.getItem(`ld_producto_beta_modal_${user.id}`)) {
+                            setShowProductoBetaModal(true);
+                            localStorage.setItem(`ld_producto_beta_modal_${user.id}`, "1");
+                          }
+                        }}
+                        style={{
+                          flexShrink: 0, width: 44, height: 26, borderRadius: 100, border: "none", cursor: "pointer", padding: 0,
+                          background: producto.enabled ? "#E8553D" : "#D1D1CC", transition: "background 0.2s", position: "relative",
+                        }}
+                      >
+                        <span style={{ position: "absolute", top: 3, left: producto.enabled ? 21 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+                      </button>
+                    </div>
+
+                    {producto.enabled && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 16 }}>
+                        <Field label="Precio del producto (CLP) *">
+                          <TextInput
+                            value={producto.precio}
+                            onChange={(v) => setProducto_("precio", v.replace(/[^\d]/g, ""))}
+                            placeholder="15000"
+                            type="number"
+                          />
+                        </Field>
+
+                        <Field label="Nombre del producto" hint={`Opcional · ${producto.nombre.length}/${PRODUCTO_NOMBRE_MAX}`}>
+                          <TextInput
+                            value={producto.nombre}
+                            onChange={(v) => setProducto_("nombre", v.slice(0, PRODUCTO_NOMBRE_MAX))}
+                            placeholder="Ej: Polera oversize negra"
+                          />
+                        </Field>
+
+                        <Field label="Imagen del producto" hint="Opcional">
+                          {producto.imagenPreview ? (
+                            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={producto.imagenPreview} alt="" style={{ width: 56, height: 56, borderRadius: 10, objectFit: "cover", border: "1px solid #E8E8E3" }} />
+                              <button
+                                type="button"
+                                onClick={() => setProducto((s) => ({ ...s, imagenFile: null, imagenPreview: "", imagenUrl: "" }))}
+                                style={{ fontSize: 12, color: "#C23E28", background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", textDecoration: "underline" }}
+                              >
+                                Quitar imagen
+                              </button>
+                            </div>
+                          ) : (
+                            <label style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px", borderRadius: 10, border: "1.5px dashed #D1D1CC", background: "#FAFAF7", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#5C5C57" }}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9C9C95" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="M21 15l-5-5L5 21" /></svg>
+                              Subir imagen
+                              <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => onPickProductoImagen(e.target.files?.[0])} />
+                            </label>
+                          )}
+                        </Field>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Error */}
                 {error && (
                   <div style={{ background: "#FFF0ED", border: "1px solid #E8553D", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "#C23E28" }}>
@@ -4711,10 +4954,16 @@ export default function CreateLinkClient() {
                   </p>
                 )}
 
+                {pkgComplete && profileComplete && !productoValido && !generatedUrl && (
+                  <p style={{ textAlign: "center", fontSize: 12, color: "#9C9C95", margin: "-8px 0 0" }}>
+                    Ingresa el precio del producto o desactiva el cobro de producto
+                  </p>
+                )}
+
                 {generatedUrl && (
                   <div ref={generatedCardRef} style={{ padding: "4px 0 0" }}>
                     <button
-                      onClick={() => { if (user) { localStorage.removeItem(lastUrlKey(user.id)); localStorage.removeItem(lastEnvioIdKey(user.id)); } setGeneratedUrl(""); setPkg(DEFAULT_PACKAGE); }}
+                      onClick={() => { if (user) { localStorage.removeItem(lastUrlKey(user.id)); localStorage.removeItem(lastEnvioIdKey(user.id)); } setGeneratedUrl(""); setPkg(DEFAULT_PACKAGE); setProducto(DEFAULT_PRODUCTO); }}
                       style={{
                         width: "100%", padding: "13px", borderRadius: 12,
                         border: "1.5px solid #E8E8E3", background: "transparent",

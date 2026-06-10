@@ -70,43 +70,10 @@ type EnvioType = {
     rut: string;
     email: string;
   } | null;
+  producto_precio?: number | null;
+  producto_nombre?: string | null;
+  producto_imagen?: string | null;
 };
-
-const COMUNAS_CHILE = [
-  "Alhué","Alto Biobío","Alto del Carmen","Alto Hospicio","Ancud","Andacollo","Angol","Antofagasta","Antuco","Arauco",
-  "Arica","Aysén","Buin","Bulnes","Cabildo","Cabrero","Calama","Caldera","Calera","Calera de Tango","Calle Larga",
-  "Camarones","Camiña","Canela","Cañete","Carahue","Cartagena","Casablanca","Castro","Catemu","Cauquenes",
-  "Cerrillos","Cerro Navia","Chaitén","Chañaral","Chépica","Chiguayante","Chile Chico","Chillán","Chillán Viejo",
-  "Chimbarongo","Cholchol","Chonchi","Cisnes","Cobquecura","Cochamó","Coelemu","Coihueco","Colbún","Colchane",
-  "Colina","Collipulli","Coltauco","Combarbalá","Concepción","Conchalí","Constitución","Contulmo","Copiapó",
-  "Coquimbo","Coronel","Corral","Coyhaique","Cunco","Curacautín","Curacaví","Curanilahue","Curarrehue","Curepto",
-  "Curicó","Diego de Almagro","Doñihue","El Bosque","El Carmen","El Monte","El Quisco","El Tabo","Empedrado",
-  "Ercilla","Estación Central","Florida","Freire","Freirina","Fresia","Frutillar","Futaleufú","Futrono",
-  "Galvarino","General Lagos","Graneros","Guaitecas","Hijuelas","Hualaihué","Hualañé","Hualpén","Huara",
-  "Huasco","Huechuraba","Illapel","Independencia","Iquique","Isla de Maipo","Isla de Pascua","Juan Fernández",
-  "La Calera","La Cisterna","La Cruz","La Estrella","La Florida","La Granja","La Higuera","La Ligua",
-  "La Pintana","La Reina","La Serena","La Unión","Lago Ranco","Lago Verde","Laguna Blanca","Lampa","Lanco",
-  "Las Cabras","Las Condes","Lautaro","Lebu","Licantén","Limache","Linares","Lo Barnechea","Lo Espejo",
-  "Lo Prado","Lolol","Loncoche","Longaví","Lonquimay","Los Andes","Los Álamos","Los Lagos","Los Muermos",
-  "Los Sauces","Los Vilos","Lota","Lumaco","Macul","Maipú","Malloa","Marchihue","María Elena","María Pinto",
-  "Mariquina","Maule","Máfil","Melipilla","Molina","Monte Patria","Mostazal","Mulchén","Nancagua","Navidad",
-  "Negrete","Ninhue","Nogales","Nueva Imperial","Ñiquén","Ñuñoa","Olivar","Olmué","Ovalle","Paine","Palena",
-  "Palmilla","Panguipulli","Papudo","Paredones","Parral","Pedro Aguirre Cerda","Pelarco","Pelluhue","Pemuco",
-  "Peñaflor","Peñalolén","Peralillo","Perquenco","Petorca","Peumo","Pica","Pichidegua","Pichilemu","Pirque",
-  "Pitrufquén","Placilla","Portezuelo","Pozo Almonte","Primavera","Providencia","Puchuncaví","Pudahuel",
-  "Puente Alto","Puerto Montt","Puerto Natales","Puerto Octay","Puerto Varas","Puerto Williams","Punitaqui",
-  "Punta Arenas","Puqueldón","Purén","Putaendo","Queilén","Quellón","Quemchi","Quilaco","Quilicura","Quilleco",
-  "Quillón","Quillota","Quinchao","Quinta de Tilcoco","Quinta Normal","Quintero","Quirihue","Rancagua","Rauco",
-  "Recoleta","Renaico","Renca","Rengo","Requínoa","Retiro","Rinconada","Río Bueno","Río Claro","Río Hurtado",
-  "Río Ibáñez","Río Negro","Río Verde","Romeral","Sagrada Familia","San Antonio","San Bernardo","San Carlos",
-  "San Clemente","San Esteban","San Felipe","San Fernando","San Gregorio","San Ignacio","San Javier",
-  "San Joaquín","San José de Maipo","San Juan de la Costa","San Miguel","San Nicolás","San Pablo","San Pedro",
-  "San Pedro de Atacama","San Pedro de la Paz","San Rafael","San Ramón","San Rosendo","San Vicente",
-  "Santa Bárbara","Santa Cruz","Santiago","Santo Domingo","Sierra Gorda","Talca","Talcahuano","Talagante",
-  "Taltal","Temuco","Teno","Tierra Amarilla","Til Til","Timaukel","Tirúa","Tocopilla","Toltén","Tomé",
-  "Torres del Paine","Traiguén","Trehuaco","Tucapel","Valdivia","Vallenar","Valparaíso","Victoria","Vicuña",
-  "Villa Alegre","Villa Alemana","Villarrica","Viña del Mar","Vitacura","Yerbas Buenas","Yumbel","Yungay","Zapallar",
-];
 
 const COMUNAS_SANTIAGO = new Set([
   "santiago","providencia","ñuñoa","las condes","vitacura","lo barnechea","la reina",
@@ -127,6 +94,70 @@ function getPrice(cot: CotizacionItem): number | null {
 
 function getTiempo(cot: CotizacionItem): string | undefined {
   return cot.tiempo ?? cot.raw?.deliveryEstimate;
+}
+
+// Feriados chilenos (formato YYYY-MM-DD). Actualizar año a año.
+// Los que caen en fin de semana son redundantes (ya se saltan) pero se dejan por claridad.
+const FERIADOS_CL = new Set<string>([
+  // 2026
+  "2026-01-01", // Año Nuevo
+  "2026-04-03", // Viernes Santo
+  "2026-04-04", // Sábado Santo
+  "2026-05-01", // Día del Trabajo
+  "2026-05-21", // Glorias Navales
+  "2026-06-20", // Día Nacional de los Pueblos Indígenas
+  "2026-06-29", // San Pedro y San Pablo
+  "2026-07-16", // Virgen del Carmen
+  "2026-08-15", // Asunción de la Virgen
+  "2026-09-18", // Independencia
+  "2026-09-19", // Glorias del Ejército
+  "2026-10-12", // Encuentro de Dos Mundos
+  "2026-10-31", // Iglesias Evangélicas
+  "2026-11-01", // Todos los Santos
+  "2026-12-08", // Inmaculada Concepción
+  "2026-12-25", // Navidad
+  // 2027 (los primeros, por si la estimación cruza de año)
+  "2027-01-01", // Año Nuevo
+]);
+
+function isoLocal(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// Suma días hábiles (lun-vie, excluye feriados) a partir de hoy
+function addBusinessDays(start: Date, days: number): Date {
+  const d = new Date(start);
+  let added = 0;
+  while (added < days) {
+    d.setDate(d.getDate() + 1);
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6 && !FERIADOS_CL.has(isoLocal(d))) added++;
+  }
+  return d;
+}
+
+function fmtDay(d: Date): string {
+  return d.toLocaleDateString("es-CL", { weekday: "short", day: "numeric", month: "short" })
+    .replace(".", "");
+}
+
+// Convierte "2-3 días" / "3 días hábiles" en una fecha aproximada de llegada.
+// Si no logra parsear, devuelve null y se usa el texto original como fallback.
+function estimateArrival(tiempo?: string): string | null {
+  if (!tiempo) return null;
+  const m = tiempo.match(/(\d+)\s*(?:a|-|–|hasta)?\s*(\d+)?\s*d[ií]a/i);
+  if (!m) return null;
+  const min = parseInt(m[1], 10);
+  const max = m[2] ? parseInt(m[2], 10) : min;
+  if (!Number.isFinite(min) || min <= 0) return null;
+  const today = new Date();
+  if (max > min) {
+    return `Llega entre ${fmtDay(addBusinessDays(today, min))} y ${fmtDay(addBusinessDays(today, max))}`;
+  }
+  return `Llega aprox. ${fmtDay(addBusinessDays(today, min))}`;
 }
 
 // ─── Config couriers ──────────────────────────────────────────────────────────
@@ -183,59 +214,116 @@ const COURIER_ORDER = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function ComunaAutocomplete({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState(value);
-  const ref = useRef<HTMLDivElement>(null);
+// ─── Búsqueda de dirección (Mapbox, mismo patrón que el hub de cotización) ──────
 
-  const results = query.length >= 2
-    ? COMUNAS_CHILE.filter((c) => c.toLowerCase().includes(query.toLowerCase())).slice(0, 6)
-    : [];
+type MapboxFeature = {
+  id: string;
+  place_name: string;
+  text: string;
+  address?: string;
+  context?: { id: string; text: string }[];
+};
+type AddressResult = { label: string; calle: string; numero: string; comuna: string };
+
+function MapboxAddressSearch({ onSelect, placeholder = "Busca tu dirección…" }: {
+  onSelect: (r: AddressResult) => void;
+  placeholder?: string;
+}) {
+  const [query, setQuery]     = useState("");
+  const [results, setResults] = useState<MapboxFeature[]>([]);
+  const [open, setOpen]       = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState(false);
+  const ref   = useRef<HTMLDivElement>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
+    function handle(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
   }, []);
 
-  function select(comuna: string) {
-    setQuery(comuna);
-    onChange(comuna);
+  function handleInput(value: string) {
+    setQuery(value);
+    setSelected(false);
+    if (timer.current) clearTimeout(timer.current);
+    if (value.length < 3) { setResults([]); setOpen(false); return; }
+    timer.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+        const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(value)}.json?country=CL&types=address&language=es&limit=5&access_token=${token}`;
+        const res  = await fetch(url);
+        const data = await res.json();
+        setResults(data.features ?? []);
+        setOpen(true);
+      } catch {
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 350);
+  }
+
+  function handleSelect(feature: MapboxFeature) {
+    const calle  = feature.text ?? "";
+    const numero = feature.address ?? "";
+    // En Chile la comuna viene como "place" (o locality/district de respaldo)
+    const comunaCtx = feature.context?.find((c) => c.id.startsWith("place"))
+      ?? feature.context?.find((c) => c.id.startsWith("locality"))
+      ?? feature.context?.find((c) => c.id.startsWith("district"));
+    const comuna = comunaCtx?.text ?? "";
+    setQuery(feature.place_name);
+    setSelected(true);
     setOpen(false);
+    onSelect({ label: feature.place_name, calle, numero, comuna });
   }
 
   return (
-    <div ref={ref} style={{ position: "relative" }}>
-      <input
-        type="text"
-        value={query}
-        onChange={(e) => { setQuery(e.target.value); onChange(""); setOpen(true); }}
-        onFocus={() => { if (query.length >= 2) setOpen(true); }}
-        placeholder="Ej: Providencia"
-        autoComplete="off"
-        className="w-full border border-[#E8E8E3] rounded-xl px-4 py-3 text-sm text-[#1A1A18] bg-[#FAFAF7] outline-none transition-all focus:border-[#E8553D] focus:ring-2 focus:ring-[#E8553D]/10 placeholder:text-[#9C9C95]"
-      />
+    <div ref={ref} className="relative">
+      <div className="relative">
+        <svg className={`absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none transition-colors ${selected ? "text-[#E8553D]" : "text-[#9C9C95]"}`}
+          width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+        </svg>
+        {loading && <div className="absolute right-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 border-2 border-[#E8E8E3] border-t-[#E8553D] rounded-full animate-spin" />}
+        <input
+          type="text"
+          value={query}
+          autoComplete="off"
+          placeholder={placeholder}
+          onChange={(e) => handleInput(e.target.value)}
+          onFocus={() => { if (results.length > 0) setOpen(true); }}
+          className={`w-full rounded-xl border pl-10 ${loading ? "pr-10" : "pr-4"} py-3 text-sm text-[#1A1A18] bg-[#FAFAF7] outline-none transition-all focus:border-[#E8553D] focus:ring-2 focus:ring-[#E8553D]/10 placeholder:text-[#9C9C95] ${selected ? "border-[#E8553D]" : "border-[#E8E8E3]"}`}
+        />
+      </div>
       {open && results.length > 0 && (
-        <div className="absolute z-50 w-full bg-white border border-[#E8E8E3] rounded-xl shadow-lg mt-1 overflow-hidden">
-          {results.map((comuna) => (
-            <button
-              key={comuna}
-              type="button"
-              onMouseDown={() => select(comuna)}
-              className="w-full text-left px-4 py-2.5 text-sm text-[#1A1A18] hover:bg-[#FFF0ED] transition-colors border-b border-[#F5F5F0] last:border-0"
-            >
-              {comuna}
-            </button>
-          ))}
+        <div className="absolute z-50 w-full bg-white border border-[#E8E8E3] rounded-xl shadow-lg mt-1.5 overflow-hidden">
+          {results.map((f) => {
+            const mainText = f.place_name.split(",")[0];
+            const subText  = f.place_name.split(",").slice(1).join(",").trim();
+            return (
+              <button key={f.id} type="button" onMouseDown={() => handleSelect(f)}
+                className="flex items-start gap-2.5 w-full text-left px-4 py-3 hover:bg-[#FFF0ED] transition-colors border-b border-[#F5F5F0] last:border-0">
+                <svg className="flex-shrink-0 mt-0.5 text-[#9C9C95]" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+                </svg>
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold text-[#1A1A18] truncate">{mainText}</p>
+                  <p className="text-[11px] text-[#9C9C95] truncate">{subText}</p>
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
 
-function StoreHeader({ envio }: { envio: EnvioType }) {
+function StoreHeader({ envio, enviosPagados }: { envio: EnvioType; enviosPagados?: number | null }) {
   return (
     <div className="bg-white border-b border-[#E8E8E3] px-6 py-8 text-center">
       {envio.logo_pyme ? (
@@ -253,6 +341,53 @@ function StoreHeader({ envio }: { envio: EnvioType }) {
         </div>
       )}
       <h1 className="text-2xl font-bold text-[#1A1A18]">{envio.nombre_pyme}</h1>
+      <div className="flex items-center justify-center gap-2 mt-2 flex-wrap">
+        {enviosPagados != null && enviosPagados >= 10 ? (
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#2D8A56] bg-[#F0FAF4] border border-[#B8E2C8] rounded-full px-2.5 py-1">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            +{enviosPagados} envíos realizados
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#5C5C57] bg-[#FAFAF7] border border-[#E8E8E3] rounded-full px-2.5 py-1">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+            Tienda en LinkDrop
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ProductoHero({ envio }: { envio: EnvioType }) {
+  if (!envio.producto_precio || envio.producto_precio <= 0) return null;
+  return (
+    <div className="bg-white rounded-2xl border border-[#E8E8E3] shadow-sm p-3 mb-4 flex items-center gap-3.5">
+      {envio.producto_imagen ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={envio.producto_imagen}
+          alt={envio.producto_nombre ?? "Producto"}
+          className="w-[68px] h-[68px] rounded-xl object-cover flex-shrink-0 border border-[#E8E8E3]"
+        />
+      ) : (
+        <div className="w-[68px] h-[68px] rounded-xl bg-gradient-to-br from-[#FFF0ED] to-[#FAFAF7] border border-[#F5D5CE] flex items-center justify-center text-3xl flex-shrink-0">
+          🛍️
+        </div>
+      )}
+
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#E8553D] mb-1">Tu compra</p>
+        <p className="text-sm font-semibold text-[#1A1A18] leading-snug line-clamp-2">
+          {envio.producto_nombre || "Producto"}
+        </p>
+        <p className="text-lg font-extrabold text-[#1A1A18] mt-1 leading-none">
+          ${envio.producto_precio.toLocaleString("es-CL")}
+        </p>
+      </div>
+
+      <span className="self-start flex-shrink-0 text-[10px] font-semibold text-[#5C5C57] bg-[#FAFAF7] border border-[#E8E8E3] rounded-full px-2.5 py-1">
+        + envío
+      </span>
     </div>
   );
 }
@@ -414,6 +549,10 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
   });
   const [cotizando, setCotizando] = useState(false);
   const [errorCotizar, setErrorCotizar] = useState("");
+  // Dirección confirmada desde la barra de búsqueda (Mapbox)
+  const [direccionLabel, setDireccionLabel] = useState("");
+
+  const [enviosPagados, setEnviosPagados] = useState<number | null>(null);
 
   const [showDeliveryPropioPanel, setShowDeliveryPropioPanel] = useState(false);
   const [comprobante, setComprobante] = useState<File | null>(null);
@@ -477,6 +616,15 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
       if (data.cotizaciones && Object.keys(data.cotizaciones).length > 0) {
         setCardsVisible(true);
       }
+      // Prueba social: cuántos envíos pagados tiene esta tienda
+      if (data.pyme_id) {
+        const { count } = await supabase
+          .from("envios")
+          .select("id", { count: "exact", head: true })
+          .eq("pyme_id", data.pyme_id)
+          .eq("pago_status", "pagado");
+        setEnviosPagados(count ?? null);
+      }
     }
     fetchEnvio();
   }, [id, router]);
@@ -510,6 +658,8 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
     setCardsVisible(false);
     setSelectedCourier(null);
     setSelectedSucursal(null);
+    // El input guarda solo los 8 dígitos; anteponemos el prefijo chileno.
+    const telefonoFull = formCliente.telefono.trim() ? `+56 9 ${formCliente.telefono.trim()}` : "";
     try {
       const res = await fetch("/api/cotizar-envio", {
         method: "POST",
@@ -518,7 +668,7 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
           id: Number(id),
           datos_destino: {
             nombre: formCliente.nombre.trim(),
-            telefono: formCliente.telefono.trim(),
+            telefono: telefonoFull,
             comuna: formCliente.comuna.trim(),
             calle: formCliente.calle.trim(),
             numero: formCliente.numero.trim(),
@@ -692,15 +842,24 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
 
   return (
     <div className="min-h-screen bg-[#FAFAF7]">
-      <StoreHeader envio={envio} />
+      <StoreHeader envio={envio} enviosPagados={enviosPagados} />
 
       <div className="max-w-md mx-auto px-4 py-6 pb-16">
+
+        {/* PRODUCTO — protagonista, visible desde que abre el link */}
+        <ProductoHero envio={envio} />
 
         {/* FORMULARIO */}
         {mostrarFormulario && !cotizando && (
           <>
             <div className="bg-white rounded-2xl shadow-sm border border-[#E8E8E3] overflow-hidden">
               <div className="px-6 pt-6 pb-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#E8553D]">Paso 1 de 2</span>
+                  <span className="flex-1 h-1 rounded-full bg-[#F0F0EB] overflow-hidden">
+                    <span className="block h-full w-1/2 bg-[#E8553D] rounded-full" />
+                  </span>
+                </div>
                 <h2 className="text-lg font-bold text-[#1A1A18]">Completa tus datos de envío</h2>
                 <p className="text-sm text-[#9C9C95] mt-1">
                   {envio.nombre_pyme} necesita tu dirección para calcular el costo del envío.
@@ -708,6 +867,113 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
               </div>
 
               <div className="px-6 pb-6 mt-4 flex flex-col gap-4">
+                {/* Buscar dirección — autocompletado (única fuente de la dirección) */}
+                <div>
+                  <label className="block text-sm font-semibold text-[#1A1A18] mb-1.5">
+                    Tu dirección <span className="text-[#E8553D]">*</span>
+                  </label>
+
+                  {!direccionLabel ? (
+                    <>
+                      <MapboxAddressSearch
+                        onSelect={(r) => {
+                          setFormCliente((s) => ({
+                            ...s,
+                            comuna: r.comuna,
+                            calle:  r.calle,
+                            numero: r.numero,
+                          }));
+                          setDireccionLabel(r.label);
+                          setErrorCotizar("");
+                        }}
+                        placeholder="Escribe tu calle y número…"
+                      />
+                      <p className="text-[11px] text-[#9C9C95] mt-1.5">
+                        Empieza a escribir y selecciona tu dirección de la lista.
+                      </p>
+                    </>
+                  ) : (
+                    <div className="flex items-start gap-2.5 rounded-xl border-2 border-[#00A651] bg-[#E8F8EE] px-4 py-3">
+                      <div className="flex-shrink-0 w-5 h-5 rounded-full bg-[#00A651] flex items-center justify-center mt-0.5">
+                        <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                          <polyline points="2,6 5,9 10,3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold text-[#1A1A18] leading-snug">{direccionLabel}</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDireccionLabel("");
+                            setFormCliente((s) => ({ ...s, comuna: "", calle: "", numero: "" }));
+                          }}
+                          className="text-xs font-semibold text-[#2D8A56] mt-1 hover:underline"
+                        >
+                          Cambiar dirección
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Número — solo si la dirección elegida no lo trae */}
+                {direccionLabel && !formCliente.numero && (
+                  <div>
+                    <label className="block text-sm font-semibold text-[#1A1A18] mb-1.5">
+                      Número <span className="text-[#E8553D]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formCliente.numero}
+                      onChange={(e) => setFormCliente((s) => ({ ...s, numero: e.target.value }))}
+                      placeholder="Ej: 1377"
+                      className="w-full border border-[#E8E8E3] rounded-xl px-4 py-3 text-sm text-[#1A1A18] bg-[#FAFAF7] outline-none transition-all focus:border-[#E8553D] focus:ring-2 focus:ring-[#E8553D]/10 placeholder:text-[#9C9C95]"
+                    />
+                    <p className="text-[11px] text-[#9C9C95] mt-1.5">
+                      No pudimos detectar el número de tu dirección, agrégalo aquí.
+                    </p>
+                  </div>
+                )}
+
+                {/* Comuna — respaldo si la dirección elegida no la trae (imprescindible para cotizar) */}
+                {direccionLabel && !formCliente.comuna.trim() && (
+                  <div>
+                    <label className="block text-sm font-semibold text-[#1A1A18] mb-1.5">
+                      Comuna <span className="text-[#E8553D]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formCliente.comuna}
+                      onChange={(e) => setFormCliente((s) => ({ ...s, comuna: e.target.value }))}
+                      placeholder="Ej: Providencia"
+                      className="w-full border border-[#E8E8E3] rounded-xl px-4 py-3 text-sm text-[#1A1A18] bg-[#FAFAF7] outline-none transition-all focus:border-[#E8553D] focus:ring-2 focus:ring-[#E8553D]/10 placeholder:text-[#9C9C95]"
+                    />
+                    <p className="text-[11px] text-[#9C9C95] mt-1.5">
+                      No pudimos detectar tu comuna, escríbela para calcular el envío.
+                    </p>
+                  </div>
+                )}
+
+                {/* Detalle interior — opcional, el mapa no lo entrega (depto, torre, block, etc.) */}
+                {direccionLabel && (
+                  <div>
+                    <label className="block text-sm font-semibold text-[#1A1A18] mb-1.5">
+                      Depto, torre u oficina
+                      <span className="text-[#9C9C95] font-normal ml-1 text-xs">Opcional</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formCliente.depto}
+                      onChange={(e) => setFormCliente((s) => ({ ...s, depto: e.target.value }))}
+                      placeholder="Ej: Torre B, depto 1007"
+                      className="w-full border border-[#E8E8E3] rounded-xl px-4 py-3 text-sm text-[#1A1A18] bg-[#FAFAF7] outline-none transition-all focus:border-[#E8553D] focus:ring-2 focus:ring-[#E8553D]/10 placeholder:text-[#9C9C95]"
+                    />
+                    <p className="text-[11px] text-[#9C9C95] mt-1.5">
+                      Agrega torre, block, depto o cualquier dato para encontrarte.
+                    </p>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-semibold text-[#1A1A18] mb-1.5">
                     Nombre completo <span className="text-[#E8553D]">*</span>
@@ -726,13 +992,19 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
                     Teléfono
                     <span className="text-[#9C9C95] font-normal ml-1 text-xs">Para coordinar la entrega</span>
                   </label>
-                  <input
-                    type="tel"
-                    value={formCliente.telefono}
-                    onChange={(e) => setFormCliente((s) => ({ ...s, telefono: e.target.value }))}
-                    placeholder="+56 9 1234 5678"
-                    className="w-full border border-[#E8E8E3] rounded-xl px-4 py-3 text-sm text-[#1A1A18] bg-[#FAFAF7] outline-none transition-all focus:border-[#E8553D] focus:ring-2 focus:ring-[#E8553D]/10 placeholder:text-[#9C9C95]"
-                  />
+                  <div className="flex items-stretch border border-[#E8E8E3] rounded-xl bg-[#FAFAF7] overflow-hidden transition-all focus-within:border-[#E8553D] focus-within:ring-2 focus-within:ring-[#E8553D]/10">
+                    <span className="flex items-center px-3 text-sm font-medium text-[#5C5C57] bg-[#F0F0EB] border-r border-[#E8E8E3] select-none">
+                      +56 9
+                    </span>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      value={formCliente.telefono}
+                      onChange={(e) => setFormCliente((s) => ({ ...s, telefono: e.target.value.replace(/\D/g, "").slice(0, 8) }))}
+                      placeholder="1234 5678"
+                      className="flex-1 min-w-0 px-4 py-3 text-sm text-[#1A1A18] bg-transparent outline-none placeholder:text-[#9C9C95]"
+                    />
+                  </div>
                 </div>
 
                 {envio.ask_instagram && (
@@ -741,55 +1013,6 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
                     onChange={(v) => setFormCliente((s) => ({ ...s, instagram: v }))}
                   />
                 )}
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-semibold text-[#1A1A18] mb-1.5">
-                      Comuna <span className="text-[#E8553D]">*</span>
-                    </label>
-                    <ComunaAutocomplete
-                      value={formCliente.comuna}
-                      onChange={(v) => setFormCliente((s) => ({ ...s, comuna: v }))}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-[#1A1A18] mb-1.5">
-                      Calle <span className="text-[#E8553D]">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formCliente.calle}
-                      onChange={(e) => setFormCliente((s) => ({ ...s, calle: e.target.value }))}
-                      placeholder="Ej: Blanco Viel"
-                      className="w-full border border-[#E8E8E3] rounded-xl px-4 py-3 text-sm text-[#1A1A18] bg-[#FAFAF7] outline-none transition-all focus:border-[#E8553D] focus:ring-2 focus:ring-[#E8553D]/10 placeholder:text-[#9C9C95]"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-semibold text-[#1A1A18] mb-1.5">
-                      Número <span className="text-[#E8553D]">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formCliente.numero}
-                      onChange={(e) => setFormCliente((s) => ({ ...s, numero: e.target.value }))}
-                      placeholder="Ej: 1377"
-                      className="w-full border border-[#E8E8E3] rounded-xl px-4 py-3 text-sm text-[#1A1A18] bg-[#FAFAF7] outline-none transition-all focus:border-[#E8553D] focus:ring-2 focus:ring-[#E8553D]/10 placeholder:text-[#9C9C95]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-[#1A1A18] mb-1.5">Depto / Oficina</label>
-                    <input
-                      type="text"
-                      value={formCliente.depto}
-                      onChange={(e) => setFormCliente((s) => ({ ...s, depto: e.target.value }))}
-                      placeholder="Ej: 1007"
-                      className="w-full border border-[#E8E8E3] rounded-xl px-4 py-3 text-sm text-[#1A1A18] bg-[#FAFAF7] outline-none transition-all focus:border-[#E8553D] focus:ring-2 focus:ring-[#E8553D]/10 placeholder:text-[#9C9C95]"
-                    />
-                  </div>
-                </div>
 
                 {errorCotizar && (
                   <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
@@ -847,7 +1070,7 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
                 <p className="text-[#5C5C57] text-sm leading-snug">
                   {envio.datos_destino?.calle || envio.datos_destino?.direccion}{" "}
                   {envio.datos_destino?.numero || envio.datos_destino?.number}
-                  {envio.datos_destino?.depto ? `, Depto ${envio.datos_destino.depto}` : ""},{" "}
+                  {envio.datos_destino?.depto ? `, ${envio.datos_destino.depto}` : ""},{" "}
                   {envio.datos_destino?.comuna}
                 </p>
               </div>
@@ -867,6 +1090,12 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
 
             {/* Título sección */}
             <div className="px-1 mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#E8553D]">Paso 2 de 2</span>
+                <span className="flex-1 h-1 rounded-full bg-[#F0F0EB] overflow-hidden">
+                  <span className="block h-full w-full bg-[#E8553D] rounded-full" />
+                </span>
+              </div>
               <h2 className="text-base font-bold text-[#1A1A18]">Elige cómo deseas recibir tu pedido</h2>
               <p className="text-xs text-[#9C9C95] mt-0.5">Opciones verificadas y aseguradas</p>
             </div>
@@ -1008,7 +1237,9 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
                         )}
                       </div>
                       <p className="text-xs text-[#888] mt-0.5">
-                        {isSucursal ? "Retiras en la sucursal que elijas" : getTiempo(cot)}
+                        {isSucursal
+                          ? "Retiras en la sucursal que elijas"
+                          : (estimateArrival(getTiempo(cot)) ?? getTiempo(cot))}
                       </p>
                     </div>
 
@@ -1063,35 +1294,10 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
               />
             )}
 
-            {/* Botón continuar */}
+            {/* Espaciador para que la barra sticky no tape el último courier */}
             {selectedCourier && !showDeliveryPropioPanel && !comprobanteSent && (
-              <button
-                onClick={() => {
-                  if (selectedCourier === "delivery_propio") {
-                    setShowDeliveryPropioPanel(true);
-                  } else if (canContinue) {
-                    elegir(selectedCourier);
-                  }
-                }}
-                disabled={(selectedCourier !== "delivery_propio" && !canContinue) || transitioning}
-                className="w-full font-bold py-4 rounded-xl text-[15px] mt-4 transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0"
-                style={{
-                  background: (canContinue || (selectedCourier as string) === "delivery_propio") ? "#1A1A18" : "#D1D1CC",
-                  color: "#fff",
-                }}
-              >
-                {selectedCourier === "starken_sucursal" && !selectedSucursal
-                  ? "Selecciona una sucursal para continuar"
-                  : selectedCourier === "delivery_propio"
-                  ? "Continuar con Delivery Propio →"
-                  : `Continuar con ${COURIER_CONFIG[selectedCourier]?.label ?? selectedCourier} →`}
-              </button>
+              <div className="h-32" />
             )}
-
-            <div className="flex items-center justify-center gap-1.5 mt-6 text-[#9C9C95]">
-              <LockClosedIcon className="w-3.5 h-3.5" />
-              <span className="text-xs">Pago seguro con FLOW</span>
-            </div>
           </>
         )}
 
@@ -1099,6 +1305,62 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
           Powered by <span className="font-semibold text-[#5C5C57]">LinkDrop</span>
         </p>
       </div>
+
+      {/* ── Barra sticky: total producto + envío y continuar ── */}
+      {!mostrarFormulario && !cotizando && selectedCourier && !showDeliveryPropioPanel && !comprobanteSent && (() => {
+        const precioProducto = envio.producto_precio ?? 0;
+        const isDP = selectedCourier === "delivery_propio";
+        const hayProducto = precioProducto > 0 && !isDP; // delivery propio no pasa por Flow con el producto
+        const precioEnvioSel = isDP
+          ? (dp?.precio ?? 0)
+          : (getPrice(cotizaciones[selectedCourier]!) ?? 0);
+        const totalSel = (hayProducto ? precioProducto : 0) + precioEnvioSel;
+        const ready = canContinue || isDP;
+        const needsSucursal = selectedCourier === "starken_sucursal" && !selectedSucursal;
+        return (
+          <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#E8E8E3] shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+            <div className="max-w-md mx-auto px-4 pt-3 pb-4">
+              {/* Desglose */}
+              <div className="flex items-end justify-between mb-2.5">
+                {hayProducto ? (
+                  <span className="text-xs text-[#5C5C57]">
+                    Producto ${precioProducto.toLocaleString("es-CL")} <span className="text-[#D1D1CC]">·</span> Envío ${precioEnvioSel.toLocaleString("es-CL")}
+                  </span>
+                ) : (
+                  <span className="text-xs text-[#5C5C57]">
+                    {isDP ? "Delivery propio" : COURIER_CONFIG[selectedCourier]?.label ?? "Envío"}
+                  </span>
+                )}
+                <div className="text-right">
+                  <p className="text-[10px] text-[#9C9C95] leading-none mb-0.5">{hayProducto ? "Total" : "A pagar"}</p>
+                  <p className="text-lg font-extrabold text-[#1A1A18] leading-none">${totalSel.toLocaleString("es-CL")}</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  if (isDP) { setShowDeliveryPropioPanel(true); }
+                  else if (canContinue) { elegir(selectedCourier); }
+                }}
+                disabled={(!isDP && !canContinue) || transitioning}
+                className="w-full font-bold py-3.5 rounded-xl text-[15px] transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: ready ? "#1A1A18" : "#D1D1CC", color: "#fff" }}
+              >
+                {needsSucursal
+                  ? "Selecciona una sucursal para continuar"
+                  : isDP
+                  ? "Continuar con Delivery Propio →"
+                  : "Continuar al pago →"}
+              </button>
+
+              <div className="flex items-center justify-center gap-1.5 mt-2.5 text-[#9C9C95]">
+                <LockClosedIcon className="w-3 h-3" />
+                <span className="text-[11px]">Pago protegido · Procesado por FLOW</span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {transitioning && (
         <div className="fixed inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-50">

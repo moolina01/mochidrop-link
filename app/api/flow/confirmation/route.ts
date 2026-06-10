@@ -47,12 +47,14 @@ export async function POST(req: NextRequest) {
     // Leer courier desde Supabase (más confiable que payment.optional)
     const { data: envioData } = await supabaseAdmin
       .from("envios")
-      .select("courier")
+      .select("courier, pago_status")
       .eq("id", Number(envioId))
       .single();
     const courier = envioData?.courier ?? String(payment.optional ?? "");
+    // Solo fijamos pagado_at en la PRIMERA confirmación (Flow puede reintentar el webhook)
+    const yaEstabaPagado = envioData?.pago_status === "pagado";
 
-    console.log(`[confirmation] Pago OK — envioId=${envioId} courier=${courier}`);
+    console.log(`[confirmation] Pago OK — envioId=${envioId} courier=${courier} yaPagado=${yaEstabaPagado}`);
 
     // 2. Guardar en Supabase
     const { error: dbError } = await supabaseAdmin
@@ -62,6 +64,7 @@ export async function POST(req: NextRequest) {
         flow_token:  token,
         flow_order:  String(payment.flowOrder ?? ""),
         courier,
+        ...(yaEstabaPagado ? {} : { pagado_at: new Date().toISOString() }),
       })
       .eq("id", Number(envioId));
 

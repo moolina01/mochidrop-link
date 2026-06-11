@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { supabase } from "@/utils/supabase";
 import type { User } from "@supabase/supabase-js";
 import DatosBancariosCard from "./DatosBancariosCard";
+import EnvioGratisCard from "./EnvioGratisCard";
+import SaldoCard from "./SaldoCard";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -92,7 +94,7 @@ type PackageState = {
 
 type PackageTemplate = PackageState & { label: string };
 
-type ActiveTab = "tienda" | "crear" | "envios";
+type ActiveTab = "tienda" | "crear" | "envios" | "cobros";
 
 type EnvioResumen = {
   id: number;
@@ -117,6 +119,8 @@ type EnvioResumen = {
   liquidado?: boolean | null;
   liquidado_at?: string | null;
   pagado_at?: string | null;
+  envio_gratis_aplicado?: boolean | null;
+  flete_absorbido?: number | null;
 };
 
 const DEFAULT_PROFILE: ProfileState = {
@@ -323,16 +327,18 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 }
 
 function TextInput({
-  value, onChange, placeholder, type = "text",
+  value, onChange, placeholder, type = "text", inputMode,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   type?: string;
+  inputMode?: "numeric" | "text" | "decimal" | "tel" | "email";
 }) {
   return (
     <input
       type={type}
+      inputMode={inputMode}
       value={value}
       placeholder={placeholder}
       onChange={(e) => onChange(e.target.value)}
@@ -356,13 +362,18 @@ function TextInput({
 
 // ─── Estado de la transferencia del producto a la pyme (feature producto) ───────
 // El cliente paga producto + envío por Flow. LinkDrop le transfiere el producto a
-// la pyme en 24-48h. `liquidado` indica si esa transferencia ya se hizo.
+// la pyme una vez por semana. `liquidado` indica si esa transferencia ya se hizo.
 
 function ProductoEnvioInfo({ envio }: { envio: EnvioResumen }) {
   if (!envio.producto_precio || envio.producto_precio <= 0) return null;
   const transferido = !!envio.liquidado;
-  const monto = `$${envio.producto_precio.toLocaleString("es-CL")}`;
   const nombre = envio.producto_nombre ? ` · ${envio.producto_nombre}` : "";
+
+  // Si la tienda pagó el envío (envío gratis), se descuenta del monto a transferir
+  const gratis = !!envio.envio_gratis_aplicado;
+  const flete = gratis ? (envio.flete_absorbido ?? 0) : 0;
+  const neto = Math.max(0, envio.producto_precio - flete);
+  const montoNeto = `$${neto.toLocaleString("es-CL")}`;
 
   const box = transferido
     ? { bg: "#F0FAF4", border: "#B8E2C8" }
@@ -379,17 +390,22 @@ function ProductoEnvioInfo({ envio }: { envio: EnvioResumen }) {
     <div style={{ gridColumn: "1 / -1", marginTop: 4, padding: "12px 14px", background: box.bg, border: `1px solid ${box.border}`, borderRadius: 12 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
         <div>
-          <p style={{ margin: 0, fontSize: 11, color: "#9C9C95" }}>Producto{nombre}</p>
-          <p style={{ margin: "2px 0 0", fontSize: 14, fontWeight: 800, color: "#1A1A18" }}>{monto}</p>
+          <p style={{ margin: 0, fontSize: 11, color: "#9C9C95" }}>{transferido ? "Recibiste" : "Recibirás"}{nombre}</p>
+          <p style={{ margin: "2px 0 0", fontSize: 14, fontWeight: 800, color: "#1A1A18" }}>{montoNeto}</p>
         </div>
         <span style={{ fontSize: 10, fontWeight: 700, padding: "3px 9px", borderRadius: 20, color: badge.color, background: badge.bg, border: `1px solid ${badge.border}` }}>
           {badge.label}
         </span>
       </div>
+      {gratis && flete > 0 && (
+        <p style={{ margin: "6px 0 0", fontSize: 11, color: "#9C9C95" }}>
+          Producto ${envio.producto_precio.toLocaleString("es-CL")} · envío −${flete.toLocaleString("es-CL")} (lo cubre tu tienda)
+        </p>
+      )}
       <p style={{ margin: "8px 0 0", fontSize: 11, color: transferido ? "#2D8A56" : "#9A6B00" }}>
         {transferido
-          ? `💸 Te transferimos ${monto}${fechaTransfer ? ` el ${fechaTransfer}` : ""}.`
-          : "⏱ Te transferimos el monto del producto dentro de 24-48 h."}
+          ? `💸 Te transferimos ${montoNeto}${fechaTransfer ? ` el ${fechaTransfer}` : ""}.`
+          : `⏱ Te transferimos ${montoNeto} en tu próxima transferencia semanal.`}
       </p>
     </div>
   );
@@ -1585,7 +1601,7 @@ function MisEnviosView({ userId, isPro, origenComuna, onPendientesCount, onCreat
   useEffect(() => {
     supabase
       .from("envios")
-      .select("id, datos_destino, courier, tracking, tracking_url, label_url, estado, created_at, pickup_agendado, pickup_id, pickup_date, pickup_time_from, pickup_time_to, pickup_status, pickup_attempts, pago_status, producto_precio, producto_nombre, envio_pago_status, liquidado, liquidado_at, pagado_at")
+      .select("id, datos_destino, courier, tracking, tracking_url, label_url, estado, created_at, pickup_agendado, pickup_id, pickup_date, pickup_time_from, pickup_time_to, pickup_status, pickup_attempts, pago_status, producto_precio, producto_nombre, envio_pago_status, liquidado, liquidado_at, pagado_at, envio_gratis_aplicado, flete_absorbido")
       .eq("pyme_id", userId)
       .or("pago_status.eq.pagado,tracking_url.not.is.null,estado.eq.delivery_pendiente")
       .order("created_at", { ascending: false })
@@ -2645,6 +2661,13 @@ export default function CreateLinkClient() {
     setActiveTab(tab);
     localStorage.setItem("mochi_active_tab", tab);
     if (tab === "tienda" && pymeSlug) setIsEditingProfile(false);
+    // Al ir a Crear Link, re-verifica datos bancarios (pudo configurarlos recién en Mi Tienda)
+    if (tab === "crear" && betaProductoEnabled && user) {
+      supabase.from("pymes").select("datos_bancarios").eq("auth_id", user.id).single().then(({ data }) => {
+        const db = data?.datos_bancarios as { banco?: string; cuenta?: string; titular?: string; rut?: string } | null;
+        setTieneDatosBancarios(!!(db?.banco && db?.cuenta && db?.titular && db?.rut));
+      });
+    }
     if (tab !== "crear" && envioPageStatus === "pagado") {
       setGeneratedUrl("");
       setGeneratedEnvioId(null);
@@ -2683,6 +2706,7 @@ export default function CreateLinkClient() {
   const [showDeliveryPropioModal, setShowDeliveryPropioModal] = useState(false);
   const [deliveryPropio, setDeliveryPropio] = useState<DeliveryPropioState>(DEFAULT_DELIVERY_PROPIO);
   const [betaProductoEnabled, setBetaProductoEnabled] = useState(false);
+  const [tieneDatosBancarios, setTieneDatosBancarios] = useState(false);
   const [showProductoBetaModal, setShowProductoBetaModal] = useState(false);
   const [producto, setProducto] = useState<ProductoState>(DEFAULT_PRODUCTO);
   const [pymeSlug, setPymeSlug] = useState("");
@@ -2761,7 +2785,7 @@ export default function CreateLinkClient() {
     (async () => {
       const { data } = await supabase
         .from("pymes")
-        .select("links_creados, limite_links, ask_instagram, nombre_tienda, logo_url, origen_comuna, origen_calle, origen_numero, origen_depto, couriers_habilitados, slug, link_fijo_enabled, default_largo, default_alto, default_ancho, default_peso, delivery_propio_enabled, delivery_propio_precio, delivery_propio_telefono, delivery_propio_banco, delivery_propio_cuenta, delivery_propio_titular, delivery_propio_rut, delivery_propio_email, codigo_postal, beta_producto_enabled")
+        .select("links_creados, limite_links, ask_instagram, nombre_tienda, logo_url, origen_comuna, origen_calle, origen_numero, origen_depto, couriers_habilitados, slug, link_fijo_enabled, default_largo, default_alto, default_ancho, default_peso, delivery_propio_enabled, delivery_propio_precio, delivery_propio_telefono, delivery_propio_banco, delivery_propio_cuenta, delivery_propio_titular, delivery_propio_rut, delivery_propio_email, codigo_postal, beta_producto_enabled, datos_bancarios")
         .eq("auth_id", user.id)
         .single();
       if (data) {
@@ -2788,6 +2812,8 @@ export default function CreateLinkClient() {
           if (resolvedSlug) setIsEditingProfile(false);
           setLinkFijoEnabled(data.link_fijo_enabled ?? false);
           setBetaProductoEnabled(data.beta_producto_enabled ?? false);
+          const db = data.datos_bancarios as { banco?: string; cuenta?: string; titular?: string; rut?: string } | null;
+          setTieneDatosBancarios(!!(db?.banco && db?.cuenta && db?.titular && db?.rut));
           setCodigoPostalOrigen(data.codigo_postal ?? null);
           setDefaultDims({
             largo: String(data.default_largo ?? ""),
@@ -3646,7 +3672,7 @@ export default function CreateLinkClient() {
             <div style={{ padding: "22px 24px 24px" }}>
               <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: "#5C5C57" }}>
                 Ahora tu cliente paga el <b style={{ color: "#1A1A18" }}>producto + envío</b> en un solo pago.
-                El monto del producto te será transferido a tu cuenta en un plazo de <b style={{ color: "#1A1A18" }}>24 a 48 horas</b>.
+                El monto del producto te será transferido a tu cuenta <b style={{ color: "#1A1A18" }}>una vez por semana</b>.
               </p>
               <div style={{ marginTop: 16, background: "#FAFAF7", border: "1px solid #F0F0EB", borderRadius: 12, padding: "12px 14px" }}>
                 <p style={{ margin: 0, fontSize: 12, color: "#9C9C95" }}>¿Dudas o consultas?</p>
@@ -4119,6 +4145,7 @@ export default function CreateLinkClient() {
             { id: "envios", label: "Mis Envíos" },
             { id: "crear",  label: "Crear Link"  },
             { id: "tienda", label: "Mi Tienda"   },
+            ...(betaProductoEnabled ? [{ id: "cobros" as ActiveTab, label: "Cobros" }] : []),
           ] as { id: ActiveTab; label: string }[]).map((tab) => (
             <button
               key={tab.id}
@@ -4179,12 +4206,19 @@ export default function CreateLinkClient() {
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
             {/* ════ TAB 1: Mi Tienda ════ */}
+            {activeTab === "cobros" && betaProductoEnabled && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <SaldoCard userId={user?.id ?? null} />
+                <DatosBancariosCard userId={user?.id ?? null} />
+              </div>
+            )}
+
             {activeTab === "tienda" && (
               <>
-                {/* ── Datos bancarios para recibir pagos (beta producto) ── */}
+                {/* ── Configuración de envío (beta) ── */}
                 {betaProductoEnabled && !isEditingProfile && (
                   <div style={{ marginBottom: 12 }}>
-                    <DatosBancariosCard userId={user?.id ?? null} />
+                    <EnvioGratisCard userId={user?.id ?? null} />
                   </div>
                 )}
 
@@ -4859,35 +4893,56 @@ export default function CreateLinkClient() {
                           <p style={{ margin: "1px 0 0", fontSize: 12, color: "#9C9C95" }}>Opcional · tu cliente paga producto + envío juntos</p>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={producto.enabled}
-                        onClick={() => {
-                          const next = !producto.enabled;
-                          setProducto_("enabled", next);
-                          if (next && user && !localStorage.getItem(`ld_producto_beta_modal_${user.id}`)) {
-                            setShowProductoBetaModal(true);
-                            localStorage.setItem(`ld_producto_beta_modal_${user.id}`, "1");
-                          }
-                        }}
-                        style={{
-                          flexShrink: 0, width: 44, height: 26, borderRadius: 100, border: "none", cursor: "pointer", padding: 0,
-                          background: producto.enabled ? "#E8553D" : "#D1D1CC", transition: "background 0.2s", position: "relative",
-                        }}
-                      >
-                        <span style={{ position: "absolute", top: 3, left: producto.enabled ? 21 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
-                      </button>
+                      {tieneDatosBancarios ? (
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={producto.enabled}
+                          onClick={() => {
+                            const next = !producto.enabled;
+                            setProducto_("enabled", next);
+                            if (next && user && !localStorage.getItem(`ld_producto_beta_modal_${user.id}`)) {
+                              setShowProductoBetaModal(true);
+                              localStorage.setItem(`ld_producto_beta_modal_${user.id}`, "1");
+                            }
+                          }}
+                          style={{
+                            flexShrink: 0, width: 44, height: 26, borderRadius: 100, border: "none", cursor: "pointer", padding: 0,
+                            background: producto.enabled ? "#E8553D" : "#D1D1CC", transition: "background 0.2s", position: "relative",
+                          }}
+                        >
+                          <span style={{ position: "absolute", top: 3, left: producto.enabled ? 21 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }} />
+                        </button>
+                      ) : (
+                        <span style={{ flexShrink: 0, fontSize: 18 }}>🔒</span>
+                      )}
                     </div>
 
-                    {producto.enabled && (
+                    {/* Bloqueo: requiere datos bancarios para poder cobrar el producto */}
+                    {!tieneDatosBancarios && (
+                      <div style={{ marginTop: 14, background: "#FFF7E6", border: "1px solid #F5D58A", borderRadius: 12, padding: "12px 14px" }}>
+                        <p style={{ margin: 0, fontSize: 13, color: "#9A6B00", lineHeight: 1.5 }}>
+                          Para cobrar el producto primero necesitas <b>configurar tus datos bancarios</b>, así sabemos a qué cuenta depositarte.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => switchTab("cobros")}
+                          style={{ marginTop: 10, background: "#1A1A18", color: "#fff", fontWeight: 700, fontSize: 13, fontFamily: "inherit", border: "none", borderRadius: 10, padding: "9px 14px", cursor: "pointer" }}
+                        >
+                          Configurar datos bancarios →
+                        </button>
+                      </div>
+                    )}
+
+                    {producto.enabled && tieneDatosBancarios && (
                       <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 16 }}>
                         <Field label="Precio del producto (CLP) *">
                           <TextInput
-                            value={producto.precio}
+                            value={producto.precio ? Number(producto.precio).toLocaleString("es-CL") : ""}
                             onChange={(v) => setProducto_("precio", v.replace(/[^\d]/g, ""))}
-                            placeholder="15000"
-                            type="number"
+                            placeholder="15.000"
+                            type="text"
+                            inputMode="numeric"
                           />
                         </Field>
 
@@ -4980,7 +5035,7 @@ export default function CreateLinkClient() {
           </div>
 
           {/* ── RIGHT: Panel fijo ─────────────────────────────── */}
-          <div style={{ position: "sticky", top: 76, height: "fit-content", display: activeTab === "envios" ? "none" : "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ position: "sticky", top: 76, height: "fit-content", display: (activeTab === "envios" || activeTab === "cobros") ? "none" : "flex", flexDirection: "column", gap: 10 }}>
 
             {/* Tips panel — solo en Mi Tienda */}
             {activeTab === "tienda" && (

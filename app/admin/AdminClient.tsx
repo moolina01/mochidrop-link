@@ -19,6 +19,8 @@ type Venta = {
   cliente: string;
   producto: string;
   precio: number;
+  envio_gratis?: boolean;
+  flete_descontado?: number;
   pagado_at: string;
 };
 
@@ -231,7 +233,12 @@ export default function AdminClient() {
                 <div className="px-5 py-3">
                   {g.ventas.map((v) => (
                     <div key={v.id} className="flex items-center justify-between py-1.5 text-sm border-b border-[#F5F5F0] last:border-0">
-                      <span className="text-[#5C5C57] truncate mr-3">{v.cliente} · <span className="text-[#9C9C95]">{v.producto}</span></span>
+                      <span className="text-[#5C5C57] truncate mr-3">
+                        {v.cliente} · <span className="text-[#9C9C95]">{v.producto}</span>
+                        {v.envio_gratis && (
+                          <span className="ml-1.5 text-[10px] font-semibold text-[#2D8A56]">envío gratis −{clp(v.flete_descontado ?? 0)}</span>
+                        )}
+                      </span>
                       <span className="font-semibold text-[#1A1A18] flex-shrink-0">{clp(v.precio)}</span>
                     </div>
                   ))}

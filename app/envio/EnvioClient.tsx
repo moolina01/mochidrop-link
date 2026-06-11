@@ -9,6 +9,7 @@ import {
   PencilSquareIcon,
 } from "@heroicons/react/24/solid";
 import { useRouter } from "next/navigation";
+import { evaluarEnvioGratis, type EnvioGratisConfig } from "@/utils/envioGratis";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -554,6 +555,10 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
 
   const [enviosPagados, setEnviosPagados] = useState<number | null>(null);
 
+  // Envío gratis: config de la tienda + comuna de origen (para evaluar la regla en vivo)
+  const [envioGratisCfg, setEnvioGratisCfg] = useState<EnvioGratisConfig | null>(null);
+  const [origenComuna, setOrigenComuna] = useState<string>("");
+
   const [showDeliveryPropioPanel, setShowDeliveryPropioPanel] = useState(false);
   const [comprobante, setComprobante] = useState<File | null>(null);
   const [enviandoComprobante, setEnviandoComprobante] = useState(false);
@@ -603,6 +608,17 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
     router.push(`/confirmacion?id=${id}&courier=${courier}`);
   }
 
+  // Continuar con envío gratis: el cliente paga solo el producto; la tienda
+  // absorbe el flete (se guarda para descontarlo en la liquidación).
+  async function continuarGratisFn(courier: string, flete: number) {
+    setTransitioning(true);
+    await supabase
+      .from("envios")
+      .update({ envio_gratis_aplicado: true, flete_absorbido: flete, courier })
+      .eq("id", Number(id));
+    router.push(`/confirmacion?id=${id}&courier=${courier}`);
+  }
+
   useEffect(() => {
     if (!id) { setLoading(false); return; }
     async function fetchEnvio() {
@@ -624,6 +640,17 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
           .eq("pyme_id", data.pyme_id)
           .eq("pago_status", "pagado");
         setEnviosPagados(count ?? null);
+
+        // Config de envío gratis + comuna de origen de la tienda
+        const { data: pyme } = await supabase
+          .from("pymes")
+          .select("envio_gratis, origen_comuna")
+          .eq("auth_id", data.pyme_id)
+          .single();
+        if (pyme) {
+          setEnvioGratisCfg((pyme.envio_gratis as EnvioGratisConfig | null) ?? null);
+          setOrigenComuna(pyme.origen_comuna ?? "");
+        }
       }
     }
     fetchEnvio();
@@ -754,6 +781,24 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
         return currPrice < minPrice ? curr : min;
       })
     : null;
+
+  // ── Envío gratis: evaluado en vivo con la config de la tienda ──
+  const productoPrecio = envio.producto_precio ?? 0;
+  const aplicaGratis =
+    productoPrecio > 0 &&
+    courierKeys.length > 0 &&
+    evaluarEnvioGratis(envioGratisCfg, origenComuna, envio.datos_destino?.comuna, productoPrecio);
+  // Courier a usar en envío gratis: el configurado (si es de domicilio y cotizó),
+  // si no el más barato de domicilio. Se evita sucursal para no exigir selección.
+  const gratisCourier: string | null = (() => {
+    if (!aplicaGratis) return null;
+    const domicilio = courierKeys.filter((k) => k !== "starken_sucursal");
+    const pool = domicilio.length ? domicilio : courierKeys;
+    if (envioGratisCfg?.courier && pool.includes(envioGratisCfg.courier)) return envioGratisCfg.courier;
+    return pool.reduce((min, curr) =>
+      (getPrice(cotizaciones[curr]!) ?? Infinity) < (getPrice(cotizaciones[min]!) ?? Infinity) ? curr : min);
+  })();
+  const fleteGratis = gratisCourier ? (getPrice(cotizaciones[gratisCourier]!) ?? 0) : 0;
 
   // Puede continuar: tiene courier seleccionado, y si es sucursal también tiene sucursal
   const canContinue =
@@ -1088,7 +1133,29 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
               </button>
             </div>
 
+            {/* Panel envío gratis — reemplaza la selección de courier */}
+            {aplicaGratis && gratisCourier && (
+              <>
+                <div className="bg-gradient-to-br from-[#F0FAF4] to-[#E8F8EE] border-2 border-[#B8E2C8] rounded-2xl p-5 mb-4 text-center">
+                  <div className="text-3xl mb-1">🎉</div>
+                  <p className="text-lg font-extrabold text-[#1A1A18]">¡Tienes envío gratis!</p>
+                  <p className="text-sm text-[#2D8A56] mt-1">La tienda cubre el despacho. Pagas solo tu producto.</p>
+                </div>
+                <div className="bg-white rounded-2xl border border-[#E8E8E3] shadow-sm overflow-hidden mb-4">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-[#F0F0EB]">
+                    <span className="text-sm text-[#5C5C57]">Despacho con {COURIER_CONFIG[gratisCourier]?.label ?? gratisCourier}</span>
+                    <span className="text-sm font-bold text-[#2D8A56]">Gratis</span>
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <span className="text-sm text-[#5C5C57]">Producto</span>
+                    <span className="text-sm font-semibold text-[#1A1A18]">${productoPrecio.toLocaleString("es-CL")}</span>
+                  </div>
+                </div>
+              </>
+            )}
+
             {/* Título sección */}
+            {!aplicaGratis && (
             <div className="px-1 mb-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#E8553D]">Paso 2 de 2</span>
@@ -1099,6 +1166,7 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
               <h2 className="text-base font-bold text-[#1A1A18]">Elige cómo deseas recibir tu pedido</h2>
               <p className="text-xs text-[#9C9C95] mt-0.5">Opciones verificadas y aseguradas</p>
             </div>
+            )}
 
             {/* Panel comprobante delivery propio */}
             {showDeliveryPropioPanel && dp && !comprobanteSent && (
@@ -1169,7 +1237,7 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
             )}
 
             {/* Lista de couriers */}
-            {!showDeliveryPropioPanel && !comprobanteSent && (
+            {!aplicaGratis && !showDeliveryPropioPanel && !comprobanteSent && (
             <div className="bg-white rounded-2xl border border-[#E8E8E3] shadow-sm overflow-hidden">
               {courierKeys.map((key, index) => {
                 const cot = cotizaciones[key]!;
@@ -1295,7 +1363,7 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
             )}
 
             {/* Espaciador para que la barra sticky no tape el último courier */}
-            {selectedCourier && !showDeliveryPropioPanel && !comprobanteSent && (
+            {(selectedCourier || aplicaGratis) && !showDeliveryPropioPanel && !comprobanteSent && (
               <div className="h-32" />
             )}
           </>
@@ -1305,6 +1373,35 @@ export default function EnvioClient({ envioId }: { envioId?: string } = {}) {
           Powered by <span className="font-semibold text-[#5C5C57]">LinkDrop</span>
         </p>
       </div>
+
+      {/* ── Barra sticky: envío gratis (paga solo producto) ── */}
+      {!mostrarFormulario && !cotizando && aplicaGratis && gratisCourier && !comprobanteSent && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#E8E8E3] shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+          <div className="max-w-md mx-auto px-4 pt-3 pb-4">
+            <div className="flex items-end justify-between mb-2.5">
+              <span className="text-xs text-[#5C5C57]">
+                Producto ${productoPrecio.toLocaleString("es-CL")} <span className="text-[#D1D1CC]">·</span> <span className="text-[#2D8A56] font-semibold">Envío gratis</span>
+              </span>
+              <div className="text-right">
+                <p className="text-[10px] text-[#9C9C95] leading-none mb-0.5">A pagar</p>
+                <p className="text-lg font-extrabold text-[#1A1A18] leading-none">${productoPrecio.toLocaleString("es-CL")}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => continuarGratisFn(gratisCourier, fleteGratis)}
+              disabled={transitioning}
+              className="w-full font-bold py-3.5 rounded-xl text-[15px] transition-all active:scale-[0.99] disabled:opacity-50"
+              style={{ background: "#1A1A18", color: "#fff" }}
+            >
+              Continuar al pago →
+            </button>
+            <div className="flex items-center justify-center gap-1.5 mt-2.5 text-[#9C9C95]">
+              <LockClosedIcon className="w-3 h-3" />
+              <span className="text-[11px]">Pago protegido · Procesado por FLOW</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Barra sticky: total producto + envío y continuar ── */}
       {!mostrarFormulario && !cotizando && selectedCourier && !showDeliveryPropioPanel && !comprobanteSent && (() => {

@@ -54,6 +54,7 @@ type EnvioType = {
   producto_precio?: number | null;
   producto_nombre?: string | null;
   producto_imagen?: string | null;
+  envio_gratis_aplicado?: boolean | null;
 };
 
 // ─── Config couriers ──────────────────────────────────────────────────────────
@@ -152,7 +153,7 @@ export default function ConfirmacionClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           envioId: id,
-          amount:  getPrice(info) + (envio?.producto_precio ?? 0),
+          amount:  (envio?.envio_gratis_aplicado ? 0 : getPrice(info)) + (envio?.producto_precio ?? 0),
           email:   email.trim(),
           courier,
         }),
@@ -199,7 +200,8 @@ export default function ConfirmacionClient() {
   const isSucursal = courier === "starken_sucursal";
   const sucursal = isSucursal ? envio.sucursal_retiro : null;
 
-  const precioEnvio    = getPrice(info);
+  const gratis         = !!envio.envio_gratis_aplicado;
+  const precioEnvio    = gratis ? 0 : getPrice(info);
   const precioProducto = envio.producto_precio ?? 0;
   const hayProducto    = precioProducto > 0;
   const total          = precioEnvio + precioProducto;
@@ -282,9 +284,18 @@ export default function ConfirmacionClient() {
                   {isSucursal ? "Retiro en sucursal" : `Llega en ${getTiempo(info)}`}
                 </p>
               </div>
-              <p className="font-bold text-2xl text-[#1A1A18] flex-shrink-0">
-                ${getPrice(info).toLocaleString("es-CL")}
-              </p>
+              {gratis ? (
+                <div className="flex-shrink-0 text-right">
+                  <p className="text-sm font-medium text-[#9C9C95] line-through leading-none">
+                    ${getPrice(info).toLocaleString("es-CL")}
+                  </p>
+                  <p className="font-bold text-xl text-[#2D8A56] leading-none mt-0.5">Gratis</p>
+                </div>
+              ) : (
+                <p className="font-bold text-2xl text-[#1A1A18] flex-shrink-0">
+                  ${getPrice(info).toLocaleString("es-CL")}
+                </p>
+              )}
             </div>
           </div>
 
@@ -334,7 +345,9 @@ export default function ConfirmacionClient() {
                 </div>
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-[#5C5C57]">Envío</p>
-                  <p className="text-sm font-medium text-[#1A1A18]">${precioEnvio.toLocaleString("es-CL")}</p>
+                  {gratis
+                    ? <p className="text-sm font-bold text-[#2D8A56]">Gratis 🎉</p>
+                    : <p className="text-sm font-medium text-[#1A1A18]">${precioEnvio.toLocaleString("es-CL")}</p>}
                 </div>
               </div>
             )}

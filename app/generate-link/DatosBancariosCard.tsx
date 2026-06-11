@@ -129,7 +129,7 @@ export default function DatosBancariosCard({ userId }: { userId: string | null }
           <p className="font-bold text-[15px] text-[#1A1A18]">Datos para recibir tus pagos</p>
         </div>
         <p className="text-xs text-[#9C9C95] mt-1 leading-snug">
-          Cuando un cliente paga el producto, te transferimos a esta cuenta dentro de 24-48h. Manténla al día.
+          Cuando un cliente paga el producto, te transferimos a esta cuenta una vez por semana. Manténla al día.
         </p>
       </div>
 

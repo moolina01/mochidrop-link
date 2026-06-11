@@ -32,7 +32,17 @@ type PendingEnvio = {
   datos_destino: { nombre?: string } | null;
   pagado_at: string | null;
   created_at: string;
+  envio_gratis_aplicado: boolean | null;
+  flete_absorbido: number | null;
 };
+
+// Monto neto a transferir por venta: producto menos el flete que absorbe la
+// tienda cuando se aplicó envío gratis.
+function netoPyme(e: PendingEnvio): number {
+  const producto = e.producto_precio ?? 0;
+  const flete = e.envio_gratis_aplicado ? (e.flete_absorbido ?? 0) : 0;
+  return Math.max(0, producto - flete);
+}
 
 // GET: lista de pagos pendientes a pymes, agrupados por pyme.
 export async function GET(req: NextRequest) {
@@ -41,7 +51,7 @@ export async function GET(req: NextRequest) {
 
   const { data: envios, error: enviosErr } = await admin
     .from("envios")
-    .select("id, pyme_id, producto_precio, producto_nombre, datos_destino, pagado_at, created_at")
+    .select("id, pyme_id, producto_precio, producto_nombre, datos_destino, pagado_at, created_at, envio_gratis_aplicado, flete_absorbido")
     .eq("pago_status", "pagado")
     .eq("liquidado", false)
     .gt("producto_precio", 0)
@@ -67,7 +77,7 @@ export async function GET(req: NextRequest) {
   // Agrupar por pyme
   const grupos = pymeIds.map((pid) => {
     const enviosPyme = lista.filter((e) => e.pyme_id === pid);
-    const total = enviosPyme.reduce((sum, e) => sum + (e.producto_precio ?? 0), 0);
+    const total = enviosPyme.reduce((sum, e) => sum + netoPyme(e), 0);
     // La venta más antigua sin liquidar define la urgencia
     const fechas = enviosPyme
       .map((e) => e.pagado_at ?? e.created_at)
@@ -84,7 +94,9 @@ export async function GET(req: NextRequest) {
         id: e.id,
         cliente: e.datos_destino?.nombre ?? "—",
         producto: e.producto_nombre ?? "Producto",
-        precio: e.producto_precio ?? 0,
+        precio: netoPyme(e),
+        envio_gratis: !!e.envio_gratis_aplicado,
+        flete_descontado: e.envio_gratis_aplicado ? (e.flete_absorbido ?? 0) : 0,
         pagado_at: e.pagado_at ?? e.created_at,
       })),
     };

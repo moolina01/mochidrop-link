@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase";
 import { EnvioGratisConfig, EnvioGratisModo, ENVIO_GRATIS_DEFAULT } from "@/utils/envioGratis";
+import EstimadorPrecios from "./EstimadorPrecios";
 
 const COURIER_LABELS: Record<string, string> = {
   starken_domicilio: "Starken Domicilio",
@@ -225,6 +226,8 @@ export default function EnvioGratisCard({ userId }: { userId: string | null }) {
                 </select>
               )}
             </div>
+
+            <EstimadorPrecios userId={userId} couriers={couriers} onPick={(c) => set("courier", c)} />
           </>
         )}
 
